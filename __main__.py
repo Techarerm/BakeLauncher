@@ -23,7 +23,7 @@ from assets_grabber import get_asset
 import print_color
 from print_color import print
 
-laucnher_version = "Beta 6"
+laucnher_version = "Beta 0.6"
 
 def back_to_main():
     os.system('cls')
