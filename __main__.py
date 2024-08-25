@@ -7,28 +7,29 @@ A Minecraft java launcher code on python.
 
 import os
 import sys
-from Auth_tool import login
+import time
+
+from auth_tool import login
 from launch_client import launch
 import json
 import Download
-from Download import request_version_url
+from Download import download_main
 import shutil
-from path_tool import path_main
-from path_tool import generate_jar_paths
-import JVM_path
-from JVM_path import java_tool
-from assets_tool import get_asset
-print("BakeLauncher Beta 5(Pre)")
-print("Warring:This is a 'Experimental' version and has many immature features.")
-print("Warring:This version not support  1.16 because it will crash when you launch it :(")
-print("NOW SUPPORT 'ALL' VERSIONS OF MINECRAFT!!!!(Except snapshots :)")
-print("Add multi-version support.")
-print("Using assets_tool instead McAssetExtractor.")
-print("Fixed JVM_path not working on Windows(Other system still not supported :(")
-print("Please run it if you know what you are doing.")
-print(" ")
-def back():
+from launch_version_patcher import patcher_main
+from launch_version_patcher import generate_jar_paths
+import jvm_path_finder
+from jvm_path_finder import java_finder
+from assets_grabber import get_asset
+import print_color
+from print_color import print
+
+laucnher_version = "Beta 6"
+
+def back_to_main():
     os.system('cls')
+    main()
+
+def back_to_main_without_cls():
     main()
 
 def initialize_account_data():
@@ -42,61 +43,81 @@ def initialize_account_data():
     with open('data\\AccountData.json', 'w') as file:
         json.dump(default_data, file)
 
+print("Warring:This is a 'Experimental' version and has many immature features.", color='yellow')
+print("NOW SUPPORT ALL VERSIONS OF MINECRAFT!!!!(Still except snapshots :)", color='cyan')
+print("ChangeLog here :)", color='cyan')
+print("Repair some old LWJGL file (Thanks Mojang let me took 5 hours...).", color='green')
+print("Fix old version still can't load icon.", color='green')
+print("Fix old version login problem and can't join server.", color='green')
+print("Using new way to get assetsIndex and assetsDir.", color='green')
+print("Using new way to get LWJGL version and path.", color='green')
+print("CLeaned some command and remove some old methods.", color='green')
+print("Optimized downloading methods and accelerated speed.", color='blue')
+print("Optimized LaunchClient's code.", color='blue')
+print("Now all modules have their own names :)", color='blue')
+print("Add 'some' color :)", color='blue')
+print("Please run it if you know what you are doing.", color='yellow')
+print(" ")
+
 def main():
-    print('"BakeLauncher Main Memu"')
-    print("Status:")
+    print('"BakeLauncher Main Menu"', color='blue')
+    print("Version: " + laucnher_version, color='green')
+
+    """
+    Check login status.
+    Avoid Minecraft crash on auth....However, if the token expired, it will still crash on launch :)
+    """
+    username = "Unknown"  # Initialize username to avoid UnboundLocalError
     try:
         with open('data\\AccountData.json', 'r') as file:
             data = json.load(file)
+            username = data['AccountName']  # Set username here
     except (FileNotFoundError, json.JSONDecodeError):
         initialize_account_data()
         with open('data\\AccountData.json', 'r') as file:
             data = json.load(file)
+            username = data['AccountName']
 
     if data['AccountName'] == "None":
-        print("Login: Not logged :(")
+        print("Login Status: Not logged :(", color='red')
+        print("Please login your account first!", color='red')
     else:
-        print("Login: Already logged :)")
-
+        print("Login Status: Already logged :)", color='green')
+        print("Hi," , username, color="blue")  # Now this should work correctly
     print("Which thing you want to do?")
     print("1.Launch Minecraft 2.Login account 3.Clear login data(for session expired)")
-    print("4:DownloadTools 5:Config Java 6:Fix launch version 7:Exit launch")
+    print("4:DownloadTool 5:Config Java 6:About 7:Exit launcher")
     user_input = int(input(":"))
     if user_input == 1:
-        print("Launching Minecraft...")
+        print("Launching Minecraft...", color='green')
         os.system('cls')
         launch()
-        print("Press any key to back main memu....")
-        back()
+        back_to_main_without_cls()
     if user_input == 2:
-            login()
-            print("Press any key to back main memu....")
-            back()
+        login()
+        back_to_main()
     if user_input == 3:
-        print("Cleaning login data...")
+        print("Cleaning login data...", color='purple')
         initialize_account_data()
-        print("Login data cleared.")
-        print("Press any key to back main memu....")
-        back()
+        print("Login data cleared.", color='blue')
+        back_to_main()
     if user_input == 4:
-        request_version_url()
-        print("Repair Minecraft version to you download version(Yes=1/No=0) ?")
-        repair_version = int(input(":"))
-        if repair_version == 1:
-            path_main()
-            back()
-        else:
-            print("Bypass repair...")
-            back()
+        download_main()
+        back_to_main()
     if user_input == 5:
-        java_tool()
-        print("Press any key to back main memu....")
-        back()
+        java_finder()
+        back_to_main_without_cls()
     if user_input == 6:
-        path_main()
-        print("Press any key to back main memu....")
-        back()
+        print("POWER BY BAKE!", color="yellow")
+        print("BakeLauncher " + laucnher_version, color='yellow')
+        print("ContectMe :) TedKai/@Techarerm", color="blue")
+        print("Source code : https://github.com/Techarerm/BakeLauncher", color='yellow')
+        print("Also check my website :) https://techarerm.com", color="blue")
+        time.sleep(10)
+        back_to_main()
     if user_input == 7:
-        exit(0)
+        print("Exiting launcher...", color='purple')
+        print("Bye :)",color='blue')
+        return 0
 if __name__ == "__main__":
     main()
