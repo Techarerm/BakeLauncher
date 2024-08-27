@@ -2,6 +2,7 @@
 Is a small script to download game files.
 (Minecraft file download from Mojang CDN)
 '''
+import sys
 
 import requests
 import os
@@ -11,6 +12,7 @@ import zipfile
 import time
 import assets_grabber
 from assets_grabber import get_asset
+from assets_grabber import get_assets_index_version
 import launch_version_patcher
 from launch_version_patcher import patcher_main
 import print_color
@@ -58,7 +60,7 @@ def download_file(url, dest_path):
         with open(dest_path, 'wb') as file:
             for chunk in response.iter_content(chunk_size=8192):
                 file.write(chunk)
-        print(f"Downloaded successfully: {dest_path}")
+        print(f"Downloaded successfully: {dest_path}", color='cyan')
         return True  # Indicate success
     except requests.exceptions.RequestException as e:
         print(f"Failed to download {url}: {e}", color='red')
@@ -88,7 +90,7 @@ def download_lwjgl(version_id):
     # Define destination path for the zip file
     lwjgl_dest = os.path.join(f"{lwjgl_version}.zip")
 
-    print(f"Downloading LWJGL {lwjgl_version} ...")
+    print(f"Downloading {lwjgl_version}...")
     download_success = download_file(f"https://github.com/Techarerm/LWJGL-Library/raw/main/{lwjgl_version}.zip", lwjgl_dest)
 
     if not download_success:
@@ -97,9 +99,9 @@ def download_lwjgl(version_id):
 
     # Extract the zip file to the desired directory structure
     extract_zip(lwjgl_dest, extract_dir)
-    print(f"LWJGL Library has been extracted to {extract_dir}!")
+    print(f"LWJGL Library has been installation successfull!", color='cyan')
     if os.path.exists(f"{lwjgl_version}.zip"):
-        print("Cleaning up...")
+        print("Cleaning up...", color='green')
         os.remove(f"{lwjgl_version}.zip")
 
 def down_tool(version_data, version_id):
@@ -146,6 +148,119 @@ def down_tool(version_data, version_id):
             download_file(lib_url, lib_dest)
 
 
+def download_with_version_id(version_list, release_versions, formatted_versions):
+    print("DownloadTool: Using version_id method...", color='cyan')
+
+    try:
+        print("DownloadTool: Activable version list:", color='purple')
+        print(formatted_versions)
+        print("VersionID: MinecraftVersion", "\n", color='purple')
+        print("Example: 15: 1.12.2 , 15 is version 1.12's ID", color='green')
+        version_id = int(input("Please enter the version ID:"))
+
+        if isinstance(version_id, int):
+            version_id -= 1
+            if 0 <= version_id < len(release_versions):
+
+                # Check user type version_id are activable
+                selected_version_id = release_versions[version_id]
+
+                # Find minecraft_version after get version_id(IMPORTANT:version =/= version_id!)
+                selected_version = next((version for version in version_list if version['id'] == selected_version_id),
+                                        None)
+
+                # Get version data
+                if selected_version:
+                    version_url = selected_version['url']
+                    version_response = requests.get(version_url)
+                    version_data = version_response.json()
+                    # Download game file( libraries, .jar files...., and lwjgl!)
+                    print(f"DownoandTool: Version {selected_version_id} details:")
+                    print(selected_version_id)
+                    print("DownoandTool: Loading version info...")
+                    down_tool(version_data, selected_version_id)
+                    os.system("cls")
+                    print("DownoandTool: The required dependent libraries should have been downloaded :)", color='blue')
+
+                    # I know hosted lwjgl file on github is not a best way :) ( I will delete it when I found a nice way to simply download lwjgl library...)
+                    print("DownoandTool: Now downloading LWJGL...", color='green')
+                    download_lwjgl(selected_version_id)
+
+                    # Download assets(Also it will check this version are use legacy assets or don't use)
+                    print("DownoandTool: Now create assets...", color='green')
+                    get_asset(selected_version_id)
+                    get_assets_index_version(version_data, selected_version_id)
+                    print("DownoandTool: YAPPY! Now all files are download success :)", color='blue')
+                    print("DownoandTool: Exiting DownloadTool....", color='green')
+
+                    # Add waiting time(If assets download failed it will print it?)
+                    time.sleep(1.2)
+
+                else:
+                    # idk this thing would happen or not :)  , just leave it and see what happen....
+                    print("DownoandTool: Version not found or can't getting this version of Minecraft :(", color='red')
+                    print("DownoandTool: Please try again...if still can't please report this to GitHub",
+                          color='yellow')
+                    download_with_version_id(version_list, release_versions, formatted_versions)
+            else:
+                print(f"DownoandTool: You type Version{version_id} are not found :(", color='red')
+                download_with_version_id(version_list, release_versions, formatted_versions)
+        else:
+            print("DownloadTool: You are NOT typing VersionID!")
+            print("VersionID: MinecraftVersion", "\n")
+            print(
+                "Please type VersionID not MinecraftVersion or exit launcher and using '2:Type Minecraft version' method :)")
+            print("Example: 15: 1.12.2 , 15 is version 1.12's ID", color='green')
+            time.sleep(2)
+            download_with_version_id(version_list, release_versions, formatted_versions)
+    except ValueError:
+        # Back to download_main avoid crash(when user type illegal thing
+        print("DownoandTool: Oops! Invalid input. Please enter a number corresponding to a version ID.", color='red')
+        download_with_version_id(version_list, release_versions, formatted_versions)
+
+
+def download_with_version_tunple(version_list):
+    print("DownloadTool: Using MinecraftVersion method...", color='green')
+    selected_version_id = str(input("Please enter Minecraft version:"))
+    # Find minecraft_version after get version_id(IMPORTANT:version =/= version_id!)
+    selected_version = next((version for version in version_list if version['id'] == selected_version_id), None)
+
+    try:
+        # Get version data
+        if selected_version:
+            version_url = selected_version['url']
+            version_response = requests.get(version_url)
+            version_data = version_response.json()
+            # Download game file( libraries, .jar files...., and lwjgl!)
+            print(f"DownoandTool: Version {selected_version_id} details:")
+            print(selected_version_id)
+            print("DownoandTool: Loading version info...")
+            down_tool(version_data, selected_version_id)
+            os.system("cls")
+            print("DownoandTool: The required dependent libraries should have been downloaded :)", color='blue')
+
+            # I know hosted lwjgl file on github is not a best way :) ( I will delete it when I found a nice way to simply download lwjgl library...)
+            print("DownoandTool: Now downloading LWJGL...", color='green')
+            download_lwjgl(selected_version_id)
+
+            # Download assets(Also it will check this version are use legacy assets or don't use)
+            print("DownoandTool: Now create assets...", color='green')
+            get_asset(selected_version_id)
+            get_assets_index_version(version_data, selected_version_id)
+            print("DownoandTool: YAPPY! Now all files are download success :)", color='blue')
+            print("DownoandTool: Exiting download tool....", color='green')
+
+            # Add waiting time(If assets download failed it will print it?)
+            time.sleep(1.2)
+        else:
+            # idk this thing would happen or not :)  , just leave it and see what happen....
+            print(f"DownoandTool: You type Minecraft version {selected_version_id} are not found :(", color='red')
+            download_with_version_tunple(version_list)
+    except ValueError:
+        # Back to download_main avoid crash(when user type illegal thing
+        print("DownoandTool: Oops! Invalid input :( Please enter Minecraft version.")
+        download_with_version_tunple(version_list)
+
 def download_main():
     # Get version_manifest_v2.json and list all version(also add version_id in version's left :)
     url = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
@@ -156,55 +271,14 @@ def download_main():
     release_versions = [version['id'] for version in version_list if version['type'] == 'release']
     formatted_versions = '\n'.join([f"{index + 1}: {version}"
                                     for index, version in enumerate(release_versions)])
-    print("Activable version list:")
-    print(formatted_versions + "\n")
 
-    try:
-        # Ask user wanna download version
-        print("Example: 15: 1.12.2 , 15 is version 1.12's ID", color='green')
-        user_input = int(input("Please enter the version ID: ")) - 1
-
-        if 0 <= user_input < len(release_versions):
-            # Check user type version_id are activable
-            selected_version_id = release_versions[user_input]
-            # Find minecraft_version after get version_id(IMPORTANT:version =/= version_id!)
-            selected_version = next((version for version in version_list if version['id'] == selected_version_id), None)
-
-            # Get version data
-            if selected_version:
-                version_url = selected_version['url']
-                version_response = requests.get(version_url)
-                version_data = version_response.json()
-
-                # Download game file( libraries, .jar files...., and lwjgl!)
-                print(f"DownoandTool: Version {selected_version_id} details:")
-                print(selected_version_id)
-                print("DownoandTool: Loading version info...")
-                down_tool(version_data, selected_version_id)
-                os.system("cls")
-                print("DownoandTool: The required dependent libraries should have been downloaded :)", color='blue')
-
-                # I know hosted lwjgl file on github is not a best way :) ( I will delete it when I found a nice way to simply download lwjgl library...)
-                print("DownoandTool: Now downloading LWJGL...", color='green')
-                download_lwjgl(selected_version_id)
-
-                # Download assets(Also it will check this version are use legacy assets or don't use)
-                print("DownoandTool: Now create assets...", color='green')
-                get_asset(selected_version_id)
-                print("DownoandTool: YAPPY! Now all files are download success :)",color='blue')
-                print("DownoandTool: Exiting download tool....", color='green')
-
-                # Add waiting time(If assets download failed it will print it?)
-                time.sleep(1.2)
-            else:
-                # idk this thing would happen or not :)  , just leave it and see what happen....
-                print("DownoandTool: Version not found.", color='red')
-                download_main()
-        else:
-            # normal.
-            print("DownoandTool: Invalid version ID.", color='red')
-            download_main()
-    except ValueError:
-        # Back to download_main avoid crash(when user type illegal thing
-        print("DownoandTool: Oops! Invalid input. Please enter a number corresponding to a version ID.")
+    print("Which method you wanna use?", color='green')
+    print("1:List all available versions and download 2:Type Minecraft version and download")
+    user_input = int(input(":"))
+    if user_input == 1:
+        download_with_version_id(version_list, release_versions, formatted_versions)
+    elif user_input == 2:
+        download_with_version_tunple(version_list)
+    else:
+        print("DownloadTool: Unknow options :( Please try again.", color='red')
         download_main()

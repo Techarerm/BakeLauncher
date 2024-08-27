@@ -23,7 +23,7 @@ from assets_grabber import get_asset
 import print_color
 from print_color import print
 
-launcher_version = "Beta 0.7(Pre-ha26824)"
+launcher_version = "Beta 0.7(Pre-hb27824)"
 
 def back_to_main():
     os.system('cls')
@@ -45,8 +45,10 @@ def initialize_account_data():
 
 print("Warning: This is an 'Experimental' version with potential instability.", color='yellow')
 print("NOW SUPPORTS ALL VERSIONS OF MINECRAFT!!!! (Still excludes snapshots :)", color='cyan')
-print("ChangeLog:", color='cyan')
-print("Fix some grammer problem and `ass more explain.")
+print("Changelog:", color='cyan')
+print("Fix some grammer problem and add more explain.", color='green')
+print("Recoding some DownloadTool code and add more method :)", color='green')
+print("Using new function to get assetsIndex(Don't need to code version support list....)", color='green')
 print("Now all modules have their own names :)", color='blue')
 print("Added 'some' color :)", color='blue')
 print("Please run it only if you know what you are doing.", color='yellow')
@@ -113,7 +115,7 @@ def main():
         time.sleep(10)
         back_to_main()
     elif user_input == 7:
-        print("Exiting launcher...", color='purple')
+        print("Exiting launcher...", color='green')
         print("Bye :)", color='blue')
         return 0
     else:
