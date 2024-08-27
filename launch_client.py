@@ -169,6 +169,7 @@ def launch():
 
     # Ask user wanna launch version...
     print("LaunchManager: Which one is you wanna launch version ? :)", color='green')
+    print("Or you can type 'Exit' to go back to the main menu :)", color='cyan')
     version_id = input(":")
 
     if version_id not in Version_list:

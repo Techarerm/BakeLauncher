@@ -1,8 +1,8 @@
 """
-Warring:This is a "Experimental" version and has many immature features.
-So...Run it if you know what you are doing :)
+Warning: This is an 'Experimental' version with potential instability.
+So... Run it only if you know what you are doing :)
 PyLauncher AKA BakeLauncher
-A Minecraft java launcher code on python.
+A Minecraft Java launcher written in Python.
 """
 
 import os
@@ -23,7 +23,7 @@ from assets_grabber import get_asset
 import print_color
 from print_color import print
 
-laucnher_version = "Beta 0.6"
+launcher_version = "Beta 0.7(Pre-ha26824)"
 
 def back_to_main():
     os.system('cls')
@@ -43,29 +43,22 @@ def initialize_account_data():
     with open('data\\AccountData.json', 'w') as file:
         json.dump(default_data, file)
 
-print("Warring:This is a 'Experimental' version and has many immature features.", color='yellow')
-print("NOW SUPPORT ALL VERSIONS OF MINECRAFT!!!!(Still except snapshots :)", color='cyan')
-print("ChangeLog here :)", color='cyan')
-print("Repair some old LWJGL file (Thanks Mojang let me took 5 hours...).", color='green')
-print("Fix some old version still can't load icon.", color='green')
-print("Fix some old version login problem and can't join server.", color='green')
-print("Using new way to get assetsIndex and assetsDir.", color='green')
-print("Using new way to get LWJGL version and path.", color='green')
-print("CLeaned some command and remove some old methods.", color='green')
-print("Optimized downloading methods and accelerated speed.", color='blue')
-print("Optimized LaunchClient's code.", color='blue')
+print("Warning: This is an 'Experimental' version with potential instability.", color='yellow')
+print("NOW SUPPORTS ALL VERSIONS OF MINECRAFT!!!! (Still excludes snapshots :)", color='cyan')
+print("ChangeLog:", color='cyan')
+print("Fix some grammer problem and `ass more explain.")
 print("Now all modules have their own names :)", color='blue')
-print("Add 'some' color :)", color='blue')
-print("Please run it if you know what you are doing.", color='yellow')
+print("Added 'some' color :)", color='blue')
+print("Please run it only if you know what you are doing.", color='yellow')
 print(" ")
 
 def main():
     print('"BakeLauncher Main Menu"', color='blue')
-    print("Version: " + laucnher_version, color='green')
+    print("Version: " + launcher_version, color='green')
 
     """
     Check login status.
-    Avoid Minecraft crash on auth....However, if the token expired, it will still crash on launch :)
+    Avoid Minecraft crash on auth... However, if the token expires, it will still crash on launch :)
     """
     username = "Unknown"  # Initialize username to avoid UnboundLocalError
     try:
@@ -79,45 +72,53 @@ def main():
             username = data['AccountName']
 
     if data['AccountName'] == "None":
-        print("Login Status: Not logged :(", color='red')
-        print("Please login your account first!", color='red')
+        print("Login Status: Not logged in :(", color='red')
+        print("Please log in to your account first!", color='red')
     else:
-        print("Login Status: Already logged :)", color='green')
-        print("Hi," , username, color="blue")  # Now this should work correctly
-    print("Which thing you want to do?")
-    print("1.Launch Minecraft 2.Login account 3.Clear login data(for session expired)")
-    print("4:DownloadTool 5:Config Java 6:About 7:Exit launcher")
+        print("Login Status: Already logged in :)", color='green')
+        print("Hi,", username, color="blue")  # Now this should work correctly
+    print("What would you like to do?")
+    print("1. Launch Minecraft 2. Log in 3. Clear login data (for expired session)")
+    print("4: DownloadTool 5: Configure Java 6: About 7: Exit launcher")
     user_input = int(input(":"))
+    if user_input == int:
+        print("BakeLauncher: Invalid type :(", color='red')
+        print("Please check you type option is number and try again!", color='yellow')
+        back_to_main()
     if user_input == 1:
         print("Launching Minecraft...", color='green')
         os.system('cls')
         launch()
         back_to_main_without_cls()
-    if user_input == 2:
+    elif user_input == 2:
         login()
         back_to_main()
-    if user_input == 3:
+    elif user_input == 3:
         print("Cleaning login data...", color='purple')
         initialize_account_data()
         print("Login data cleared.", color='blue')
         back_to_main()
-    if user_input == 4:
+    elif user_input == 4:
         download_main()
         back_to_main()
-    if user_input == 5:
+    elif user_input == 5:
         java_finder()
         back_to_main_without_cls()
-    if user_input == 6:
-        print("POWER BY BAKE!", color="yellow")
-        print("BakeLauncher " + laucnher_version, color='yellow')
-        print("ContectMe :) TedKai/@Techarerm", color="blue")
-        print("Source code : https://github.com/Techarerm/BakeLauncher", color='yellow')
+    elif user_input == 6:
+        print("POWERED BY BAKE!", color="yellow")
+        print("BakeLauncher " + launcher_version, color='yellow')
+        print("Contact Me :) TedKai/@Techarerm", color="blue")
+        print("Source code: https://github.com/Techarerm/BakeLauncher", color='yellow')
         print("Also check my website :) https://techarerm.com", color="blue")
         time.sleep(10)
         back_to_main()
-    if user_input == 7:
+    elif user_input == 7:
         print("Exiting launcher...", color='purple')
-        print("Bye :)",color='blue')
+        print("Bye :)", color='blue')
         return 0
+    else:
+        print(f"BakeLauncher: Can't found option {user_input} :( ", color='red')
+        print("Please check you type option's number and try again!", color='yellow')
+        back_to_main()
 if __name__ == "__main__":
     main()

@@ -43,6 +43,10 @@ def get_lwjgl_version(minecraft_version):
 
 
 def download_file(url, dest_path):
+    """
+    Download file :)
+    Hmm...just a normal function(also optimized
+    """
     try:
         response = requests.get(url, stream=True)
         response.raise_for_status()
@@ -77,8 +81,8 @@ def download_lwjgl(version_id):
     else:
         print(lwjgl_version)
 
-    # Compute the SHA1 hash (as a placeholder example, use the version_id)
-    sha1_hash = "455edb6b1454a7f3243f37b5f240f69e1b0ce4fa"  # Placeholder, use actual hash if needed
+    # Compute the SHA1 hash (as a placefolder example, use the version_id)
+    sha1_hash = "455edb6b1454a7f3243f37b5f240f69e1b0ce4fa"  # Placefolder, use actual hash if needed
     extract_dir = os.path.join("LWJGL")
 
     # Define destination path for the zip file
@@ -97,17 +101,24 @@ def download_lwjgl(version_id):
     if os.path.exists(f"{lwjgl_version}.zip"):
         print("Cleaning up...")
         os.remove(f"{lwjgl_version}.zip")
+
 def down_tool(version_data, version_id):
+    """
+    Create versions\version_id\ folder and download game files
+
+    """
     version_dir = os.path.join("versions", version_id)
     libraries_dir = os.path.join(version_dir, "libraries")
     os.makedirs(libraries_dir, exist_ok=True)
 
+    # Download client.jar(Main class?)
     client_info = version_data['downloads']['client']
     client_url = client_info['url']
     client_dest = os.path.join(version_dir, 'client.jar')
     print(f"Downloading client.jar to {client_dest}...")
     download_file(client_url, client_dest)
 
+    # Only download libraries (also only download windows version)
     libraries = version_data.get('libraries', [])
     for lib in libraries:
         lib_downloads = lib.get('downloads', {})
@@ -136,6 +147,7 @@ def down_tool(version_data, version_id):
 
 
 def download_main():
+    # Get version_manifest_v2.json and list all version(also add version_id in version's left :)
     url = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
     response = requests.get(url)
     data = response.json()
@@ -148,37 +160,51 @@ def download_main():
     print(formatted_versions + "\n")
 
     try:
+        # Ask user wanna download version
         print("Example: 15: 1.12.2 , 15 is version 1.12's ID", color='green')
         user_input = int(input("Please enter the version ID: ")) - 1
 
         if 0 <= user_input < len(release_versions):
+            # Check user type version_id are activable
             selected_version_id = release_versions[user_input]
+            # Find minecraft_version after get version_id(IMPORTANT:version =/= version_id!)
             selected_version = next((version for version in version_list if version['id'] == selected_version_id), None)
 
+            # Get version data
             if selected_version:
                 version_url = selected_version['url']
                 version_response = requests.get(version_url)
                 version_data = version_response.json()
 
+                # Download game file( libraries, .jar files...., and lwjgl!)
                 print(f"DownoandTool: Version {selected_version_id} details:")
                 print(selected_version_id)
                 print("DownoandTool: Loading version info...")
                 down_tool(version_data, selected_version_id)
                 os.system("cls")
                 print("DownoandTool: The required dependent libraries should have been downloaded :)", color='blue')
+
+                # I know hosted lwjgl file on github is not a best way :) ( I will delete it when I found a nice way to simply download lwjgl library...)
                 print("DownoandTool: Now downloading LWJGL...", color='green')
                 download_lwjgl(selected_version_id)
+
+                # Download assets(Also it will check this version are use legacy assets or don't use)
                 print("DownoandTool: Now create assets...", color='green')
                 get_asset(selected_version_id)
                 print("DownoandTool: YAPPY! Now all files are download success :)",color='blue')
                 print("DownoandTool: Exiting download tool....", color='green')
+
+                # Add waiting time(If assets download failed it will print it?)
                 time.sleep(1.2)
             else:
+                # idk this thing would happen or not :)  , just leave it and see what happen....
                 print("DownoandTool: Version not found.", color='red')
                 download_main()
         else:
+            # normal.
             print("DownoandTool: Invalid version ID.", color='red')
             download_main()
     except ValueError:
+        # Back to download_main avoid crash(when user type illegal thing
         print("DownoandTool: Oops! Invalid input. Please enter a number corresponding to a version ID.")
         download_main()
