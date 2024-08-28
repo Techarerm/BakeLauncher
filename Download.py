@@ -60,7 +60,7 @@ def download_file(url, dest_path):
         with open(dest_path, 'wb') as file:
             for chunk in response.iter_content(chunk_size=8192):
                 file.write(chunk)
-        print(f"Downloaded successfully: {dest_path}", color='cyan')
+        print(f"Download successful: {dest_path}", color='cyan')
         return True  # Indicate success
     except requests.exceptions.RequestException as e:
         print(f"Failed to download {url}: {e}", color='red')
@@ -106,10 +106,10 @@ def download_lwjgl(version_id):
 
 def down_tool(version_data, version_id):
     """
-    Create versions\version_id\ folder and download game files
+    Create instances\\version_id\\folder and download game files
 
     """
-    version_dir = os.path.join("versions", version_id)
+    version_dir = os.path.join("instances", version_id)
     libraries_dir = os.path.join(version_dir, "libraries")
     os.makedirs(libraries_dir, exist_ok=True)
 
@@ -149,6 +149,7 @@ def down_tool(version_data, version_id):
 
 
 def download_with_version_id(version_list, release_versions, formatted_versions):
+    local = os.getcwd()
     print("DownloadTool: Using version_id method...", color='cyan')
 
     try:
@@ -189,10 +190,9 @@ def download_with_version_id(version_list, release_versions, formatted_versions)
                     # Download assets(Also it will check this version are use legacy assets or don't use)
                     print("DownoandTool: Now create assets...", color='green')
                     get_asset(selected_version_id)
-                    get_assets_index_version(version_data, selected_version_id)
+                    get_assets_index_version(local, version_data, selected_version_id)
                     print("DownoandTool: YAPPY! Now all files are download success :)", color='blue')
                     print("DownoandTool: Exiting DownloadTool....", color='green')
-
                     # Add waiting time(If assets download failed it will print it?)
                     time.sleep(1.2)
 
@@ -220,6 +220,7 @@ def download_with_version_id(version_list, release_versions, formatted_versions)
 
 
 def download_with_version_tunple(version_list):
+    local = os.getcwd()
     print("DownloadTool: Using MinecraftVersion method...", color='green')
     selected_version_id = str(input("Please enter Minecraft version:"))
     # Find minecraft_version after get version_id(IMPORTANT:version =/= version_id!)
@@ -246,7 +247,7 @@ def download_with_version_tunple(version_list):
             # Download assets(Also it will check this version are use legacy assets or don't use)
             print("DownoandTool: Now create assets...", color='green')
             get_asset(selected_version_id)
-            get_assets_index_version(version_data, selected_version_id)
+            get_assets_index_version(local, version_data, selected_version_id)
             print("DownoandTool: YAPPY! Now all files are download success :)", color='blue')
             print("DownoandTool: Exiting download tool....", color='green')
 
@@ -274,11 +275,18 @@ def download_main():
 
     print("Which method you wanna use?", color='green')
     print("1:List all available versions and download 2:Type Minecraft version and download")
-    user_input = int(input(":"))
-    if user_input == 1:
-        download_with_version_id(version_list, release_versions, formatted_versions)
-    elif user_input == 2:
-        download_with_version_tunple(version_list)
-    else:
-        print("DownloadTool: Unknow options :( Please try again.", color='red')
+
+    try:
+        user_input = int(input(":"))
+        if user_input == 1:
+            download_with_version_id(version_list, release_versions, formatted_versions)
+        elif user_input == 2:
+            download_with_version_tunple(version_list)
+        else:
+            print("DownloadTool: Unknow options :( Please try again.", color='red')
+            download_main()
+
+    except ValueError:
+        # Back to main avoid crash(when user type illegal thing)
+        print("BakeLaunch: Oops! Invalid option :O  Please enter a number.", color='red')
         download_main()

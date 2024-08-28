@@ -78,10 +78,31 @@ def download_assets(asset_index, objects_dir):
             except Exception as e:
                 print(f"Error downloading {asset_name}: {e}", color='red')
 
+def get_assets_index_version(local, version_data, version_id):
+    """
+    Get the assets index version from the version_data and save it to a JSON file
+    LaunchManager need this when launching Minecraft(To set assetsIndex)
+    """
+    os.chdir(local)
+    print("Trying to get assetsIndex version....", color='green')
+    asset_index = version_data.get("assetIndex", {})
+    asset_index_id = asset_index.get("id")
+    if asset_index_id:
+        assets_index_file = os.path.join("instances", version_id, ".minecraft","assets_index.json")
+        with open(assets_index_file, 'w') as f:
+            json.dump(asset_index, f, indent=4)
+        print(f"AssetsIndex config has been saved :)", color='blue')
+    else:
+        print("Failed to config AssetsIndex :(", color='red')
+        print("Maybe is the server issue let DownloadTool can't getting AssetsIndex?", color='yellow')
+        print("Please try again later(If still can't get assetsIndex please report this bug to GitHib!", color='yellow')
+        print("IMPORANT:'Do not launch it if failed to get assetsIndex. You might get a broken version of Minecraft :D", color='yellow')
+        print("Asset index not found.", color='red')
+    os.chdir(local + "\\instances" + f"\\{version_id}")
 
 def get_asset(version_id):
     local = os.getcwd()
-    os.chdir("versions\\" + version_id)
+    os.chdir("instances\\" + version_id)
 
     if os.path.exists(".minecraft"):
         print(".minecraft already created!", color='green')
@@ -118,7 +139,7 @@ def get_asset(version_id):
     if version_tuple <= (1, 7, 2):
         print("Your want to download version's type are 'Legacy'!", color='green')
         print("Downloading Legacy assets now...", color='green')
-        assets_dir = "versions\\" + version_id + "\\.minecraft\\" + "assets"
+        assets_dir = "instances\\" + version_id + "\\.minecraft\\" + "assets"
         if version_tuple < (1, 6, 0):
             Index = "pre-1.6"
             download_legacy_assets(version_id, assets_dir, Index)
