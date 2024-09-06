@@ -3,10 +3,6 @@ BakeLaunch Main Memu
 (Main memu has been separated from main since Beta 0.7(Pre-hg30824)
 """
 import platform
-
-
-
-
 import os
 import sys
 import time
