@@ -61,6 +61,8 @@ def Java_8(path):
                 write_json(JVM_8, version)
                 print(" ")
                 break
+            else:
+                print("No Java 17 runtime on this Mac")
 
     elif platform.system() == "Linux":
         for Java_Folder in os.listdir(path):
@@ -118,6 +120,8 @@ def Java_17(path):
                 write_json(JVM_17, version)
                 print(" ")
                 break
+            else:
+                print("No Java 17 runtime on this Mac")
 
     elif platform.system() == "Linux":
         for Java_Folder in os.listdir(path):
@@ -176,7 +180,7 @@ def Java_21(path):
                 print(" ")
                 break
             else:
-                print("No Java 21 runtime on this computer")
+                print("Can't find any Java runtime on this Mac :(")
 
     elif platform.system() == "Linux":
         for Java_Folder in os.listdir(path):
