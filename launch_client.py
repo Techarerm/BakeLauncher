@@ -10,6 +10,7 @@ from print_color import print
 import assets_grabber
 from assets_grabber import get_assets_index_version
 import requests
+import platform
 
 def get_lwjgl_version(version_id):
     """
@@ -179,7 +180,7 @@ def assetsIndexFix(local, selected_version_id):
 
 
 
-def launch():
+def launch(platform):
     local = os.getcwd()
     # Check folder "versions" are activable in root (To avoid some user forgot to install)
     if not os.path.exists("instances"):
@@ -212,7 +213,7 @@ def launch():
 
             # Check Java_HOME.json file are activable to use(and getting jvm path from this file)
             Java_path = java_version_check(version_id)
-            if platform.system() == 'Windows':
+            if platform == 'Windows':
                 Java_path = f'"{Java_path + "/java.exe"}"'
             else:
                 Java_path = f'"{Java_path + "/java"}"'
