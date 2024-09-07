@@ -101,7 +101,7 @@ def main_memu(platform):
         if user_input == 1:
             print("Launching Minecraft...", color='green')
             os.system('cls')
-            launch()
+            launch(platform)
             back_to_memu(platform)
         elif user_input == 2:
             login()
