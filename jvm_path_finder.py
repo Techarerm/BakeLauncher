@@ -46,9 +46,11 @@ def Java_8(path):
                 print("No Java 17 runtime on this computer")
 
     elif platform.system() == "Darwin":
-        for root, dirs, files in os.walk(path):
+        for Java_Folder in os.listdir(path):
+            Java_Folder_Name = os.path.join(path, Java_Folder)
+
             # Find Java 8 and add it to the path
-            if "jdk-1.8" or "jre-1.8" in dirs:
+            if os.path.isdir(Java_Folder_Name) and Java_Folder[:5] == "jdk-1.8" or "jre-1.8":
                 version = "Java_8"
                 JVM_8 = os.path.join(path, Java_Folder, "Contents", "Home", "bin")
                 print(f"Java HOME: {JVM_8}")
@@ -59,13 +61,13 @@ def Java_8(path):
                 write_json(JVM_8, version)
                 print(" ")
                 break
-            else:
-                print("No Java 8 runtime on this computer")
 
     elif platform.system() == "Linux":
-        for root, dirs, files in os.walk(path):
-            # Find Java 21 and add it to the path
-            if "jre-1.8" or "jdk-1.8" or "java-1.8" in dirs:
+        for Java_Folder in os.listdir(path):
+            Java_Folder_Name = os.path.join(path, Java_Folder)
+
+            # Find Java 8 and add it to the path
+            if os.path.isdir(Java_Folder_Name) and Java_Folder[:5] == "jre-1.8" or "jdk-1.8" or "java-1.8":
                 version = "Java_8"
                 JVM_21 = os.path.join(path, Java_Folder, "bin")
                 print(f"Java HOME: {JVM_8}")
@@ -101,9 +103,11 @@ def Java_17(path):
                 print("No Java 17 runtime on this computer")
 
     elif platform.system() == "Darwin":
-        for root, dirs, files in os.walk(path):
-            # Find Java 21 and add it to the path
-            if "jdk-17" or "jre-17" in dirs:
+        for Java_Folder in os.listdir(path):
+            Java_Folder_Name = os.path.join(path, Java_Folder)
+
+            # Find Java 17 and add it to the path
+            if os.path.isdir(Java_Folder_Name) and Java_Folder[:5] == "jdk-17" or "jre-17":
                 version = "Java_17"
                 JVM_17 = os.path.join(path, Java_Folder, "Contents", "Home", "bin")
                 print(f"Java HOME: {JVM_17}")
@@ -116,9 +120,11 @@ def Java_17(path):
                 break
 
     elif platform.system() == "Linux":
-        for root, dirs, files in os.walk(path):
-            # Find Java 21 and add it to the path
-            if "jdk-17" or "jre-17" or "java-17" in dirs:
+        for Java_Folder in os.listdir(path):
+            Java_Folder_Name = os.path.join(path, Java_Folder)
+
+            # Find Java 17 and add it to the path
+            if os.path.isdir(Java_Folder_Name) and Java_Folder[:5] == "jdk-17" or "jre-17" or "java-17":
                 version = "Java_17"
                 JVM_21 = os.path.join(path, Java_Folder, "bin")
                 print(f"Java HOME: {JVM_17}")
@@ -154,9 +160,11 @@ def Java_21(path):
                 print("Can't find any Java runtime on this computer :(")
 
     elif platform.system() == "Darwin":
-        for root, dirs, files in os.walk(path):
+        for Java_Folder in os.listdir(path):
+            Java_Folder_Name = os.path.join(path, Java_Folder)
+
             # Find Java 21 and add it to the path
-            if "jdk-21" or "jre-21" in dirs:
+            if os.path.isdir(Java_Folder_Name) and Java_Folder[:5] == "jdk-21" or "jre-21":
                 version = "Java_21"
                 JVM_21 = os.path.join(path, Java_Folder, "Contents", "Home", "bin")
                 print(f"Java HOME: {JVM_21}")
@@ -171,9 +179,11 @@ def Java_21(path):
                 print("No Java 21 runtime on this computer")
 
     elif platform.system() == "Linux":
-        for root, dirs, files in os.walk(path):
+        for Java_Folder in os.listdir(path):
+            Java_Folder_Name = os.path.join(path, Java_Folder)
+
             # Find Java 21 and add it to the path
-            if "jdk-21" or "jre-21" or "java-21" in dirs:
+            if os.path.isdir(Java_Folder_Name) and Java_Folder[:5] == "jdk-21" or "jre-21" or "java-21":
                 version = "Java_21"
                 JVM_21 = os.path.join(path, Java_Folder, "bin")
                 print(f"Java HOME: {JVM_21}")
