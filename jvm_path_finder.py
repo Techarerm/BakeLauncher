@@ -164,7 +164,7 @@ def Java_21(path):
                 print(" ")
                 break
             else:
-                print("Can't find any Java runtime on this computer :(")
+                print("No Java 21 runtime on this computer")
 
     elif platform.system() == "Darwin":
         for Java_Folder in os.listdir(path):
@@ -184,7 +184,7 @@ def Java_21(path):
                 print(" ")
                 break
             else:
-                print("Can't find any Java runtime on this Mac :(")
+                print("No Java 21 runtime on this Mac")
 
     elif platform.system() == "Linux":
         for Java_Folder in os.listdir(path):
