@@ -43,14 +43,13 @@ def Java_8(path):
                 print(" ")
                 break
             else:
-                print("No Java 17 runtime on this computer")
+                print("No Java 8 runtime on this computer")
 
     elif platform.system() == "Darwin":
         for Java_Folder in os.listdir(path):
             Java_Folder_Name = os.path.join(path, Java_Folder)
-
             # Find Java 8 and add it to the path
-            if os.path.isdir(Java_Folder_Name) and Java_Folder[:5] == "jdk-1.8" or "jre-1.8":
+            if os.path.isdir(Java_Folder_Name) and (Java_Folder.startswith("jdk-1.8") or Java_Folder.startswith("jre-1.8")):
                 version = "Java_8"
                 print("Found Java 8 runtime on this Mac :)")
                 JVM_8 = os.path.join(path, Java_Folder, "Contents", "Home", "bin")
@@ -70,7 +69,7 @@ def Java_8(path):
             Java_Folder_Name = os.path.join(path, Java_Folder)
 
             # Find Java 8 and add it to the path
-            if os.path.isdir(Java_Folder_Name) and Java_Folder[:5] == "jre-1.8" or "jdk-1.8" or "java-1.8":
+            if os.path.isdir(Java_Folder_Name) and (Java_Folder.startswith("jre-1.8") or Java_Folder.startswith("jdk-1.8") or Java_Folder.startswith("java-1.8")):
                 version = "Java_8"
                 print("Found Java 8 runtime on this computer :)")
                 JVM_21 = os.path.join(path, Java_Folder, "bin")
@@ -111,7 +110,7 @@ def Java_17(path):
             Java_Folder_Name = os.path.join(path, Java_Folder)
 
             # Find Java 17 and add it to the path
-            if os.path.isdir(Java_Folder_Name) and Java_Folder[:5] == "jdk-17" or "jre-17":
+            if os.path.isdir(Java_Folder_Name) and (Java_Folder.startswith("jdk-17") or Java_Folder.startswith("jre-17")):
                 version = "Java_17"
                 print("Found Java 17 runtime on this Mac :)")
                 JVM_17 = os.path.join(path, Java_Folder, "Contents", "Home", "bin")
@@ -131,7 +130,7 @@ def Java_17(path):
             Java_Folder_Name = os.path.join(path, Java_Folder)
 
             # Find Java 17 and add it to the path
-            if os.path.isdir(Java_Folder_Name) and Java_Folder[:5] == "jdk-17" or "jre-17" or "java-17":
+            if os.path.isdir(Java_Folder_Name) and (Java_Folder.startswith("jre-17") or Java_Folder.startswith("jdk-17") or Java_Folder.startswith("java-17")):
                 version = "Java_17"
                 print("Found Java 17 runtime on this computer :)")
                 JVM_21 = os.path.join(path, Java_Folder, "bin")
@@ -172,7 +171,7 @@ def Java_21(path):
             Java_Folder_Name = os.path.join(path, Java_Folder)
 
             # Find Java 21 and add it to the path
-            if os.path.isdir(Java_Folder_Name) and Java_Folder[:5] == "jdk-21" or "jre-21":
+            if os.path.isdir(Java_Folder_Name) and (Java_Folder.startswith("jdk-21") or Java_Folder.startswith("jre-21")):
                 version = "Java_21"
                 print("Found Java 21 runtime on this Mac :)")
                 JVM_21 = os.path.join(path, Java_Folder, "Contents", "Home", "bin")
@@ -192,7 +191,7 @@ def Java_21(path):
             Java_Folder_Name = os.path.join(path, Java_Folder)
 
             # Find Java 21 and add it to the path
-            if os.path.isdir(Java_Folder_Name) and Java_Folder[:5] == "jdk-21" or "jre-21" or "java-21":
+            if os.path.isdir(Java_Folder_Name) and (Java_Folder.startswith("jre-21") or Java_Folder.startswith("jdk-21") or Java_Folder.startswith("java-21")):
                 version = "Java_21"
                 print("Found Java 21 runtime on this computer :)")
                 JVM_21 = os.path.join(path, Java_Folder, "bin")
