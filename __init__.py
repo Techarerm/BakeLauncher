@@ -45,7 +45,7 @@ class PlatformCheck:
     def check_platform_valid_and_return(self):
         if self.platformName == "Windows":
             return "Windows"
-        elif self.platformName == "Darwin":
+        elif self.platformName == "macOS":
             return "macOS"
         elif self.platformName == "Linux":
             return "Linux"

@@ -45,7 +45,7 @@ def Java_8(path):
             else:
                 print("No Java 17 runtime on this computer")
 
-    elif platform.system() == "Darwin":
+    elif platform.system() == "macOS":
         for Java_Folder in os.listdir(path):
             Java_Folder_Name = os.path.join(path, Java_Folder)
 
@@ -102,7 +102,7 @@ def Java_17(path):
             else:
                 print("No Java 17 runtime on this computer")
 
-    elif platform.system() == "Darwin":
+    elif platform.system() == "macOS":
         for Java_Folder in os.listdir(path):
             Java_Folder_Name = os.path.join(path, Java_Folder)
 
@@ -159,7 +159,7 @@ def Java_21(path):
             else:
                 print("Can't find any Java runtime on this computer :(")
 
-    elif platform.system() == "Darwin":
+    elif platform.system() == "macOS":
         for Java_Folder in os.listdir(path):
             Java_Folder_Name = os.path.join(path, Java_Folder)
 
@@ -208,7 +208,7 @@ def java_search():
     CantSetJavaPath = 0
     if platform.system() == "Windows":
         os.chdir(r"C:\Program Files\Java")
-    elif platform.system() == "Darwin":
+    elif platform.system() == "macOS":
         os.chdir(r"/Library/Java/JavaVirtualMachines/")
     elif platform.system() == "Linux":
         os.chdir(r"/usr/lib/jvm/")
