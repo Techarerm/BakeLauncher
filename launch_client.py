@@ -120,34 +120,34 @@ def get_lwjgl_path(lwjgl_version ,local):
     print(f"LaunchManager: Trying to get LWJGL version {lwjgl_version}'s path....", color='green')
     if lwjgl_version == "LWJGL 2.6.x":
         print("Get LWJGL path successfull :)", color='blue')
-        return local + "\\LWJGL\\2.6.x\\1.0(6d0e9e5bfb61b441b31cff10aeb801ab64345a7d)"
+        return local + "/LWJGL/2.6.x/1.0(6d0e9e5bfb61b441b31cff10aeb801ab64345a7d)"
     elif lwjgl_version == "LWJGL 2.8.x(1.7)":
         print("Get LWJGL path successfull :)", color='blue')
-        return local + "\\LWJGL\\2.8.x(1.7)\\1.7.3(455edb6b1454a7f3243f37b5f240f69e1b0ce4fa)"
+        return local + "/LWJGL/2.8.x(1.7)/1.7.3(455edb6b1454a7f3243f37b5f240f69e1b0ce4fa)"
     elif lwjgl_version == "LWJGL 2.9.x(1.8)":
         print("Get LWJGL path successfull :)", color='blue')
-        return local + "\\LWJGL\\2.8.x(1.8)\\1.8(7a28f1c296715db4d5f08cbcc92023ee7ed3fc9f)"
+        return local + "/LWJGL/2.8.x(1.8)/1.8(7a28f1c296715db4d5f08cbcc92023ee7ed3fc9f)"
     elif lwjgl_version == "LWJGL 2.9.x(1.8.2)":
         print("Get LWJGL path successfull :)", color='blue')
-        return local + "\\LWJGL\\2.9.x(1.8.2)\\1.8.2(0388afd4a2e8cb544cd69a8b25802d75e905c94d)"
+        return local + "/LWJGL/2.9.x(1.8.2)/1.8.2(0388afd4a2e8cb544cd69a8b25802d75e905c94d)"
     elif lwjgl_version == "LWJGL 2.9.4":
         print("Get LWJGL path successfull :)", color='blue')
-        return local + "\\LWJGL\\2.9.4\\1.12(91d80911a67c3f95b232483aa2646ad7663a2976)"
+        return local + "/LWJGL/2.9.4/1.12(91d80911a67c3f95b232483aa2646ad7663a2976)"
     elif lwjgl_version == "LWJGL 3.1.6":
         print("Get LWJGL path successfull :)", color='blue')
-        return local + "\\LWJGL\\3.1.6\\362f886f0e087997ece5e8b064ff34886b378668"
+        return local + "/LWJGL/3.1.6/362f886f0e087997ece5e8b064ff34886b378668"
     elif lwjgl_version == "LWJGL 3.2.1(1.14)":
         print("Get LWJGL path successfull :)", color='blue')
-        return local + "\\LWJGL\\3.2.1(1.14)\\476a2617ce0938d8559f61d5a7505fad49424892"
+        return local + "/LWJGL/3.2.1(1.14)/476a2617ce0938d8559f61d5a7505fad49424892"
     elif lwjgl_version == "LWJGL 3.2.2(1.15)":
         print("Get LWJGL path successfull :)", color='blue')
-        return local + "\\LWJGL\\3.2.2(1.15)\\b093bae93ae5e9ae4c39d10a11624faef91d9061"
+        return local + "/LWJGL/3.2.2(1.15)/b093bae93ae5e9ae4c39d10a11624faef91d9061"
     elif lwjgl_version == "LWJGL 3.2.2(1.16)":
         print("Get LWJGL path successfull :)", color='blue')
-        return local + "\\LWJGL\\3.2.2(1.16)\\b093bae93ae5e9ae4c39d10a11624faef91d9061"
+        return local + "/LWJGL/3.2.2(1.16)/b093bae93ae5e9ae4c39d10a11624faef91d9061"
     elif lwjgl_version == "LWJGL 3.3.3":
         print("Get LWJGL path successfull :)", color='blue')
-        return local + "\\LWJGL\\3.3.3\\44685878b69bb36a6fb05390c06c8b0243d34f57"
+        return local + "/LWJGL/3.3.3/44685878b69bb36a6fb05390c06c8b0243d34f57"
     else:
         print("LaucnhManager: This version of LWJGL are not recognized!", color='red')
         print("Trying to redownload in DownloadTools!", color='yellow')
@@ -212,7 +212,10 @@ def launch():
 
             # Check Java_HOME.json file are activable to use(and getting jvm path from this file)
             Java_path = java_version_check(version_id)
-            Java_path = f'"{Java_path + "\\java.exe"}"'
+            if platform.system() == 'Windows':
+                Java_path = f'"{Java_path + "/java.exe"}"'
+            else:
+                Java_path = f'"{Java_path + "/java"}"'
 
             # Set some .minecraft path...
             os.chdir(r'instances/' + version_id)
