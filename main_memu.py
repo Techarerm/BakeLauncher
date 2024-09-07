@@ -139,4 +139,4 @@ def main_memu(platform):
         # Back to main avoid crash(when user type illegal thing)
         print("BakeLaunch: Oops! Invalid option :O  Please enter a number.", color='red')
         time.sleep(1.2)
-        back_to_main()
+        back_to_memu()
