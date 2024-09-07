@@ -25,7 +25,7 @@ def ClearOutput(platform):
     if platform == "Windows":
         print("Clearing output...")
         os.system("cls")
-    elif platform == "macOS":
+    elif platform == "Darwin":
         print("Clearing output...")
         os.system("clear")
     elif platform == "Linux":
