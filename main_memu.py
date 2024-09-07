@@ -27,8 +27,14 @@ from __init__ import BetaWarringMessage
 from __init__ import ClearOutput
 
 def back_to_memu(platform):
-    os.system('cls')
-    main_memu(platform)
+    if platform == "Windows":
+        print("Clearing output...")
+        os.system("cls")
+        main_memu(platform)
+    else:
+        print("Clearing output...")
+        os.system("cls")
+        main_memu(platform)
 
 
 def timer(seconds):
@@ -76,8 +82,6 @@ def login_status():
 
 
 def main_memu(platform):
-    time.sleep(1)
-    ClearOutput(platform)
     print('"BakeLauncher Main Menu"', color='blue')
     print("Version: " + launcher_version, color='green')
 
@@ -139,4 +143,4 @@ def main_memu(platform):
         # Back to main avoid crash(when user type illegal thing)
         print("BakeLaunch: Oops! Invalid option :O  Please enter a number.", color='red')
         time.sleep(1.2)
-        back_to_memu()
+        back_to_memu(platform)

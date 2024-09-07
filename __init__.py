@@ -46,7 +46,7 @@ class PlatformCheck:
         if self.platformName == "Windows":
             return "Windows"
         elif self.platformName == "Darwin":
-            return "macOS"
+            return "Darwin"
         elif self.platformName == "Linux":
             return "Linux"
         else:
