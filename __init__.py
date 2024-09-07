@@ -6,7 +6,7 @@ import platform
 import os
 
 # Beta "Version"("Pre"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = "Beta 0.7(Pre-IE06924)"
+launcher_version = "Beta 0.7(Pre-IF07924)"
 
 
 BetaWarringMessage = ("You are running beta version of BakeLauncher.\n"

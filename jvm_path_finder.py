@@ -26,79 +26,217 @@ def write_json(path, version):
     with open("Java_HOME.json", "w") as jsonFile:
         json.dump(data, jsonFile, indent=4)
 
+
 def Java_8(path):
-    for root, dirs, files in os.walk(path):
-        if "jre-1.8" in dirs:
-            version = "Java_8"
-            print("Found Java 8 runtime on this computer :)")
-            JVM_8 = os.path.join(path, "jre-1.8", "bin")
-            print(os.path.join(JVM_8, "java.exe"))
-            os.chdir(JVM_8)
-            os.system("java.exe -version")
-            print("Saving path to Java_HOME.json")
-            os.chdir(local)
-            write_json(JVM_8, version)
-            print(" ")
-            break
+    if platform.system() == "Windows":
+        for root, dirs, files in os.walk(path):
+            if "jre-1.8" in dirs:
+                version = "Java_8"
+                print("Found Java 8 runtime on this computer :)")
+                JVM_8 = os.path.join(path, "jre-1.8", "bin")
+                print(f"Java HOME: {JVM_8}")
+                os.chdir(JVM_8)
+                os.system("java.exe -version")
+                print("Saving path to Java_HOME.json...")
+                os.chdir(local)
+                write_json(JVM_8, version)
+                print(" ")
+                break
+            else:
+                print("No Java 17 runtime on this computer")
+
+    elif platform.system() == "Darwin":
+        for Java_Folder in os.listdir(path):
+            Java_Folder_Name = os.path.join(path, Java_Folder)
+
+            # Find Java 21 and add it to the path
+            if os.path.isdir(Java_Folder_Name) and Java_Folder[:5] == "jdk-1.8" or "jre-1.8":
+                version = "Java_8"
+                JVM_8 == os.path.join(path, Java_Folder, "Contents", "Home", "bin")
+                print(f"Java HOME: {JVM_8}")
+                os.chdir(JVM_8)
+                os.system("java -version")
+                print("Saving path to Java_HOME.json...")
+                os.chdir(local)
+                write_json(JVM_8, version)
+                print(" ")
+                break
+
+    elif platform.system() == "Linux":
+        for Java_Folder in os.listdir(path):
+            Java_Folder_Name = os.path.join(path, Java_Folder)
+
+            # Find Java 21 and add it to the path
+            if os.path.isdir(Java_Folder_Name) and Java_Folder[:5] == "jre-1.8" or "jdk-1.8" or "java-1.8":
+                version = "Java_8"
+                JVM_21 == os.path.join(path, Java_Folder, "bin")
+                print(f"Java HOME: {JVM_8}")
+                os.chdir(JVM_8)
+                os.system("java -version")
+                print("Saving path to Java_HOME.json...")
+                os.chdir(local)
+                write_json(JVM_8, version)
+                print(" ")
+                break
+            else:
+                print("No Java 8 runtime on this computer")
     else:
-        print("No Java 8 runtime on this computer")
+        print("Unsupported operating system :(")
+
 
 def Java_17(path):
-    for root, dirs, files in os.walk(path):
-        if "jdk-17" in dirs:
-            version = "Java_17"
-            print("Found Java 17 runtime on this computer :)")
-            JVM_17 = os.path.join(path, "jdk-17", "bin")
-            print(os.path.join(JVM_17, "java.exe"))
-            os.chdir(JVM_17)
-            os.system("java.exe -version")
-            print("Saving path to Java_HOME.json")
-            os.chdir(local)
-            write_json(JVM_17, version)
-            print(" ")
-            break
+    if platform.system() == "Windows":
+        for root, dirs, files in os.walk(path):
+            if "jdk-17" in dirs:
+                version = "Java_17"
+                print("Found Java 17 runtime on this computer :)")
+                JVM_17 = os.path.join(path, "jdk-17", "bin")
+                print(f"Java HOME: {JVM_17}")
+                os.chdir(JVM_17)
+                os.system("java.exe -version")
+                print("Saving path to Java_HOME.json...")
+                os.chdir(local)
+                write_json(JVM_17, version)
+                print(" ")
+                break
+            else:
+                print("No Java 17 runtime on this computer")
+
+    elif platform.system() == "Darwin":
+        for Java_Folder in os.listdir(path):
+            Java_Folder_Name = os.path.join(path, Java_Folder)
+
+            # Find Java 21 and add it to the path
+            if os.path.isdir(Java_Folder_Name) and Java_Folder[:5] == "jdk-17" or "jre-17":
+                version = "Java_17"
+                JVM_17 == os.path.join(path, Java_Folder, "Contents", "Home", "bin")
+                print(f"Java HOME: {JVM_17}")
+                os.chdir(JVM_17)
+                os.system("java -version")
+                print("Saving path to Java_HOME.json...")
+                os.chdir(local)
+                write_json(JVM_17, version)
+                print(" ")
+                break
+
+    elif platform.system() == "Linux":
+        for Java_Folder in os.listdir(path):
+            Java_Folder_Name = os.path.join(path, Java_Folder)
+
+            # Find Java 21 and add it to the path
+            if os.path.isdir(Java_Folder_Name) and Java_Folder[:5] == "jdk-17" or "jre-17" or "java-17":
+                version = "Java_17"
+                JVM_21 == os.path.join(path, Java_Folder, "bin")
+                print(f"Java HOME: {JVM_17}")
+                os.chdir(JVM_17)
+                os.system("java -version")
+                print("Saving path to Java_HOME.json...")
+                os.chdir(local)
+                write_json(JVM_17, version)
+                print(" ")
+                break
+            else:
+                print("No Java 17 runtime on this computer")
     else:
-        print("No Java 17 runtime on this computer")
+        print("Unsupported operating system :(")
+
 
 def Java_21(path):
-    for root, dirs, files in os.walk(path):
-        if "jdk-21" in dirs:
-            version = "Java_21"
-            print("Found Java 21 runtime on this computer :)")
-            JVM_21 = os.path.join(path, "jdk-21", "bin")
-            print(os.path.join(JVM_21, "java.exe"))
-            os.chdir(JVM_21)
-            os.system("java.exe -version")
-            print("Saving path to Java_HOME.json")
-            os.chdir(local)
-            write_json(JVM_21, version)
-            print(" ")
-            break
+    if platform.system() == "Windows":
+        for root, dirs, files in os.walk(path):
+            if "jdk-21" in dirs:
+                version = "Java_21"
+                print("Found Java 21 runtime on this computer :)")
+                JVM_21 = os.path.join(path, "jdk-21", "bin")
+                print(f"Java HOME: {JVM_21}")
+                os.chdir(JVM_21)
+                os.system("java.exe -version")
+                print("Saving path to Java_HOME.json...")
+                os.chdir(local)
+                write_json(JVM_21, version)
+                print(" ")
+                break
+            else:
+                print("Can't find any Java runtime on this computer :(")
+
+    elif platform.system() == "Darwin":
+        for Java_Folder in os.listdir(path):
+            Java_Folder_Name = os.path.join(path, Java_Folder)
+
+            # Find Java 21 and add it to the path
+            if os.path.isdir(Java_Folder_Name) and Java_Folder[:5] == "jdk-21" or "jre-21":
+                version = "Java_21"
+                JVM_21 == os.path.join(path, Java_Folder, "Contents", "Home", "bin")
+                print(f"Java HOME: {JVM_21}")
+                os.chdir(JVM_21)
+                os.system("java -version")
+                print("Saving path to Java_HOME.json...")
+                os.chdir(local)
+                write_json(JVM_21, version)
+                print(" ")
+                break
+            else:
+                print("No Java 21 runtime on this computer")
+
+    elif platform.system() == "Linux":
+        for Java_Folder in os.listdir(path):
+            Java_Folder_Name = os.path.join(path, Java_Folder)
+
+            # Find Java 21 and add it to the path
+            if os.path.isdir(Java_Folder_Name) and Java_Folder[:5] == "jdk-21" or "jre-21" or "java-21":
+                version = "Java_21"
+                JVM_21 == os.path.join(path, Java_Folder, "bin")
+                print(f"Java HOME: {JVM_21}")
+                os.chdir(JVM_21)
+                os.system("java -version")
+                print("Saving path to Java_HOME.json...")
+                os.chdir(local)
+                write_json(JVM_21, version)
+                print(" ")
+                break
+            else:
+                print("No Java 21 runtime on this computer")
     else:
-        print("Can't find any Java runtime on this computer :(")
+        print("Unsupported operating system :(")
+
+
+
 
 def java_search():
     print("System type: Windows")
     print("Trying to find JAVA_HOME...")
-    os.chdir(r"C:\Program Files\Java")
-    path = r"C:\Program Files\Java"
-    Java_8(path)
-    Java_17(path)
-    Java_21(path)
-    if os.path.exists("Java_HOME.json"):
-        print("Java runtime config successful!!!")
-        print("Press any key to back to the main menu...")
+    CantSetJavaPath = 0
+    if platform.system() == "Windows":
+        os.chdir(r"C:\Program Files\Java")
+    elif platform.system() == "Darwin":
+        os.chdir(r"/Library/Java/JavaVirtualMachines/")
+    elif platform.system() == "Linux":
+        os.chdir(r"/usr/lib/jvm/")
     else:
-        print("Failed to configure Java runtime path :(")
-        print("Trying to install JRE or JDK")
-        print("Minecraft Java version requirement list:")
-        print("1.0~1.16 - Java 8")
-        print("Download Link: https://www.java.com/download/manual.jsp")
-        print("1.17~1.20 - Java 17")
-        print("Download Link: https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html")
-        print("1.21~1.22 - Java 21")
-        print("Download Link: https://www.oracle.com/java/technologies/downloads/#java21")
-        print("Back to main menu.....")
+        print("Unsupported Operating System :(")
+        CantSetJavaPath = 1
+
+    if CantSetJavaPath == 0:
+        path = r"C:\Program Files\Java"
+        Java_8(path)
+        Java_17(path)
+        Java_21(path)
+        if os.path.exists("Java_HOME.json"):
+            print("Java runtime config successful!!!")
+            print("Press any key to back to the main menu...")
+        else:
+            print("Failed to configure Java runtime path :(")
+            print("Trying to install JRE or JDK")
+            print("Minecraft Java version requirement list:")
+            print("1.0~1.16 - Java 8")
+            print("Download Link: https://www.java.com/download/manual.jsp")
+            print("1.17~1.20 - Java 17")
+            print("Download Link: https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html")
+            print("1.21~1.22 - Java 21")
+            print("Download Link: https://www.oracle.com/java/technologies/downloads/#java21")
+            print("Back to main menu.....")
+    else:
+        print("Failed to configure Java runtime path because JVM_Finder are not supported on your system!")
 
 def java_finder():
     system = platform.system()
