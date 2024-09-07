@@ -11,7 +11,7 @@ def generate_jar_paths(version_id):
     for root, dirs, files in os.walk(libraries_dir):
         for file in files:
             if file.endswith('.jar'):
-                # Construct the path with \libraries prefix
+                # Construct the path with /libraries prefix
                 relative_path = os.path.relpath(os.path.join(root, file), start=libraries_dir)
                 full_path = os.path.join("libraries", relative_path)  # Add \libraries to the path
                 # Append the path to the jar_paths_string with a semicolon
@@ -27,7 +27,7 @@ def patcher_main(version):
     Version_list = os.listdir('instances')
     print("LaunchPatcher: Now fixing version " + version + " of Minecraft...", color="green")
     jar_paths = generate_jar_paths(version)
-    os.chdir(r'instances\\' + version)
+    os.chdir(r'instances/' + version)
     # Save the jar paths to a file or print them
     print(f"LaunchPatcher: Generated .jar paths for version {version}", color="green")
     # Write to libraries_path.cfg file

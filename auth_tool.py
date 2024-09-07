@@ -130,10 +130,10 @@ def login():
             "UUID": uuid,
             "Token": minecraft_token
         }
-        with open("data\\AccountData.json", "w") as jsonFile:
+        with open("data/AccountData.json", "w") as jsonFile:
             json.dump(data, jsonFile)
         print("AuthTool: AccountData saved successfully!", color='green')
     except Exception as e:
         print(f"AuthTool: Failed to save account data. Error: {e}", color='red')
-        print("AuthTool: Trying delete file name AccountData.json(Is in the data folder)!", color='yellow')
+        print("AuthTool: Trying to delete file name AccountData.json(Is in the data folder)!", color='yellow')
     print("Login process finished :)", color='blue')

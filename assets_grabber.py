@@ -98,11 +98,11 @@ def get_assets_index_version(local, version_data, version_id):
         print("Please try again later(If still can't get assetsIndex please report this bug to GitHib!", color='yellow')
         print("IMPORANT:'Do not launch it if failed to get assetsIndex. You might get a broken version of Minecraft :D", color='yellow')
         print("Asset index not found.", color='red')
-    os.chdir(local + "\\instances" + f"\\{version_id}")
+    os.chdir(local + "/instances" + f"/{version_id}")
 
 def get_asset(version_id):
     local = os.getcwd()
-    os.chdir("instances\\" + version_id)
+    os.chdir("instances/" + version_id)
 
     if os.path.exists(".minecraft"):
         print(".minecraft already created!", color='green')
@@ -126,7 +126,7 @@ def get_asset(version_id):
         print("Can't find indexes folder! Creating...", color='yellow')
         os.makedirs("indexes", exist_ok=True)
 
-    save_dir = minecraft + "\\assets\\" + "indexes"
+    save_dir = minecraft + "/assets/" + "indexes"
     version_json = get_version_json(version_id)
     if version_json:
         asset_index = download_asset_index(version_json, save_dir)
@@ -139,7 +139,7 @@ def get_asset(version_id):
     if version_tuple <= (1, 7, 2):
         print("Your want to download version's type are 'Legacy'!", color='green')
         print("Downloading Legacy assets now...", color='green')
-        assets_dir = "instances\\" + version_id + "\\.minecraft\\" + "assets"
+        assets_dir = "instances/" + version_id + "/.minecraft/" + "assets"
         if version_tuple < (1, 6, 0):
             Index = "pre-1.6"
             download_legacy_assets(version_id, assets_dir, Index)

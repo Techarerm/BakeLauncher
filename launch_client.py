@@ -67,7 +67,7 @@ def read_assets_index_version(local, version_id):
         assetsIndexFix(local, version_id)
         print("LaunchManager: Fixed assetsIndex config successfull!", color='blue')
         try:
-            with open('.minecraft\\assets_index.json', 'r') as file:
+            with open('.minecraft/assets_index.json', 'r') as file:
                 data = json.load(file)
             assetsIndex_version = data['id']
             return assetsIndex_version
@@ -81,13 +81,13 @@ def read_assets_index_version(local, version_id):
 
 def get_assets_dir(version_id) -> str:
     version_tuple = tuple(map(int, version_id.split(".")))
-    assets_dir = ".minecraft\\assets"
+    assets_dir = ".minecraft/assets"
     if version_tuple <= (1, 7, 2) and version_tuple > (1, 5, 2):
-        return assets_dir + "\\virtual\\legacy"
+        return assets_dir + "/virtual/legacy"
     elif version_tuple >= (1, 0) and version_tuple <= (1, 5, 2):
-        return assets_dir + "\\virtual\\legacy"
+        return assets_dir + "/virtual/legacy"
     elif version_tuple == (1, 0):
-        return assets_dir + "\\virtual\\legacy"
+        return assets_dir + "/virtual/legacy"
     else:
         return assets_dir
 
@@ -260,7 +260,7 @@ def launch():
             # Get access token and username, uuid to set game args
             print("Reading account data....", color='green')
             os.chdir(local)
-            with open('data\\AccountData.json', 'r') as file:
+            with open('data/AccountData.json', 'r') as file:
                 data = json.load(file)
             username = data['AccountName']
             uuid = data['UUID']

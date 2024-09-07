@@ -3,6 +3,10 @@ BakeLaunch Main Memu
 (Main memu has been separated from main since Beta 0.7(Pre-hg30824)
 """
 import platform
+
+
+
+
 import os
 import sys
 import time
@@ -43,12 +47,12 @@ def login_status():
     """
     username = "Player"  # Initialize username to avoid UnboundLocalError-
     try:
-        with open('data\\AccountData.json', 'r') as file:
+        with open('data/AccountData.json', 'r') as file:
             data = json.load(file)
             username = data['AccountName']  # Set username here
     except (FileNotFoundError, json.JSONDecodeError):
         initialize_account_data()
-        with open('data\\AccountData.json', 'r') as file:
+        with open('data/AccountData.json', 'r') as file:
             data = json.load(file)
             username = data['AccountName']
 
