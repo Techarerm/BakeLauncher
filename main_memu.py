@@ -40,6 +40,17 @@ def timer(seconds):
         print(f"Back to main memu...{remaining}", end='\r', color=p)
         time.sleep(1)
 
+def initialize_account_data():
+    default_data = {
+        "AccountName": "None",
+        "UUID": "None",
+        "Token": "None"
+    }
+    if not os.path.exists('data'):
+        os.makedirs('data')
+    with open('data/AccountData.json', 'w') as file:
+        json.dump(default_data, file)
+
 def login_status():
     """
     Check login status.
