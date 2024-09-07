@@ -240,20 +240,16 @@ def java_search():
 
 def java_finder():
     system = platform.system()
-    if system == 'Windows':
-        if os.path.isfile('Java_HOME.json'):
-            print("Found Java path config! Do you want to reconfigure this file? (Yes=1, No=0)")
-            user_input = int(input(":"))
-            if user_input == 1:
-                os.remove('Java_HOME.json')
-                java_search()
-            else:
-                print("Bypass reconfiguration...")
-                print("Back to main menu.....")
-        else:
+    if os.path.isfile('Java_HOME.json'):
+        print("Found Java path config! Do you want to reconfigure this file? (Yes=1, No=0)")
+        user_input = int(input(":"))
+        if user_input == 1:
+            os.remove('Java_HOME.json')
             java_search()
+        else:
+            print("Bypass reconfiguration...")
+            print("Back to main menu.....")
     else:
-        print("Sorry :( I didn't add support for other systems... (It will be supported in the next update)")
-
+        java_search()
 
                  
