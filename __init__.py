@@ -25,7 +25,7 @@ def ClearOutput(platform):
     if platform == "Windows":
         print("Clearing output...")
         os.system("cls")
-    elif platform == "Darwin":
+    elif platform == "macOS":
         print("Clearing output...")
         os.system("clear")
     elif platform == "Linux":
@@ -45,7 +45,7 @@ class PlatformCheck:
     def check_platform_valid_and_return(self):
         if self.platformName == "Windows":
             return "Windows"
-        elif self.platformName == "macOS":
+        elif self.platformName == "Darwin":
             return "macOS"
         elif self.platformName == "Linux":
             return "Linux"
