@@ -206,17 +206,16 @@ def java_search():
     print("Trying to find JAVA_HOME...")
     CantSetJavaPath = 0
     if platform.system() == "Windows":
-        os.chdir(r"C:\Program Files\Java")
+        path = r"C:\Program Files\Java"
     elif platform.system() == "Darwin":
-        os.chdir(r"/Library/Java/JavaVirtualMachines/")
+        path =r"/Library/Java/JavaVirtualMachines/"
     elif platform.system() == "Linux":
-        os.chdir(r"/usr/lib/jvm/")
+        path =r"/usr/lib/jvm/"
     else:
         print("Unsupported Operating System :(")
         CantSetJavaPath = 1
 
     if CantSetJavaPath == 0:
-        path = r"C:\Program Files\Java"
         Java_8(path)
         Java_17(path)
         Java_21(path)
