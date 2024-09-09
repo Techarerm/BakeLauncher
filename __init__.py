@@ -6,7 +6,13 @@ import platform
 import os
 
 # Beta "Version"("Pre"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = "Beta 0.7(Pre-IF07924)"
+launcher_version = "Beta 0.7(Pre-IA09924)"
+
+
+# Some repo....
+LWJGL_Maven = f"https://repo1.maven.org/maven2/org/lwjgl/lwjgl/"
+
+
 
 
 BetaWarringMessage = ("You are running beta version of BakeLauncher.\n"

@@ -39,12 +39,21 @@ def back_to_memu(platform):
 
 def timer(seconds):
     for remaining in range(seconds, 0, -1):
-        if remaining < 4:
-            p = "red"
+        # Determine the color based on the remaining time
+        if remaining <= 4:
+            c = "red"  # Red
         else:
-            p = "white"
-        print(f"Back to main memu...{remaining}", end='\r', color=p)
+            c = "white"  # White
+
+        # Print the remaining time with color and overwrite previous output
+        print(f"Back to main menu...{remaining} \033[0m", end='\r', color=c)
+
+        # Wait for 1 second
         time.sleep(1)
+
+    # To clear the line after the timer ends
+    print(" " * 20, end='\r')
+
 
 def initialize_account_data():
     default_data = {
