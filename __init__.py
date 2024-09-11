@@ -6,7 +6,7 @@ import platform
 import os
 
 # Beta "Version"("Pre"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = "Beta 0.7(Pre-IA09924)"
+launcher_version = "Beta 0.7(Pre-IC12924)"
 
 
 # Some repo....
@@ -61,5 +61,5 @@ class PlatformCheck:
             print("Launcher can still run on this platform, but you may encounter serious issues with the file system!")
             return "Unsupported"
 
-# Usage
+
 GetPlatformName = PlatformCheck()

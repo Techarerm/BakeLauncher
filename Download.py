@@ -3,7 +3,7 @@ Is a small script to download game files.
 (Minecraft file download from Mojang CDN)
 '''
 import sys
-
+import platform
 import requests
 import os
 import subprocess
@@ -11,12 +11,16 @@ import shutil
 import zipfile
 import time
 import assets_grabber
+import __init__
+import lwjgl_patch
+import print_color
+import launch_version_patcher
+from __init__ import GetPlatformName
 from assets_grabber import get_asset
 from assets_grabber import get_assets_index_version
-import launch_version_patcher
 from launch_version_patcher import patcher_main
-import print_color
 from print_color import print
+from lwjgl_patch import unzip_natives
 
 def get_lwjgl_version(minecraft_version):
     version_tuple = tuple(map(int, minecraft_version.split(".")))
@@ -104,23 +108,24 @@ def download_lwjgl(version_id):
         print("Cleaning up...", color='green')
         os.remove(f"{lwjgl_version}.zip")
 
+
+
 def down_tool(version_data, version_id):
     """
     Create instances\\version_id\\folder and download game files
-
     """
     version_dir = os.path.join("instances", version_id)
     libraries_dir = os.path.join(version_dir, "libraries")
     os.makedirs(libraries_dir, exist_ok=True)
 
-    # Download client.jar(Main class?)
+    # Download client.jar
     client_info = version_data['downloads']['client']
     client_url = client_info['url']
     client_dest = os.path.join(version_dir, 'client.jar')
     print(f"Downloading client.jar to {client_dest}...")
     download_file(client_url, client_dest)
 
-    # Only download libraries (also only download windows version)
+    # Download libraries
     libraries = version_data.get('libraries', [])
     for lib in libraries:
         lib_downloads = lib.get('downloads', {})
@@ -144,8 +149,44 @@ def down_tool(version_data, version_id):
             lib_path = artifact['path']
             lib_url = artifact['url']
             lib_dest = os.path.join(libraries_dir, lib_path)
+            os.makedirs(os.path.dirname(lib_dest), exist_ok=True)
             print(f"Downloading {lib_path} to {lib_dest}...")
             download_file(lib_url, lib_dest)
+
+    # Print entire version_data for debugging
+    print("Version Data:", version_data)
+
+    # Detect current OS and prepare to download natives
+    os_system = platform.system().lower()
+    native_keys = {
+        'windows': 'natives-windows',
+        'linux': 'natives-linux',
+        'darwin': 'natives-osx'
+    }
+    native_key = native_keys.get(os_system)
+
+    if not native_key:
+        print(f"Unsupported OS: {os_system}")
+        return
+
+    print(f"Detected OS: {os_system}. Looking for native key: {native_key}")
+
+    # Check if any library has classifiers for the current OS
+    found_any_classifier = False
+    for lib in libraries:
+        classifiers = lib.get('downloads', {}).get('classifiers', {})
+        native_info = classifiers.get(native_key)
+        if native_info:
+            native_path = native_info['path']
+            native_url = native_info['url']
+            native_dest = os.path.join(libraries_dir, native_path)
+            os.makedirs(os.path.dirname(native_dest), exist_ok=True)
+            print(f"Downloading {native_path} to {native_dest}...")
+            download_file(native_url, native_dest)
+            found_any_classifier = True
+
+    if not found_any_classifier:
+        print(f"No native library information found for key: {native_key}")
 
 
 def download_with_version_id(version_list, release_versions, formatted_versions):
@@ -175,17 +216,16 @@ def download_with_version_id(version_list, release_versions, formatted_versions)
                     version_url = selected_version['url']
                     version_response = requests.get(version_url)
                     version_data = version_response.json()
+
                     # Download game file( libraries, .jar files...., and lwjgl!)
-                    print(f"DownoandTool: Version {selected_version_id} details:")
-                    print(selected_version_id)
                     print("DownoandTool: Loading version info...")
                     down_tool(version_data, selected_version_id)
                     os.system("cls")
                     print("DownoandTool: The required dependent libraries should have been downloaded :)", color='blue')
 
                     # I know hosted lwjgl file on github is not a best way :) ( I will delete it when I found a nice way to simply download lwjgl library...)
-                    print("DownoandTool: Now downloading LWJGL...", color='green')
-                    download_lwjgl(selected_version_id)
+                    print("DownoandTool: Now unzip natives...", color='green')
+                    unzip_natives(selected_version_id)
 
                     # Download assets(Also it will check this version are use legacy assets or don't use)
                     print("DownoandTool: Now create assets...", color='green')
@@ -232,22 +272,23 @@ def download_with_version_tunple(version_list):
             version_url = selected_version['url']
             version_response = requests.get(version_url)
             version_data = version_response.json()
+
             # Download game file( libraries, .jar files...., and lwjgl!)
-            print(f"DownoandTool: Version {selected_version_id} details:")
-            print(selected_version_id)
             print("DownoandTool: Loading version info...")
             down_tool(version_data, selected_version_id)
             os.system("cls")
             print("DownoandTool: The required dependent libraries should have been downloaded :)", color='blue')
 
-            # I know hosted lwjgl file on github is not a best way :) ( I will delete it when I found a nice way to simply download lwjgl library...)
-            print("DownoandTool: Now downloading LWJGL...", color='green')
-            download_lwjgl(selected_version_id)
-
             # Download assets(Also it will check this version are use legacy assets or don't use)
             print("DownoandTool: Now create assets...", color='green')
             get_asset(selected_version_id)
             get_assets_index_version(local, version_data, selected_version_id)
+
+            # Finally....
+            print("DownoandTool: Now unzip natives...", color='green')
+            unzip_natives(selected_version_id)
+
+
             print("DownoandTool: YAPPY! Now all files are download success :)", color='blue')
             print("DownoandTool: Exiting download tool....", color='green')
 

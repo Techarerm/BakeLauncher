@@ -9,49 +9,10 @@ import print_color
 from print_color import print
 import assets_grabber
 from assets_grabber import get_assets_index_version
+from legacy_patch import legacy_version_natives_fix
 import requests
 import platform
 
-def get_lwjgl_version(version_id):
-    """
-    Check Minecraft support LWJGL version.
-    Some version of Minecraft are REALLY WEIRD :( took me 2 days to get all...
-    """
-    version_tuple = tuple(map(int, version_id.split(".")))
-    print("LaunchManager: Checking supported LWJGL version...", color='green')
-
-    if version_tuple < (1, 7, 3):
-        print("LaunchManager: Using LWJGL 2.6.x", color='blue')
-        return "LWJGL 2.6.x"
-    elif (1, 7, 3) <= version_tuple <= (1, 8, 1):
-        print("LaunchManager: Using LWJGL 2.8.x(1.7)", color='blue')
-        return "LWJGL 2.8.x(1.7)"
-    elif (1, 8, 1) <= version_tuple <= (1, 8, 9):
-        print("LaunchManager: Using LWJGL 2.9.x(1.8.2)", color='blue')
-        return "LWJGL 2.9.x(1.8.2)"
-    elif (1, 9) <= version_tuple <= (1, 12, 2):
-        print("LaunchManager: Using LWJGL 2.9.4", color='blue')
-        return "LWJGL 2.9.4"
-    elif version_tuple <= (1, 13, 2):
-        print("LaunchManager: Using LWJGL 3.1.6", color='blue')
-        return "LWJGL 3.1.6"
-    elif version_tuple <= (1, 14, 2):
-        print("LaunchManager: Using LWJGL 3.2.1(1.14)", color='blue')
-        return "LWJGL 3.2.1(1.14)"
-    elif version_tuple <= (1, 15, 2):
-        print("LaunchManager: Using LWJGL 3.2.2(1.15)", color='blue')
-        return "LWJGL 3.2.2(1.15)"
-    elif version_tuple <= (1, 18, 2):
-        print("LaunchManager: Using LWJGL 3.2.2(1.16)", color='blue')
-        return "LWJGL 3.2.2(1.16)"
-    elif version_tuple >= (1, 19):
-        print("LaunchManager: Using LWJGL 3.3.3", color='blue')
-        return "LWJGL 3.3.3"
-    else:
-        print("LaunchManager: Unsupported Minecraft version :(")
-        print("Maybe this version of Minecraft support's lwjgl didn't downloand!")
-        print("You can report to GitHub at https://github.com")
-        return 0
 
 def read_assets_index_version(local, version_id):
     try:
@@ -115,45 +76,6 @@ def java_version_check(version):
     print(f"LaunchManager: Java runtime path is:{Java_path}", color='blue')
     return Java_path
 
-
-def get_lwjgl_path(lwjgl_version ,local):
-    # Determine natives_library based on LWJGL version
-    print(f"LaunchManager: Trying to get LWJGL version {lwjgl_version}'s path....", color='green')
-    if lwjgl_version == "LWJGL 2.6.x":
-        print("Get LWJGL path successfull :)", color='blue')
-        return local + "/LWJGL/2.6.x/1.0(6d0e9e5bfb61b441b31cff10aeb801ab64345a7d)"
-    elif lwjgl_version == "LWJGL 2.8.x(1.7)":
-        print("Get LWJGL path successfull :)", color='blue')
-        return local + "/LWJGL/2.8.x(1.7)/1.7.3(455edb6b1454a7f3243f37b5f240f69e1b0ce4fa)"
-    elif lwjgl_version == "LWJGL 2.9.x(1.8)":
-        print("Get LWJGL path successfull :)", color='blue')
-        return local + "/LWJGL/2.8.x(1.8)/1.8(7a28f1c296715db4d5f08cbcc92023ee7ed3fc9f)"
-    elif lwjgl_version == "LWJGL 2.9.x(1.8.2)":
-        print("Get LWJGL path successfull :)", color='blue')
-        return local + "/LWJGL/2.9.x(1.8.2)/1.8.2(0388afd4a2e8cb544cd69a8b25802d75e905c94d)"
-    elif lwjgl_version == "LWJGL 2.9.4":
-        print("Get LWJGL path successfull :)", color='blue')
-        return local + "/LWJGL/2.9.4/1.12(91d80911a67c3f95b232483aa2646ad7663a2976)"
-    elif lwjgl_version == "LWJGL 3.1.6":
-        print("Get LWJGL path successfull :)", color='blue')
-        return local + "/LWJGL/3.1.6/362f886f0e087997ece5e8b064ff34886b378668"
-    elif lwjgl_version == "LWJGL 3.2.1(1.14)":
-        print("Get LWJGL path successfull :)", color='blue')
-        return local + "/LWJGL/3.2.1(1.14)/476a2617ce0938d8559f61d5a7505fad49424892"
-    elif lwjgl_version == "LWJGL 3.2.2(1.15)":
-        print("Get LWJGL path successfull :)", color='blue')
-        return local + "/LWJGL/3.2.2(1.15)/b093bae93ae5e9ae4c39d10a11624faef91d9061"
-    elif lwjgl_version == "LWJGL 3.2.2(1.16)":
-        print("Get LWJGL path successfull :)", color='blue')
-        return local + "/LWJGL/3.2.2(1.16)/b093bae93ae5e9ae4c39d10a11624faef91d9061"
-    elif lwjgl_version == "LWJGL 3.3.3":
-        print("Get LWJGL path successfull :)", color='blue')
-        return local + "/LWJGL/3.3.3/44685878b69bb36a6fb05390c06c8b0243d34f57"
-    else:
-        print("LaucnhManager: This version of LWJGL are not recognized!", color='red')
-        print("Trying to redownload in DownloadTools!", color='yellow')
-        print("If still can't launch Minecraft please report this issue to GitHub!", color='yellow')
-        return 0
 
 def assetsIndexFix(local, selected_version_id):
     # Get version_manifest_v2.json and list all version(also add version_id in version's left :)
@@ -229,8 +151,9 @@ def launch(platform):
             window_size = "-Dorg.lwjgl.opengl.Window.undecorated=false -Dorg.lwjgl.opengl.Display.width=1280 -Dorg.lwjgl.opengl.Display.height=720"
 
             # Get requirement lwjgl version :)
-            lwjgl_version = get_lwjgl_version(version_id)
-            natives_library = get_lwjgl_path(lwjgl_version, local)
+            print("LaunchManager: Checking natives...", color='green')
+            legacy_version_natives_fix(version_id)
+            natives_library = '.minecraft/natives'
             jvm_args2 = "-Djava.library.path={}".format(natives_library)
 
             # Set Xms and Xmx ram size (Maybe I can add change ram size in memu,,,hmm :)
