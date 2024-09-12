@@ -10,7 +10,7 @@ import time
 import print_color
 from print_color import print
 from main_memu import main_memu
-from __init__ import GetPlatformName, ClearOutput, GetPlatformVersion
+from __init__ import GetPlatformName, ClearOutput, BetaWarringMessage
 
 def main():
     print("BakeLauncher: Check running platform...", color="green")
