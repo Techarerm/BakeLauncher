@@ -1,12 +1,15 @@
 """
 Some stuff...
 """
-
+import print_color
 import platform
 import os
+import time
+from print_color import print
+
 
 # Beta "Version"("Pre"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = "Beta 0.7(Pre-IC12924)"
+launcher_version = "Beta 0.7(Pre-ID12924)"
 
 
 # Some repo....
@@ -39,6 +42,24 @@ def ClearOutput(platform):
         os.system("clear")
     else:
         print("Unsupported platform! Bypassing ClearOutput...")
+
+def timer(seconds):
+    for remaining in range(seconds, 0, -1):
+        # Determine the color based on the remaining time
+        if remaining <= 4:
+            c = "red"  # Red
+        else:
+            c = "white"  # White
+
+        # Print the remaining time with color and overwrite previous output
+        print(f"Back to main menu...{remaining} \033[0m", end='\r', color=c)
+
+        # Wait for 1 second
+        time.sleep(1)
+
+    # To clear the line after the timer ends
+    print(" " * 20, end='\r')
+
 
 class PlatformCheck:
     def __init__(self):

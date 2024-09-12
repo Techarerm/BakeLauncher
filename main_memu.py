@@ -19,12 +19,14 @@ from Download import download_main
 from launch_version_patcher import patcher_main
 from launch_version_patcher import generate_jar_paths
 from jvm_path_finder import java_finder
+from args_manager import argsman
 from assets_grabber import get_asset
 from print_color import print
 from __init__ import ChangeLog
 from __init__ import launcher_version
 from __init__ import BetaWarringMessage
 from __init__ import ClearOutput
+from __init__ import timer
 
 def back_to_memu(platform):
     if platform == "Windows":
@@ -35,25 +37,6 @@ def back_to_memu(platform):
         print("Clearing output...")
         os.system("cls")
         main_memu(platform)
-
-
-def timer(seconds):
-    for remaining in range(seconds, 0, -1):
-        # Determine the color based on the remaining time
-        if remaining <= 4:
-            c = "red"  # Red
-        else:
-            c = "white"  # White
-
-        # Print the remaining time with color and overwrite previous output
-        print(f"Back to main menu...{remaining} \033[0m", end='\r', color=c)
-
-        # Wait for 1 second
-        time.sleep(1)
-
-    # To clear the line after the timer ends
-    print(" " * 20, end='\r')
-
 
 def initialize_account_data():
     default_data = {
@@ -99,7 +82,7 @@ def main_memu(platform):
 
     print("What would you like to do?")
     print("1. Launch Minecraft 2. Log in 3. Clear login data (for expired session)")
-    print("4: DownloadTool 5: Configure Java 6: About 7: Exit launcher")
+    print("4: DownloadTool 5: Configure Java 6: Config launch args 7: About 8: Exit launcher")
 
     try:
         user_input = int(input(":"))
@@ -129,6 +112,9 @@ def main_memu(platform):
             java_finder()
             back_to_memu(platform)
         elif user_input == 6:
+            argsman()
+            back_to_memu(platform)
+        elif user_input == 7:
             print("POWERED BY BAKE!", color="yellow")
             print("BakeLauncher " + launcher_version, color='yellow')
             print("Contact Me :) TedKai/@Techarerm", color="blue")
@@ -138,7 +124,7 @@ def main_memu(platform):
             print(ChangeLog, color='cyan')
             timer(10)
             back_to_memu(platform)
-        elif user_input == 7:
+        elif user_input == 8:
             print("Exiting launcher...", color='green')
             print("Bye :)", color='blue')
             print(" ")

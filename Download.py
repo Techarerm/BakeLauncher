@@ -15,6 +15,7 @@ import __init__
 import lwjgl_patch
 import print_color
 import launch_version_patcher
+from __init__ import ClearOutput
 from __init__ import GetPlatformName
 from assets_grabber import get_asset
 from assets_grabber import get_assets_index_version
@@ -218,9 +219,9 @@ def download_with_version_id(version_list, release_versions, formatted_versions)
                     version_data = version_response.json()
 
                     # Download game file( libraries, .jar files...., and lwjgl!)
+                    ClearOutput(GetPlatformName.check_platform_valid_and_return())
                     print("DownoandTool: Loading version info...")
                     down_tool(version_data, selected_version_id)
-                    os.system("cls")
                     print("DownoandTool: The required dependent libraries should have been downloaded :)", color='blue')
 
                     # I know hosted lwjgl file on github is not a best way :) ( I will delete it when I found a nice way to simply download lwjgl library...)
@@ -274,9 +275,9 @@ def download_with_version_tunple(version_list):
             version_data = version_response.json()
 
             # Download game file( libraries, .jar files...., and lwjgl!)
+            ClearOutput(GetPlatformName.check_platform_valid_and_return())
             print("DownoandTool: Loading version info...")
             down_tool(version_data, selected_version_id)
-            os.system("cls")
             print("DownoandTool: The required dependent libraries should have been downloaded :)", color='blue')
 
             # Download assets(Also it will check this version are use legacy assets or don't use)

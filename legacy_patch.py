@@ -5,7 +5,6 @@ import platform
 from print_color import print
 import requests
 from Download import download_with_version_tunple
-from Download import down_tool
 from Download import download_file
 from assets_grabber import get_asset
 from assets_grabber import get_assets_index_version
@@ -25,17 +24,15 @@ def legacy_version_file_structure_fix():
 
 def down_tool(version_data, version_id):
     """
-    Create instances\\version_id\\folder and download game files
+    Only download libraries!
     """
-    version_dir = os.path.join("instances", version_id)
+    version_dir = os.getcwd()
     libraries_dir = os.path.join(version_dir, "libraries")
-    os.makedirs(libraries_dir, exist_ok=True)
-
     # Download client.jar
     client_info = version_data['downloads']['client']
     client_url = client_info['url']
     client_dest = os.path.join(version_dir, 'client.jar')
-    print(f"Downloading client.jar to {client_dest}...")
+    print(f"Downloading client.jar to {client_dest}...", color='green')
     download_file(client_url, client_dest)
 
     # Download libraries
@@ -113,9 +110,9 @@ def download_minecraft(selected_version_id):
         version_data = version_response.json()
 
         # Download game file( libraries, .jar files...., and lwjgl!)
-        print("DownoandTool(LP): Loading version info...")
+        print("DownoandTool(LP): Loading version info...", color="green")
         down_tool(version_data, selected_version_id)
-        os.system("cls")
+
         print("DownoandTool(LP): The required dependent libraries should have been downloaded :)", color='blue')
 
         # Finally....
