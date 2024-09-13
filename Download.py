@@ -75,7 +75,7 @@ def down_tool(version_data, version_id):
     PlatformName = GetPlatformName.check_platform_valid_and_return()
     PlatformNameLW = PlatformName.lower()
     if PlatformNameLW == 'darwin':
-        PlatformNameB == "macOS"
+        PlatformNameB = "macOS"
     if PlatformNameLW == 'darwin':
         PlatformNameLW == 'osx'
 
