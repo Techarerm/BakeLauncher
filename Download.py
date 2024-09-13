@@ -76,6 +76,9 @@ def down_tool(version_data, version_id):
     PlatformNameLW = PlatformName.lower()
     if PlatformName == 'darwin':
         PlatformNameL = 'osx'
+    else:
+        PlatformNameL = PlatformNameLW  # Ensure 'PlatformNameL' is set for non-Darwin platforms
+
     libraries = version_data.get('libraries', [])
     print(PlatformNameLW)
     for lib in libraries:
