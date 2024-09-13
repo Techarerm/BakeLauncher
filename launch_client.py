@@ -64,7 +64,7 @@ def java_version_check(version):
         data = json.load(file)
 
     if version_tuple > (1, 16):
-        if version_tuple >= (1, 21):
+        if version_tuple >= (1, 20, 6):
             Java_path = data.get("Java_21")
             print("LaunchManager: Using Java 21!", color='blue')
         else:
