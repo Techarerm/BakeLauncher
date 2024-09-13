@@ -151,7 +151,10 @@ def launch(platform):
 
             # Get requirement lwjgl version :)
             print("LaunchManager: Checking natives...", color='green')
-            legacy_version_natives_fix(version_id)
+            ErrorCheck = legacy_version_natives_fix(version_id)
+            if ErrorCheck == "FailedToFixNatives":
+                print("LaunchManager: Stopping launch... Cause by GetNativesFailed!", color='red')
+                return
             natives_library = '.minecraft/natives'
             jvm_args2 = "-Djava.library.path={}".format(natives_library)
 

@@ -2,13 +2,15 @@ import os
 import print_color
 import Download
 import platform
-from print_color import print
 import requests
+import __init__
+from print_color import print
 from Download import download_with_version_tunple
 from Download import download_file
 from assets_grabber import get_asset
 from assets_grabber import get_assets_index_version
 from lwjgl_patch import unzip_natives
+from __init__ import GetPlatformName
 
 def legacy_version_file_structure_fix():
     if os.path.exists('versions'):
@@ -36,7 +38,12 @@ def down_tool(version_data, version_id):
     download_file(client_url, client_dest)
 
     # Download libraries
+    PlatformName = GetPlatformName.check_platform_valid_and_return()
+    PlatformNameLW = PlatformName.lower()
+    if PlatformName == 'darwin':
+        PlatformNameLib = 'macos'
     libraries = version_data.get('libraries', [])
+    print(PlatformNameLW)
     for lib in libraries:
         lib_downloads = lib.get('downloads', {})
         artifact = lib_downloads.get('artifact')
@@ -47,9 +54,9 @@ def down_tool(version_data, version_id):
             for rule in rules:
                 action = rule.get('action')
                 os_info = rule.get('os')
-                if action == 'allow' and (not os_info or os_info.get('name') == 'windows'):
+                if action == 'allow' and (not os_info or os_info.get('name') == PlatformNameLW):
                     allowed = True
-                elif action == 'disallow' and os_info and os_info.get('name') == 'windows':
+                elif action == 'disallow' and os_info and os_info.get('name') == PlatformNameLW:
                     allowed = False
                     break
             if not allowed:
@@ -64,19 +71,18 @@ def down_tool(version_data, version_id):
             download_file(lib_url, lib_dest)
 
     # Detect current OS and prepare to download natives
-    os_system = platform.system().lower()
     native_keys = {
         'windows': 'natives-windows',
         'linux': 'natives-linux',
-        'darwin': 'natives-osx'
+        'darwin': 'natives-macos'
     }
-    native_key = native_keys.get(os_system)
+    native_key = native_keys.get(PlatformNameLW)
 
     if not native_key:
-        print(f"Unsupported OS: {os_system}")
-        return
+        print(f"DownoandTool(LP): Warring! Can't find native key : {PlatformNameLW} OS in list!", color='red')
+        return "NativeKeyCheckFailed"
 
-    print(f"Detected OS: {os_system}. Looking for native key: {native_key}")
+    print(f"Detected OS: {PlatformName}. Looking for native key: {native_key}")
 
     # Check if any library has classifiers for the current OS
     found_any_classifier = False
@@ -93,9 +99,10 @@ def down_tool(version_data, version_id):
             found_any_classifier = True
 
     if not found_any_classifier:
-        print(f"No native library information found for key: {native_key}")
+        print(f"DownoandTool(LP): No native library information found for key: {native_key}")
 
-def download_minecraft(selected_version_id):
+
+def fix_natives(selected_version_id):
     # Get version_manifest_v2.json and list all version(also add version_id in version's left :)
     url = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
     response = requests.get(url)
@@ -111,25 +118,45 @@ def download_minecraft(selected_version_id):
 
         # Download game file( libraries, .jar files...., and lwjgl!)
         print("DownoandTool(LP): Loading version info...", color="green")
-        down_tool(version_data, selected_version_id)
 
-        print("DownoandTool(LP): The required dependent libraries should have been downloaded :)", color='blue')
+        ErrorCheck = down_tool(version_data, selected_version_id)
+        if not ErrorCheck == "NativeKeyCheckFailed":
+            print("DownoandTool(LP): The required dependent libraries should have been downloaded :)", color='blue')
 
-        # Finally....
-        print("DownoandTool(LP): Now unzip natives...", color='green')
-        unzip_natives(selected_version_id)
+            # Finally....
+            print("DownoandTool(LP): Now unzip natives...", color='green')
+            unzip_natives(selected_version_id)
 
-        print("DownoandTool(LP): YAPPY! Now natives are download success :)", color='blue')
-        print("DownoandTool(LP): Exiting download tool....", color='green')
-
+            print("DownoandTool(LP): YAPPY! Now natives are download success :)", color='blue')
+            print("DownoandTool(LP): Exiting download tool....", color='green')
+        else:
+            print("DownoandTool(LP): Cannot found natives :(", color='red', tag_color="red", tag='Error')
+            print("DownoandTool(LP): This issus can cause the game crash on launching!", color='yellow')
+            print(
+                "DownoandTool(LP): Please try again ! If still got this error please report this issue to GitHub(also send your system name!)",
+                color='yellow')
+            print("DownoandTool(LP): Stopping launch...", color='red')
+            return "FailedToFixNatives"
 
 def legacy_version_natives_fix(version):
     instance_local = os.getcwd()
     if os.path.exists('.minecraft/natives'):
-        print('LaunchManager: Natives folder exists :) Bypassing fix....', color='blue')
+        item = os.listdir(".minecraft/natives")
+        print('NativesTool: Natives folder exists :) Checking if is available...', color='blue')
+
+        if len(item) <= 0:
+            print("NativesTool: Natives are not unzip correctly!", color='red')
+            print("NativesTool: Trying to fix it.....", color='green')
+            ErrorCheck = fix_natives(version)
+            os.chdir(instance_local)
+            return ErrorCheck
+
+        print('NativesTool: Natives folder exists :) Bypassing fix....', color='blue')
     else:
-        print('LaunchManager: Cannot find available natives!', color='red')
-        print("LaunchManager: Trying to fix it.....", color='green')
-        download_minecraft(version)
+
+        print('NativesTool: Cannot find available natives!', color='red')
+        print("NativesTool: Trying to fix it.....", color='green')
+        ErrorCheck = fix_natives(version)
         os.chdir(instance_local)
+        return ErrorCheck
 

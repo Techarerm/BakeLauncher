@@ -23,31 +23,6 @@ from launch_version_patcher import patcher_main
 from print_color import print
 from lwjgl_patch import unzip_natives
 
-def get_lwjgl_version(minecraft_version):
-    version_tuple = tuple(map(int, minecraft_version.split(".")))
-
-    if version_tuple >= (1, 19, 0):
-        return "LWJGL_3.3.3"
-    elif version_tuple < (1, 7, 3):
-        return "LWJGL_2.6.x"
-    elif (1, 7, 3) <= version_tuple < (1, 8, 1):
-        return "LWJGL_2.8.x(1.7)"
-    elif version_tuple == (1, 8, 1):
-        return "LWJGL_2.8.x(1.8)"
-    elif (1, 8, 2) <= version_tuple <= (1, 8, 9):
-        return "LWJGL_2.9.x(1.8.2)"
-    elif (1, 9) <= version_tuple <= (1, 12, 2):
-        return "LWJGL_2.9.4"
-    elif version_tuple <= (1, 13, 2):
-        return "LWJGL_3.1.6"
-    elif version_tuple <= (1, 14, 2):
-        return "LWJGL_3.2.1(1.14)"
-    elif version_tuple <= (1, 14, 3):
-        return "LWJGL_3.2.2(1.15)"
-    elif version_tuple <= (1, 18, 2):
-        return "LWJGL_3.2.2(1.16)"
-    return None
-
 
 def download_file(url, dest_path):
     """
@@ -79,36 +54,6 @@ def extract_zip(zip_path, extract_to):
     except zipfile.BadZipFile as e:
         print(f"Error extracting {zip_path}: {e}", color='red')
 
-def download_lwjgl(version_id):
-    lwjgl_version = get_lwjgl_version(version_id)
-
-    if version_id == None:
-        print(f"No LWJGL version found for Minecraft version {version_id}", color='yellow')
-        return
-    else:
-        print(lwjgl_version)
-
-    # Compute the SHA1 hash (as a placefolder example, use the version_id)
-    sha1_hash = "455edb6b1454a7f3243f37b5f240f69e1b0ce4fa"  # Placefolder, use actual hash if needed
-    extract_dir = os.path.join("LWJGL")
-
-    # Define destination path for the zip file
-    lwjgl_dest = os.path.join(f"{lwjgl_version}.zip")
-
-    print(f"Downloading {lwjgl_version}...")
-    download_success = download_file(f"https://github.com/Techarerm/LWJGL-Library/raw/main/{lwjgl_version}.zip", lwjgl_dest)
-
-    if not download_success:
-        print(f"Failed to download LWJGL {lwjgl_version}. Exiting...", color='red')
-        return  # Exit the function or handle as needed
-
-    # Extract the zip file to the desired directory structure
-    extract_zip(lwjgl_dest, extract_dir)
-    print(f"LWJGL Library has been installation successfull!", color='cyan')
-    if os.path.exists(f"{lwjgl_version}.zip"):
-        print("Cleaning up...", color='green')
-        os.remove(f"{lwjgl_version}.zip")
-
 
 
 def down_tool(version_data, version_id):
@@ -127,7 +72,12 @@ def down_tool(version_data, version_id):
     download_file(client_url, client_dest)
 
     # Download libraries
+    PlatformName = GetPlatformName.check_platform_valid_and_return()
+    PlatformNameLW = PlatformName.lower()
+    if PlatformName == 'darwin':
+        PlatformNameLib = 'macos'
     libraries = version_data.get('libraries', [])
+    print(PlatformNameLW)
     for lib in libraries:
         lib_downloads = lib.get('downloads', {})
         artifact = lib_downloads.get('artifact')
@@ -138,9 +88,9 @@ def down_tool(version_data, version_id):
             for rule in rules:
                 action = rule.get('action')
                 os_info = rule.get('os')
-                if action == 'allow' and (not os_info or os_info.get('name') == 'windows'):
+                if action == 'allow' and (not os_info or os_info.get('name') == PlatformNameLW):
                     allowed = True
-                elif action == 'disallow' and os_info and os_info.get('name') == 'windows':
+                elif action == 'disallow' and os_info and os_info.get('name') == PlatformNameLW:
                     allowed = False
                     break
             if not allowed:
@@ -154,23 +104,21 @@ def down_tool(version_data, version_id):
             print(f"Downloading {lib_path} to {lib_dest}...")
             download_file(lib_url, lib_dest)
 
-    # Print entire version_data for debugging
-    print("Version Data:", version_data)
-
     # Detect current OS and prepare to download natives
-    os_system = platform.system().lower()
     native_keys = {
         'windows': 'natives-windows',
         'linux': 'natives-linux',
-        'darwin': 'natives-osx'
+        'darwin': 'natives-macos'
     }
-    native_key = native_keys.get(os_system)
+    native_key = native_keys.get(PlatformNameLW)
 
     if not native_key:
-        print(f"Unsupported OS: {os_system}")
-        return
+        print(f"DownloadTool: Warring! Can't find native key : {PlatformNameLW} OS in list!", color='red')
+        print("DownloadTool: This issus can cause the game crash on launching!", color='yellow')
+        print("DownloadTool: Please try again ! If still got this error please report this issue to GitHub(also send your system name!)", color='yellow')
+        return "NativeKeyCheckFailed"
 
-    print(f"Detected OS: {os_system}. Looking for native key: {native_key}")
+    print(f"Detected OS: {PlatformName}. Looking for native key: {native_key}")
 
     # Check if any library has classifiers for the current OS
     found_any_classifier = False
