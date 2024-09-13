@@ -44,6 +44,9 @@ def down_tool(version_data, version_id):
     PlatformNameLW = PlatformName.lower()
     if PlatformName == 'darwin':
         PlatformNameL = 'osx'
+    else:
+        PlatformNameL = PlatformNameLW  # Ensure 'PlatformNameL' is set for non-Darwin platforms
+
     libraries = version_data.get('libraries', [])
     print(PlatformNameLW)
     for lib in libraries:
@@ -76,19 +79,14 @@ def down_tool(version_data, version_id):
     native_keys = {
         'windows': 'natives-windows',
         'linux': 'natives-linux',
-        'darwin': 'natives-macos',  # Default to 'natives-macos' for modern macOS versions
+        'darwin': 'natives-macos',
     }
-
-    # If 'natives-macos' is not found, fallback to 'natives-osx' for older versions
     native_key = native_keys.get(PlatformNameLW)
-    if PlatformNameLW == 'darwin' and 'natives-macos' not in version_data['libraries'][0]['downloads']['classifiers']:
-        native_key = 'natives-osx'
 
     if not native_key:
         print(f"DownloadTool: Warning! Can't find native key : {PlatformNameLW} OS in list!", color='red')
         print("DownloadTool: This issue can cause the game to crash on launching!", color='yellow')
-        print("DownloadTool: Please try again! If the issue persists, report it to GitHub (include your system name!)",
-              color='yellow')
+        print("DownloadTool: Please try again! If the issue persists, report it to GitHub (include your system name!)", color='yellow')
         return "NativeKeyCheckFailed"
 
     print(f"Detected OS: {PlatformName}. Looking for native key: {native_key}")
@@ -98,6 +96,10 @@ def down_tool(version_data, version_id):
     for lib in libraries:
         classifiers = lib.get('downloads', {}).get('classifiers', {})
         native_info = classifiers.get(native_key)
+
+        # Fallback to 'natives-osx' if 'natives-macos' not found
+        if not native_info and native_key == 'natives-macos':
+            native_info = classifiers.get('natives-osx')
 
         if native_info:
             native_path = native_info['path']
