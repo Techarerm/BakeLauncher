@@ -74,10 +74,10 @@ def down_tool(version_data, version_id):
     # Download libraries
     PlatformName = GetPlatformName.check_platform_valid_and_return()
     PlatformNameLW = PlatformName.lower()
-    if PlatformName == 'darwin':
-        PlatformNameL = 'osx'
-    else:
-        PlatformNameL = PlatformNameLW  # Ensure 'PlatformNameL' is set for non-Darwin platforms
+    if PlatformNameLW == 'darwin':
+        PlatformNameB == "macOS"
+    if PlatformNameLW == 'darwin':
+        PlatformNameLW == 'osx'
 
     libraries = version_data.get('libraries', [])
     print(PlatformNameLW)
@@ -111,17 +111,17 @@ def down_tool(version_data, version_id):
     native_keys = {
         'windows': 'natives-windows',
         'linux': 'natives-linux',
-        'darwin': 'natives-macos',
+        'osx': 'natives-macos',
     }
     native_key = native_keys.get(PlatformNameLW)
 
     if not native_key:
-        print(f"DownloadTool: Warning! Can't find native key : {PlatformNameLW} OS in list!", color='red')
+        print(f"DownloadTool: Warning! Can't find native key : {PlatformNameB} OS in list!", color='red')
         print("DownloadTool: This issue can cause the game to crash on launching!", color='yellow')
         print("DownloadTool: Please try again! If the issue persists, report it to GitHub (include your system name!)", color='yellow')
         return "NativeKeyCheckFailed"
 
-    print(f"Detected OS: {PlatformName}. Looking for native key: {native_key}")
+    print(f"Detected OS: {PlatformNameB}. Looking for native key: {native_key}")
 
     # Check if any library has classifiers for the current OS
     found_any_classifier = False
