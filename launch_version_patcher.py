@@ -8,7 +8,7 @@ from print_color import print
 def generate_jar_paths(version_id):
     libraries_dir = os.path.join("instances", version_id, "libraries")
     jar_paths_string = ""
-    PlatformName = GetPlatformName.GetPlatformName()
+    PlatformName = GetPlatformName.check_platform_valid_and_return()
     # Traverse the libraries directory
     for root, dirs, files in os.walk(libraries_dir):
         for file in files:
@@ -17,7 +17,7 @@ def generate_jar_paths(version_id):
                 relative_path = os.path.relpath(os.path.join(root, file), start=libraries_dir)
                 full_path = os.path.join("libraries", relative_path)  # Add \libraries to the path
                 # Append the path to the jar_paths_string with a semicolon
-                if GetPlatformName == "Windows":
+                if PlatformName == "Windows":
                     jar_paths_string += full_path + ";"
                 else:
                     jar_paths_string += full_path + ":"
