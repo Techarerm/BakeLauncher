@@ -75,43 +75,26 @@ def down_tool(version_data, version_id):
     PlatformName = GetPlatformName.check_platform_valid_and_return()
     PlatformNameLW = PlatformName.lower()
     if PlatformName == 'darwin':
-        PlatformNameL = 'osx'
-    else:
-        PlatformNameL = PlatformNameLW  # Ensure 'PlatformNameL' is set for non-Darwin platforms
-
+        PlatformNameLib = 'macos'
     libraries = version_data.get('libraries', [])
+    print(PlatformNameLW)
     for lib in libraries:
         lib_downloads = lib.get('downloads', {})
         artifact = lib_downloads.get('artifact')
 
         rules = lib.get('rules')
-        if PlatformNameL == 'osx':
-            if rules:
-                allowed = False
-                for rule in rules:
-                    action = rule.get('action')
-                    os_info = rule.get('os')
-                    if action == 'allow' and (not os_info or os_info.get('name') == PlatformNameL):
-                        allowed = True
-                    elif action == 'disallow' and os_info and os_info.get('name') == PlatformNameL:
-                        allowed = False
-                        break
-                if not allowed:
-                    continue
-        else:
-            if rules:
-                allowed = False
-                for rule in rules:
-                    action = rule.get('action')
-                    os_info = rule.get('os')
-                    if action == 'allow' and (not os_info or os_info.get('name') == PlatformNameLW):
-                        allowed = True
-                    elif action == 'disallow' and os_info and os_info.get('name') == PlatformNameLW:
-                        allowed = False
-                        break
-                if not allowed:
-                    continue
-
+        if rules:
+            allowed = False
+            for rule in rules:
+                action = rule.get('action')
+                os_info = rule.get('os')
+                if action == 'allow' and (not os_info or os_info.get('name') == PlatformNameLW):
+                    allowed = True
+                elif action == 'disallow' and os_info and os_info.get('name') == PlatformNameLW:
+                    allowed = False
+                    break
+            if not allowed:
+                continue
 
         if artifact:
             lib_path = artifact['path']
@@ -121,18 +104,27 @@ def down_tool(version_data, version_id):
             print(f"Downloading {lib_path} to {lib_dest}...")
             download_file(lib_url, lib_dest)
 
-    # Detect current OS and prepare to download natives
+    native_key = None
+
     native_keys = {
         'windows': 'natives-windows',
         'linux': 'natives-linux',
         'darwin': 'natives-macos',
+        'osx': 'natives-osx'
     }
+
     native_key = native_keys.get(PlatformNameLW)
 
+    for root, dirs, files in os.walk('libraries'):
+        for file in files:
+            if file.endswith("natives-osx.jar"):
+                native_key = "osx"
+
+
     if not native_key:
-        print(f"DownloadTool: Warning! Can't find native key : {PlatformNameLW} OS in list!", color='red')
-        print("DownloadTool: This issue can cause the game to crash on launching!", color='yellow')
-        print("DownloadTool: Please try again! If the issue persists, report it to GitHub (include your system name!)", color='yellow')
+        print(f"DownloadTool: Warring! Can't find native key : {PlatformNameLW} in list!", color='red')
+        print("DownloadTool: This issus can cause the game crash on launching!", color='yellow')
+        print("DownloadTool: Please try again ! If still got this error please report this issue to GitHub(also send your system name!)", color='yellow')
         return "NativeKeyCheckFailed"
 
     print(f"Detected OS: {PlatformName}. Looking for native key: {native_key}")
@@ -142,11 +134,6 @@ def down_tool(version_data, version_id):
     for lib in libraries:
         classifiers = lib.get('downloads', {}).get('classifiers', {})
         native_info = classifiers.get(native_key)
-
-        # Fallback to 'natives-osx' if 'natives-macos' not found
-        if not native_info and native_key == 'natives-macos':
-            native_info = classifiers.get('natives-osx')
-
         if native_info:
             native_path = native_info['path']
             native_url = native_info['url']
@@ -158,7 +145,6 @@ def down_tool(version_data, version_id):
 
     if not found_any_classifier:
         print(f"No native library information found for key: {native_key}")
-
 
 
 def download_with_version_id(version_list, release_versions, formatted_versions):
