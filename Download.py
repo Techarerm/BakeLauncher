@@ -80,24 +80,38 @@ def down_tool(version_data, version_id):
         PlatformNameL = PlatformNameLW  # Ensure 'PlatformNameL' is set for non-Darwin platforms
 
     libraries = version_data.get('libraries', [])
-    print(PlatformNameLW)
     for lib in libraries:
         lib_downloads = lib.get('downloads', {})
         artifact = lib_downloads.get('artifact')
 
         rules = lib.get('rules')
-        if rules:
-            allowed = False
-            for rule in rules:
-                action = rule.get('action')
-                os_info = rule.get('os')
-                if action == 'allow' and (not os_info or os_info.get('name') == PlatformNameLW):
-                    allowed = True
-                elif action == 'disallow' and os_info and os_info.get('name') == PlatformNameLW:
-                    allowed = False
-                    break
-            if not allowed:
-                continue
+        if PlatformNameL == 'osx':
+            if rules:
+                allowed = False
+                for rule in rules:
+                    action = rule.get('action')
+                    os_info = rule.get('os')
+                    if action == 'allow' and (not os_info or os_info.get('name') == PlatformNameL):
+                        allowed = True
+                    elif action == 'disallow' and os_info and os_info.get('name') == PlatformNameL:
+                        allowed = False
+                        break
+                if not allowed:
+                    continue
+        else:
+            if rules:
+                allowed = False
+                for rule in rules:
+                    action = rule.get('action')
+                    os_info = rule.get('os')
+                    if action == 'allow' and (not os_info or os_info.get('name') == PlatformNameLW):
+                        allowed = True
+                    elif action == 'disallow' and os_info and os_info.get('name') == PlatformNameLW:
+                        allowed = False
+                        break
+                if not allowed:
+                    continue
+
 
         if artifact:
             lib_path = artifact['path']
