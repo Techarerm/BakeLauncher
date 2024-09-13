@@ -75,7 +75,7 @@ def down_tool(version_data, version_id):
     PlatformName = GetPlatformName.check_platform_valid_and_return()
     PlatformNameLW = PlatformName.lower()
     if PlatformName == 'darwin':
-        PlatformNameLib = 'macos'
+        PlatformNameL = 'osx'
     libraries = version_data.get('libraries', [])
     print(PlatformNameLW)
     for lib in libraries:
@@ -108,14 +108,14 @@ def down_tool(version_data, version_id):
     native_keys = {
         'windows': 'natives-windows',
         'linux': 'natives-linux',
-        'darwin': 'natives-macos'
+        'darwin': 'natives-macos',
     }
     native_key = native_keys.get(PlatformNameLW)
 
     if not native_key:
-        print(f"DownloadTool: Warring! Can't find native key : {PlatformNameLW} OS in list!", color='red')
-        print("DownloadTool: This issus can cause the game crash on launching!", color='yellow')
-        print("DownloadTool: Please try again ! If still got this error please report this issue to GitHub(also send your system name!)", color='yellow')
+        print(f"DownloadTool: Warning! Can't find native key : {PlatformNameLW} OS in list!", color='red')
+        print("DownloadTool: This issue can cause the game to crash on launching!", color='yellow')
+        print("DownloadTool: Please try again! If the issue persists, report it to GitHub (include your system name!)", color='yellow')
         return "NativeKeyCheckFailed"
 
     print(f"Detected OS: {PlatformName}. Looking for native key: {native_key}")
@@ -125,6 +125,11 @@ def down_tool(version_data, version_id):
     for lib in libraries:
         classifiers = lib.get('downloads', {}).get('classifiers', {})
         native_info = classifiers.get(native_key)
+
+        # Fallback to 'natives-osx' if 'natives-macos' not found
+        if not native_info and native_key == 'natives-macos':
+            native_info = classifiers.get('natives-osx')
+
         if native_info:
             native_path = native_info['path']
             native_url = native_info['url']
@@ -136,6 +141,7 @@ def down_tool(version_data, version_id):
 
     if not found_any_classifier:
         print(f"No native library information found for key: {native_key}")
+
 
 
 def download_with_version_id(version_list, release_versions, formatted_versions):
