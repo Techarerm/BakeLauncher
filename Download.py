@@ -64,6 +64,7 @@ def download_natives(PlatformNameLW, libraries, libraries_dir):
         'windows-arm64': 'natives-windows-arm64',
         'macos-arm64': 'natives-macos-arm64',
     }
+    print(f"DownloadTool: {PlatformNameLW}", tag='Debug', color='green')
     native_key = native_keys.get(PlatformNameLW)
 
     if not native_key:
