@@ -138,8 +138,10 @@ def down_tool(version_data, version_id):
     # Download libraries
     PlatformName = GetPlatformName.check_platform_valid_and_return()
     PlatformNameLW = PlatformName.lower()
-    if PlatformName == 'darwin':
-        PlatformNameLib = 'macos'
+    if PlatformNameLW == 'darwin':
+        PlatformNameLib = 'osx'
+    else:
+        PlatformNameLib = PlatformNameLW
     libraries = version_data.get('libraries', [])
     print(PlatformNameLW)
     for lib in libraries:
