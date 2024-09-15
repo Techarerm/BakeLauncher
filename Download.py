@@ -86,7 +86,7 @@ def download_natives(PlatformNameLib, PlatformNameLW, libraries, libraries_dir):
                 os_info = rule.get('os')
                 if action == 'allow' and (not os_info or os_info.get('name') == PlatformNameLib):
                     allowed = True
-                elif action == 'disallow' and os_info and os_info.get('name') == PlatformNameLib
+                elif action == 'disallow' and os_info and os_info.get('name') == PlatformNameLib:
                     allowed = False
                     break
             if not allowed:
