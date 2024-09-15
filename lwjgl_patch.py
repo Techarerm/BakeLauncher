@@ -38,7 +38,7 @@ def unzip_natives(version):
                         # Extract the file only (without directory structure)
                         file_name = os.path.basename(member)  # Get just the file name
                         target_path = os.path.join(".minecraft/natives", file_name)
-                        jar.extract(member, ".minecraft/natives")  # Extract to the target directory
+                        jar.extract(member, target_path)  # Extract to the target directory
                         print(f"Extracted: {member} to {target_path}")
     else:
         print("LWJGLPatch: No natives found to unzip!")
