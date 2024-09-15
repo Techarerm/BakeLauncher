@@ -3,7 +3,6 @@ import os
 import __init__
 from __init__ import GetPlatformName
 
-
 def unzip_natives(version):
     PlatformName = GetPlatformName.check_platform_valid_and_return().lower()
 
@@ -36,7 +35,7 @@ def unzip_natives(version):
             with zipfile.ZipFile(jar_file, 'r') as jar:
                 for member in jar.namelist():
                     if not member.endswith('/'):  # Ensure not to unzip directories
-                        # Get just the file name
+                        # Get just the file name, discarding any path
                         file_name = os.path.basename(member)
 
                         # Only extract files that end with .dylib or other specific extensions
