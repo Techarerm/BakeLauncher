@@ -56,10 +56,11 @@ def extract_zip(zip_path, extract_to):
         print(f"Error extracting {zip_path}: {e}", color='red')
 
 def download_natives(PlatformNameLW, libraries, libraries_dir):
+    print(f"DownloadTool: {PlatformNameLW}", tag='Debug', color='green')
     native_keys = {
         'windows': 'natives-windows',
         'linux': 'natives-linux',
-        'darwin': 'osx',
+        'darwin': 'natives-macos',
         'windows-arm64': 'natives-windows-arm64',
         'macos-arm64': 'natives-macos-arm64',
     }
