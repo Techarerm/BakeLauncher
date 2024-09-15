@@ -1,5 +1,6 @@
 import zipfile
 import os
+import shutil
 import __init__
 from __init__ import GetPlatformName
 
@@ -31,18 +32,22 @@ def unzip_natives(version):
         for jar_file in jar_files:
             print(f"Found: {jar_file}")
 
-            # Extract files from the JAR to the .minecraft/natives directory
+            # Extract files from the JAR to a temporary directory
+            temp_dir = os.path.join(".minecraft", "temp_natives")
+            os.makedirs(temp_dir, exist_ok=True)
+
             with zipfile.ZipFile(jar_file, 'r') as jar:
-                for member in jar.namelist():
-                    if not member.endswith('/'):  # Ensure not to unzip directories
-                        # Get just the file name, discarding any path
-                        file_name = os.path.basename(member)
+                jar.extractall(temp_dir)  # Extract to the temporary directory
 
-                        # Only extract files that end with .dylib or other specific extensions
-                        if file_name.endswith('.dylib'):
-                            target_path = os.path.join(".minecraft/natives", file_name)
-                            jar.extract(member, ".minecraft/natives")  # Extract to the target directory
-                            print(f"Extracted: {member} to {target_path}")
+            # Move all files from the subdirectories to the root .minecraft/natives
+            for root, dirs, files in os.walk(temp_dir):
+                for file in files:
+                    source_file = os.path.join(root, file)
+                    target_file = os.path.join(".minecraft/natives", file)
+                    shutil.move(source_file, target_file)  # Move the file to the natives directory
+                    print(f"Moved: {source_file} to {target_file}")
 
+            # Clean up the temporary directory
+            shutil.rmtree(temp_dir)  # Remove the temporary directory and its contents
     else:
         print("LWJGLPatch: No natives found to unzip!")
