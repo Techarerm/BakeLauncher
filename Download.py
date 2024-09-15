@@ -6,6 +6,7 @@ import sys
 import platform
 import requests
 import os
+import json
 import subprocess
 import shutil
 import zipfile
@@ -54,7 +55,68 @@ def extract_zip(zip_path, extract_to):
     except zipfile.BadZipFile as e:
         print(f"Error extracting {zip_path}: {e}", color='red')
 
+def download_natives(PlatformNameLW, libraries, libraries_dir):
+    native_keys = {
+        'windows': 'natives-windows',
+        'linux': 'natives-linux',
+        'darwin': 'natives-macos',
+        'windows-arm64': 'natives-windows-arm64',
+        'macos-arm64': 'natives-macos-arm64',
+    }
+    native_key = native_keys.get(PlatformNameLW)
 
+    if not native_key:
+        print(f"Warning: No native key found for {PlatformNameLW}")
+        return "NativeKeyCheckFailed"
+
+    found_any_native = False
+
+    for lib in libraries:
+        lib_downloads = lib.get('downloads', {})
+        artifact = lib_downloads.get('artifact')
+
+        # Check if the library has rules that allow it for the current platform
+        rules = lib.get('rules')
+        if rules:
+            allowed = False
+            for rule in rules:
+                action = rule.get('action')
+                os_info = rule.get('os')
+                if action == 'allow' and (not os_info or os_info.get('name') == PlatformNameLW):
+                    allowed = True
+                elif action == 'disallow' and os_info and os_info.get('name') == PlatformNameLW:
+                    allowed = False
+                    break
+            if not allowed:
+                continue
+
+        # Check if artifact exists and download it (for newer versions)
+        if artifact:
+            lib_name = lib.get('name', '')
+            if native_key in lib_name or native_key in artifact.get('path', ''):
+                native_path = artifact['path']
+                native_url = artifact['url']
+                native_dest = os.path.join(libraries_dir, native_path)
+                os.makedirs(os.path.dirname(native_dest), exist_ok=True)
+                print(f"Downloading {native_path} to {native_dest}...")
+                download_file(native_url, native_dest)
+                found_any_native = True
+
+        # Check if classifiers exist and download natives (for legacy versions)
+        classifiers = lib_downloads.get('classifiers')
+        if classifiers and native_key in classifiers:
+            classifier_info = classifiers[native_key]
+            native_path = classifier_info['path']
+            native_url = classifier_info['url']
+            native_dest = os.path.join(libraries_dir, native_path)
+            os.makedirs(os.path.dirname(native_dest), exist_ok=True)
+            print(f"Downloading {native_path} to {native_dest}...")
+            download_file(native_url, native_dest)
+            found_any_native = True
+
+    if not found_any_native:
+        print(f"No native library found for key: {native_key}")
+        return "NativeLibrariesNotFound"
 
 def down_tool(version_data, version_id):
     """
@@ -104,47 +166,8 @@ def down_tool(version_data, version_id):
             print(f"Downloading {lib_path} to {lib_dest}...")
             download_file(lib_url, lib_dest)
 
-    native_key = None
-
-    native_keys = {
-        'windows': 'natives-windows',
-        'linux': 'natives-linux',
-        'darwin': 'natives-macos',
-        'osx': 'natives-osx'
-    }
-
-    native_key = native_keys.get(PlatformNameLW)
-
-    for root, dirs, files in os.walk('libraries'):
-        for file in files:
-            if file.endswith("natives-osx.jar"):
-                native_key = "osx"
-
-
-    if not native_key:
-        print(f"DownloadTool: Warring! Can't find native key : {PlatformNameLW} in list!", color='red')
-        print("DownloadTool: This issus can cause the game crash on launching!", color='yellow')
-        print("DownloadTool: Please try again ! If still got this error please report this issue to GitHub(also send your system name!)", color='yellow')
-        return "NativeKeyCheckFailed"
-
-    print(f"Detected OS: {PlatformName}. Looking for native key: {native_key}")
-
-    # Check if any library has classifiers for the current OS
-    found_any_classifier = False
-    for lib in libraries:
-        classifiers = lib.get('downloads', {}).get('classifiers', {})
-        native_info = classifiers.get(native_key)
-        if native_info:
-            native_path = native_info['path']
-            native_url = native_info['url']
-            native_dest = os.path.join(libraries_dir, native_path)
-            os.makedirs(os.path.dirname(native_dest), exist_ok=True)
-            print(f"Downloading {native_path} to {native_dest}...")
-            download_file(native_url, native_dest)
-            found_any_classifier = True
-
-    if not found_any_classifier:
-        print(f"No native library information found for key: {native_key}")
+    print("DownloadTool: Now downloading natives...")
+    download_natives(PlatformNameLW, libraries, libraries_dir)
 
 
 def download_with_version_id(version_list, release_versions, formatted_versions):
