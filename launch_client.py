@@ -211,7 +211,10 @@ def launch(platform):
                 minecraft_args = f" --username {username} --version {version_id} --gameDir {minecraft_path} --assetsDir {assets_dir} --session {access_token} --userProperties {user_properties}"
 
             # Preparaing command...
-            RunCommand = Java_path + " " + jvm_args1 + window_size + jvm_argsRAM + " " + jvm_args2 + RunClass + minecraft_args
+            if platform.system() == "Windows":
+                RunCommand = Java_path + " " + jvm_args1 + window_size + jvm_argsRAM + " " + jvm_args2 + RunClass + minecraft_args
+            else:
+                RunCommand = Java_path + " " + window_size + jvm_argsRAM + " " + jvm_args2 + RunClass + minecraft_args
             print("Preparations completed! Generating command.....", color='green')
             print("Launch command: " + RunCommand, color='blue')
             print("Baking Minecraft! :)", color='cyan')
