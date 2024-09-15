@@ -59,7 +59,7 @@ def download_natives(PlatformNameLW, libraries, libraries_dir):
     native_keys = {
         'windows': 'natives-windows',
         'linux': 'natives-linux',
-        'darwin': 'natives-macos',
+        'darwin': 'osx',
         'windows-arm64': 'natives-windows-arm64',
         'macos-arm64': 'natives-macos-arm64',
     }
