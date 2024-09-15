@@ -55,7 +55,7 @@ def extract_zip(zip_path, extract_to):
     except zipfile.BadZipFile as e:
         print(f"Error extracting {zip_path}: {e}", color='red')
 
-def download_natives(PlatformNameLW, libraries, libraries_dir):
+def download_natives(PlatformNameLib, PlatformNameLW, libraries, libraries_dir):
     print(f"DownloadTool: {PlatformNameLW}", tag='Debug', color='green')
     native_keys = {
         'windows': 'natives-windows',
@@ -84,9 +84,9 @@ def download_natives(PlatformNameLW, libraries, libraries_dir):
             for rule in rules:
                 action = rule.get('action')
                 os_info = rule.get('os')
-                if action == 'allow' and (not os_info or os_info.get('name') == PlatformNameLW):
+                if action == 'allow' and (not os_info or os_info.get('name') == PlatformNameLib):
                     allowed = True
-                elif action == 'disallow' and os_info and os_info.get('name') == PlatformNameLW:
+                elif action == 'disallow' and os_info and os_info.get('name') == PlatformNameLib
                     allowed = False
                     break
             if not allowed:
@@ -171,7 +171,7 @@ def down_tool(version_data, version_id):
             download_file(lib_url, lib_dest)
 
     print("DownloadTool: Now downloading natives...")
-    download_natives(PlatformNameLW, libraries, libraries_dir)
+    download_natives(PlatformNameLib, PlatformNameLW, libraries, libraries_dir)
 
 
 def download_with_version_id(version_list, release_versions, formatted_versions):
