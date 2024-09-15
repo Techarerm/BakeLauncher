@@ -3,6 +3,7 @@ import os
 import __init__
 from __init__ import GetPlatformName
 
+
 def unzip_natives(version):
     PlatformName = GetPlatformName.check_platform_valid_and_return().lower()
 
@@ -35,10 +36,14 @@ def unzip_natives(version):
             with zipfile.ZipFile(jar_file, 'r') as jar:
                 for member in jar.namelist():
                     if not member.endswith('/'):  # Ensure not to unzip directories
-                        # Extract the file only (without directory structure)
-                        file_name = os.path.basename(member)  # Get just the file name
-                        target_path = os.path.join(".minecraft/natives", file_name)
-                        jar.extract(member, target_path)  # Extract to the target directory
-                        print(f"Extracted: {member} to {target_path}")
+                        # Get just the file name
+                        file_name = os.path.basename(member)
+
+                        # Only extract files that end with .dylib or other specific extensions
+                        if file_name.endswith('.dylib'):
+                            target_path = os.path.join(".minecraft/natives", file_name)
+                            jar.extract(member, ".minecraft/natives")  # Extract to the target directory
+                            print(f"Extracted: {member} to {target_path}")
+
     else:
         print("LWJGLPatch: No natives found to unzip!")
