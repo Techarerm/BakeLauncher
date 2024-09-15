@@ -35,7 +35,7 @@ def back_to_memu(platform):
         main_memu(platform)
     else:
         print("Clearing output...")
-        os.system("cls")
+        os.system("clear")
         main_memu(platform)
 
 def initialize_account_data():
