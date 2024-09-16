@@ -78,7 +78,7 @@ def find_jvm_path(java_version, path):
                     print(java_path)
 
                 # Add "Contents/Home/bin" to each Java path to get the bin directory
-                java_bins = [os.path.join(java_path, "Contents", "Home", "bin") for java_path in java_paths]
+                java_bins = [os.path.join(java_path, "bin") for java_path in java_paths]
 
                 # Run java -version to verify Java installations for each version
                 for bin_path in java_bins:
