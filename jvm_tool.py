@@ -28,7 +28,7 @@ def write_json(path, version):
     with open("Java_HOME.json", "w") as jsonFile:
         json.dump(data, jsonFile, indent=4)
 
-def find_jvm_path(java_version, path):
+def find_jvm_path_windows(java_version, path):
     if platform.system() == "Windows":
         for root, dirs, files in os.walk(path):
             # Check for jdk or jre with the specific java version
@@ -51,8 +51,8 @@ def find_jvm_path(java_version, path):
                     return JVM_Path
         print(f"No Java {java_version} runtime found on this computer.")
 
-
-    elif platform.system() == "Darwin":  # macOS
+def find_jvm_path_unix_like():
+    if platform.system() == "Darwin":  # macOS
         try:
             # Run the command to list all Java versions and their paths
             result = subprocess.run(['/usr/libexec/java_home', '-V'], capture_output=True, text=True)
@@ -64,35 +64,27 @@ def find_jvm_path(java_version, path):
 
                 # Loop through each line of the output and extract the paths
                 for line in java_versions:
-
-                    # Find the start of the path, which begins with '/'
+                    # Extract the path from the output line
                     path_start = line.find("/")
-
                     if path_start != -1:  # Ensure we found a path start
-
                         java_path = line[path_start:].strip()  # Get the cleaned path
                         java_paths.append(java_path)  # Append the cleaned path
 
                 # Output the found Java paths
-
                 print("Found Java installations:")
-
                 for java_path in java_paths:
                     print(java_path)
 
-                # Correctly add "bin" to each Java path
-
+                # Add "bin" to each Java path to get the bin directory
                 java_bins = [os.path.join(java_path, "bin") for java_path in java_paths]
 
                 # Run java -version to verify Java installations for each version
-
                 for bin_path in java_bins:
                     java_executable = os.path.join(bin_path, "java")  # Get the java executable path
-
                     if os.path.exists(java_executable):  # Check if the executable exists
                         print(f"\nChecking version for: {java_executable}")
-                        os.system(f"{java_executable} -version")  # Check the version
-
+                        result = subprocess.run([java_executable, "-version"], capture_output=True, text=True)
+                        print(result.stdout)
                     else:
                         print(f"Java executable not found at: {java_executable}")
 
@@ -145,10 +137,13 @@ def java_search():
         CantSetJavaPath = 1
 
     if CantSetJavaPath == 0:
-        Java_VERSION = [1.8, 17, 21]
-        for jvm_version in Java_VERSION:
-            jvm_version = str(jvm_version)
-            find_jvm_path(jvm_version, path)
+        if platform.system() == "Windows":
+            Java_VERSION = [1.8, 17, 21]
+            for jvm_version in Java_VERSION:
+                jvm_version = str(jvm_version)
+                find_jvm_path(jvm_version, path)
+    else:
+        find_jvm_path_unix_like()
 
         if os.path.exists("Java_HOME.json"):
             print("Java runtime config successful!!!")
