@@ -142,23 +142,23 @@ def java_search():
             for jvm_version in Java_VERSION:
                 jvm_version = str(jvm_version)
                 find_jvm_path(jvm_version, path)
-    else:
-        find_jvm_path_unix_like()
+        else:
+            find_jvm_path_unix_like()
 
         if os.path.exists("Java_HOME.json"):
-            print("Java runtime config successful!!!")
-            print("Press any key to back to the main menu...")
+                print("Java runtime config successful!!!")
+                print("Press any key to back to the main menu...")
         else:
-            print("Failed to configure Java runtime path :(")
-            print("Trying to install JRE or JDK")
-            print("Minecraft Java version requirement list:")
-            print("1.0~1.16 - Java 8")
-            print("Download Link: https://www.java.com/download/manual.jsp")
-            print("1.17~1.20 - Java 17")
-            print("Download Link: https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html")
-            print("1.21~1.22 - Java 21")
-            print("Download Link: https://www.oracle.com/java/technologies/downloads/#java21")
-            print("Back to main menu.....")
+                print("Failed to configure Java runtime path :(")
+                print("Trying to install JRE or JDK")
+                print("Minecraft Java version requirement list:")
+                print("1.0~1.16 - Java 8")
+                print("Download Link: https://www.java.com/download/manual.jsp")
+                print("1.17~1.20 - Java 17")
+                print("Download Link: https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html")
+                print("1.21~1.22 - Java 21")
+                print("Download Link: https://www.oracle.com/java/technologies/downloads/#java21")
+                print("Back to main menu.....")
     else:
         print("Failed to configure Java runtime path because JVM_Finder are not supported on your system!")
 
