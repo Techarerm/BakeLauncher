@@ -51,34 +51,49 @@ def find_jvm_path(java_version, path):
                     return JVM_Path
         print(f"No Java {java_version} runtime found on this computer.")
 
-    elif platform.system() == "Darwin" or platform.system() == "Linux":
-            try:
-                # Run the command to list all Java versions and their paths(why this command are not activable on other system :( )
-                result = subprocess.run(['/usr/libexec/java_home', '-V'], capture_output=True, text=True)
+    elif platform.system() == "Darwin":  # macOS
 
-                # Check if the command was successful
-                if result.returncode == 0:
-                    java_versions = result.stdout.splitlines()
-                    java_paths = []
+        try:
+            # Run the command to list all Java versions and their paths
+            result = subprocess.run(['/usr/libexec/java_home', '-V'], capture_output=True, text=True)
 
-                    # Loop through each line of the output and extract the paths
-                    for line in java_versions:
-                        if '/Library/Java/JavaVirtualMachines/' in line:
-                            # Extract the path between quotation marks
-                            path_start = line.find("/")  # Find the start of the path
-                            java_paths.append(line[path_start:].strip())  # Append the cleaned path
+            # Check if the command was successful
+            if result.returncode == 0:
+                java_versions = result.stdout.splitlines()
+                java_paths = []
 
-                    java_paths == os.path.join(java_paths, "bin")
-                    os.system("java -version")
+                # Loop through each line of the output and extract the paths
+                for line in java_versions:
+                    if '/Library/Java/JavaVirtualMachines/' in line:
+                        # Extract the path between quotation marks (or simply find the start)
+                        path_start = line.find("/")  # Find the start of the path
+                        java_path = line[path_start:].strip()  # Get the cleaned path
+                        java_paths.append(java_path)  # Append the cleaned path
+
+                # Add "bin" to each Java path
+                java_bins = [os.path.join(java_path, "Contents", "Home", "bin") for java_path in java_paths]
+
+                # Output the found Java paths
+                print("Java installation paths:")
+
+                for bin_path in java_bins:
+                    print(bin_path)
+
+                # Run java -version to verify Java installation (using the first found bin path)
+                if java_bins:
+                    java_executable = os.path.join(java_bins[0], "java")  # Get the java executable path
+                    os.system(f"{java_executable} -version")  # Check the version
                 else:
-                    print(f"Error running command: {result.stderr}")
-                    return []
+                    print("No Java installations found.")
 
-            except Exception as e:
-                print(f"An error occurred: {str(e)}")
+            else:
+                print(f"Error running command: {result.stderr}")
                 return []
 
 
+        except Exception as e:
+            print(f"An error occurred: {str(e)}")
+            return []
 
     elif platform.system() == "Linux":
         for Java_Folder in os.listdir(path):
