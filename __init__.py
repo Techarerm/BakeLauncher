@@ -9,12 +9,7 @@ from print_color import print
 
 
 # Beta "Version"("Pre"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = "Beta 0.7(Pre-IG15924)"
-
-
-# Some repo....
-LWJGL_Maven = f"https://repo1.maven.org/maven2/org/lwjgl/lwjgl/"
-
+launcher_version = "Beta 0.7(TEST-IH16924-1)"
 
 
 
@@ -68,6 +63,7 @@ class PlatformCheck:
 
     def set_platform(self):
         self.platformName = platform.system()
+        self.platformArch = platform.architecture()
 
     def check_platform_valid_and_return(self):
         if self.platformName == "Windows":
@@ -82,5 +78,10 @@ class PlatformCheck:
             print("Launcher can still run on this platform, but you may encounter serious issues with the file system!")
             return "Unsupported"
 
+    def check_platform_arch_and_return(self):
+        if self.platformArch == "64Bit":
+            return "OK"
+        else:
+            return "Unsupported"
 
 GetPlatformName = PlatformCheck()

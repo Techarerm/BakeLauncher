@@ -15,12 +15,16 @@ from __init__ import GetPlatformName, ClearOutput, BetaWarringMessage
 def main():
     print("BakeLauncher: Check running platform...", color="green")
     platformName = GetPlatformName.check_platform_valid_and_return()
-    print(f"BakeLauncher: Launcher are running on platform name: {platformName}", color="blue")
-    ClearOutput(platformName)
-    print(BetaWarringMessage, color="yellow")
-    time.sleep(1)
-    ClearOutput(platformName)
-    main_memu(platformName)
+    ErrorCheck = GetPlatformName.check_platform_arch_and_return()
+    if ErrorCheck:
+        print(f"BakeLauncher: Launcher are running on platform name: {platformName}", color="blue")
+        ClearOutput(platformName)
+        print(BetaWarringMessage, color="yellow")
+        time.sleep(1)
+        ClearOutput(platformName)
+        main_memu(platformName)
+    else:
+        print("BakeLauncher: Sorry :( BakeLauncher never plan for 32Bit system support :(", color="red")
     print("BakeLauncher thread terminated!")
     input("Press any key to continue...")
 

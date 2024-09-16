@@ -64,7 +64,6 @@ def download_natives(PlatformNameLib, PlatformNameLW, libraries, libraries_dir):
         'windows-arm64': 'natives-windows-arm64',
         'macos-arm64': 'natives-macos-arm64',
     }
-    print(f"DownloadTool: {PlatformNameLW}", tag='Debug', color='green')
     native_key = native_keys.get(PlatformNameLW)
 
     if not native_key:
@@ -115,6 +114,25 @@ def download_natives(PlatformNameLib, PlatformNameLW, libraries, libraries_dir):
             print(f"Downloading {native_path} to {native_dest}...")
             download_file(native_url, native_dest)
             found_any_native = True
+
+    # Check for natives-osx fallback if natives-macos is not found
+    if not found_any_native and PlatformNameLW == 'darwin':
+        print("Attempting to download natives-osx as a fallback...")
+        native_key_osx = 'natives-osx'  # Fallback key
+        for lib in libraries:
+            lib_downloads = lib.get('downloads', {})
+            classifiers = lib_downloads.get('classifiers')
+
+            if classifiers and native_key_osx in classifiers:
+                classifier_info = classifiers[native_key_osx]
+                native_path = classifier_info['path']
+                native_url = classifier_info['url']
+                native_dest = os.path.join(libraries_dir, native_path)
+                os.makedirs(os.path.dirname(native_dest), exist_ok=True)
+                print(f"Downloading {native_path} to {native_dest}...")
+                download_file(native_url, native_dest)
+                found_any_native = True
+                break  # Exit after first successful download
 
     if not found_any_native:
         print(f"No native library found for key: {native_key}")

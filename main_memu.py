@@ -18,7 +18,7 @@ from launch_client import launch
 from Download import download_main
 from launch_version_patcher import patcher_main
 from launch_version_patcher import generate_jar_paths
-from jvm_path_finder import java_finder
+from jvm_tool import java_finder
 from args_manager import argsman
 from assets_grabber import get_asset
 from print_color import print
