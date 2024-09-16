@@ -7,6 +7,7 @@ import __init__
 from print_color import print
 from Download import download_with_version_tunple
 from Download import download_file
+from Download import download_natives
 from assets_grabber import get_asset
 from assets_grabber import get_assets_index_version
 from lwjgl_patch import unzip_natives
@@ -24,31 +25,25 @@ def legacy_version_file_structure_fix():
     else:
         print('BakeLaunch: Your folder structure are already converted :)', color='blue')
 
-
 def down_tool(version_data, version_id):
     """
     Create instances\\version_id\\folder and download game files
     """
-    version_dir = os.getcwd()
-    libraries_dir = os.path.join(version_dir, "libraries")
+    libraries_dir = os.path.join("libraries")
 
-    # Download client.jar
-    client_info = version_data['downloads']['client']
-    client_url = client_info['url']
-    client_dest = os.path.join(version_dir, 'client.jar')
-    print(f"Downloading client.jar to {client_dest}...")
-    download_file(client_url, client_dest)
+    # Download "natives"
 
-    # Download libraries
     PlatformName = GetPlatformName.check_platform_valid_and_return()
     PlatformNameLW = PlatformName.lower()
-    if PlatformName == 'darwin':
-        PlatformNameL = 'osx'
-    else:
-        PlatformNameL = PlatformNameLW  # Ensure 'PlatformNameL' is set for non-Darwin platforms
 
+    # "Rules"
+    if PlatformNameLW == 'darwin':
+        PlatformNameLib = 'osx'
+    else:
+        PlatformNameLib = PlatformNameLW
+
+    # Finding natives and download....
     libraries = version_data.get('libraries', [])
-    print(PlatformNameLW)
     for lib in libraries:
         lib_downloads = lib.get('downloads', {})
         artifact = lib_downloads.get('artifact')
@@ -75,44 +70,8 @@ def down_tool(version_data, version_id):
             print(f"Downloading {lib_path} to {lib_dest}...")
             download_file(lib_url, lib_dest)
 
-    # Detect current OS and prepare to download natives
-    native_keys = {
-        'windows': 'natives-windows',
-        'linux': 'natives-linux',
-        'darwin': 'natives-macos',
-    }
-    native_key = native_keys.get(PlatformNameLW)
-
-    if not native_key:
-        print(f"DownloadTool: Warning! Can't find native key : {PlatformNameLW} OS in list!", color='red')
-        print("DownloadTool: This issue can cause the game to crash on launching!", color='yellow')
-        print("DownloadTool: Please try again! If the issue persists, report it to GitHub (include your system name!)", color='yellow')
-        return "NativeKeyCheckFailed"
-
-    print(f"Detected OS: {PlatformName}. Looking for native key: {native_key}")
-
-    # Check if any library has classifiers for the current OS
-    found_any_classifier = False
-    for lib in libraries:
-        classifiers = lib.get('downloads', {}).get('classifiers', {})
-        native_info = classifiers.get(native_key)
-
-        # Fallback to 'natives-osx' if 'natives-macos' not found
-        if not native_info and native_key == 'natives-macos':
-            native_info = classifiers.get('natives-osx')
-
-        if native_info:
-            native_path = native_info['path']
-            native_url = native_info['url']
-            native_dest = os.path.join(libraries_dir, native_path)
-            os.makedirs(os.path.dirname(native_dest), exist_ok=True)
-            print(f"Downloading {native_path} to {native_dest}...")
-            download_file(native_url, native_dest)
-            found_any_classifier = True
-
-    if not found_any_classifier:
-        print(f"No native library information found for key: {native_key}")
-
+    print("DownloadTool: Now downloading natives...")
+    download_natives(PlatformNameLib, PlatformNameLW, libraries, libraries_dir)
 
 def fix_natives(selected_version_id):
     # Get version_manifest_v2.json and list all version(also add version_id in version's left :)
