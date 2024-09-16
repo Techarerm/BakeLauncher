@@ -71,7 +71,7 @@ def find_jvm_path(java_version, path):
                         java_paths.append(java_path)  # Append the cleaned path
 
                 # Add "bin" to each Java path
-                java_bins = [os.path.join(java_path, "Contents", "Home", "bin") for java_path in java_paths]
+                java_bins = [os.path.join(java_path, "bin") for java_path in java_paths]
 
                 # Output the found Java paths
                 print("Java installation paths:")
