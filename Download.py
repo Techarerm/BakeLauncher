@@ -13,16 +13,18 @@ import zipfile
 import time
 import assets_grabber
 import __init__
-import lwjgl_patch
+import natives_tool
 import print_color
 import launch_version_patcher
+import download_jvm
 from __init__ import ClearOutput
 from __init__ import GetPlatformName
 from assets_grabber import get_asset
 from assets_grabber import get_assets_index_version
 from launch_version_patcher import patcher_main
 from print_color import print
-from lwjgl_patch import unzip_natives
+from natives_tool import unzip_natives
+from download_jvm import download_jvm
 
 
 def download_file(url, dest_path):
@@ -67,7 +69,7 @@ def download_natives(PlatformNameLib, PlatformNameLW, libraries, libraries_dir):
     native_key = native_keys.get(PlatformNameLW)
 
     if not native_key:
-        print(f"Warning: No native key found for {PlatformNameLW}")
+        print(f"Warning: No native key found for {PlatformNameLW}", color='yellow')
         return "NativeKeyCheckFailed"
 
     found_any_native = False
@@ -135,10 +137,10 @@ def download_natives(PlatformNameLib, PlatformNameLW, libraries, libraries_dir):
                 break  # Exit after first successful download
 
     if not found_any_native:
-        print(f"No native library found for key: {native_key}")
+        print(f"No native library found for key: {native_key}", color='yellow')
         return "NativeLibrariesNotFound"
 
-def down_tool(version_data, version_id):
+def download_libraries(version_data, version_id):
     """
     Create instances\\version_id\\folder and download game files
     """
@@ -223,7 +225,7 @@ def download_with_version_id(version_list, release_versions, formatted_versions)
                     # Download game file( libraries, .jar files...., and lwjgl!)
                     ClearOutput(GetPlatformName.check_platform_valid_and_return())
                     print("DownoandTool: Loading version info...")
-                    down_tool(version_data, selected_version_id)
+                    download_libraries(version_data, selected_version_id)
                     print("DownoandTool: The required dependent libraries should have been downloaded :)", color='blue')
 
                     # I know hosted lwjgl file on github is not a best way :) ( I will delete it when I found a nice way to simply download lwjgl library...)
@@ -234,6 +236,7 @@ def download_with_version_id(version_list, release_versions, formatted_versions)
                     print("DownoandTool: Now create assets...", color='green')
                     get_asset(selected_version_id)
                     get_assets_index_version(local, version_data, selected_version_id)
+                    download_jvm(version_data)
                     print("DownoandTool: YAPPY! Now all files are download success :)", color='blue')
                     print("DownoandTool: Exiting DownloadTool....", color='green')
                     # Add waiting time(If assets download failed it will print it?)
@@ -279,7 +282,7 @@ def download_with_version_tunple(version_list):
             # Download game file( libraries, .jar files...., and lwjgl!)
             ClearOutput(GetPlatformName.check_platform_valid_and_return())
             print("DownoandTool: Loading version info...")
-            down_tool(version_data, selected_version_id)
+            download_libraries(version_data, selected_version_id)
             print("DownoandTool: The required dependent libraries should have been downloaded :)", color='blue')
 
             # Download assets(Also it will check this version are use legacy assets or don't use)
@@ -291,6 +294,8 @@ def download_with_version_tunple(version_list):
             print("DownoandTool: Now unzip natives...", color='green')
             unzip_natives(selected_version_id)
 
+            print("DownoandTool: Finally...download JVM!", color='green')
+            download_jvm(version_data)
 
             print("DownoandTool: YAPPY! Now all files are download success :)", color='blue')
             print("DownoandTool: Exiting download tool....", color='green')
@@ -333,4 +338,5 @@ def download_main():
     except ValueError:
         # Back to main avoid crash(when user type illegal thing)
         print("BakeLaunch: Oops! Invalid option :O  Please enter a number.", color='red')
+
         download_main()

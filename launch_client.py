@@ -64,107 +64,118 @@ def launch(platform):
 
             # Check Java_HOME.json file are activable to use(and getting jvm path from this file)
             Java_path = java_version_check(Main, version_id)
-            if platform == 'Windows':
-                Java_path = f'"{Java_path + "/java.exe"}"'
-            else:
-                Java_path = f'"{Java_path + "/java"}"'
+            if Java_path is None:
+                print("LaunchManager: Set Java_path failed! Cause by None path!", color='red')
+                print("Please download thid version of MInecraft support Java(In DownloadTool)!", color='yellow')
+                timer(5)
+                return "FailedToCheckJavaPath"
+                if platform == 'Windows':
+                    Java_path = f'"{Java_path + "/java.exe"}"'
+                else:
+                    Java_path = f'"{Java_path + "/java"}"'
 
-            # Set some .minecraft path...
-            os.chdir(r'instances/' + version_id)
-            minecraft_path = f".minecraft"
+                # Set some .minecraft path...
+                os.chdir(r'instances/' + version_id)
+                minecraft_path = f".minecraft"
 
-            # JVM argsWin(? Only for Windows)
-            jvm_argsWin = r"-XX:HeapDumpPath=MojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump "
+                # JVM argsWin(? Only for Windows)
+                jvm_argsWin = r"-XX:HeapDumpPath=MojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump "
 
-            # Set this to prevent the windows too small
-            window_size = "-Dorg.lwjgl.opengl.Window.undecorated=false -Dorg.lwjgl.opengl.Display.width=1280 -Dorg.lwjgl.opengl.Display.height=720"
+                # Set this to prevent the windows too small
+                window_size = "-Dorg.lwjgl.opengl.Window.undecorated=false -Dorg.lwjgl.opengl.Display.width=1280 -Dorg.lwjgl.opengl.Display.height=720"
 
-            # Get requirement lwjgl version :)
-            print("LaunchManager: Checking natives...", color='green')
+                # Get requirement lwjgl version :)
+                print("LaunchManager: Checking natives...", color='green')
 
-            # Check user's instances are already downloaded natives(If not it will redownload it and unzip to .minecraft\natives)
-            ErrorCheck = legacy_version_natives_fix(version_id)
-            if ErrorCheck == "FailedToFixNatives":
-                print("LaunchManager: Stopping launch... Cause by GetNativesFailed", color='red', tag_color='red', tag="Error")
-                return
+                # Check user's instances are already downloaded natives(If not it will redownload it and unzip to .minecraft\natives)
+                ErrorCheck = legacy_version_natives_fix(version_id)
+                if ErrorCheck == "FailedToFixNatives":
+                    print("LaunchManager: Stopping launch... Cause by GetNativesFailed", color='red', tag_color='red',
+                          tag="Error")
+                    return
 
-            # Set natives path
-            natives_library = '.minecraft/natives'
-            jvm_args2 = "-Djava.library.path={}".format(natives_library)
+                # Set natives path
+                natives_library = '.minecraft/natives'
+                jvm_args2 = "-Djava.library.path={}".format(natives_library)
 
-            # Set Xms and Xmx ram size (Maybe I can add change ram size in memu...hmm...)
-            jvm_argsRAM = r" -Xms1024m -Xmx4096m"
+                # Set Xms and Xmx ram size (Maybe I can add change ram size in memu...hmm...)
+                jvm_argsRAM = r" -Xms1024m -Xmx4096m"
 
-            # Get download libraries path (Is really important when launch Minecraft
-            with open('libraries_path.cfg', 'r', encoding='utf-8') as file:
-                libraries = file.read()
+                # Get download libraries path (Is really important when launch Minecraft
+                with open('libraries_path.cfg', 'r', encoding='utf-8') as file:
+                    libraries = file.read()
 
-            # Check use "old" or "new" main class
-            version_tuple = tuple(map(int, version_id.split(".")))
-            if version_tuple > (1, 5, 2):
-                RunClass = " -cp {} net.minecraft.client.main.Main ".format(libraries)
-                print("LaunchManager: Using modern methods to run Main Class", color='blue')
-            else:
-                RunClass = " -cp {} net.minecraft.launchwrapper.Launch ".format(libraries)
-                print("LaunchManager: Using old methods to run Main Class :)", color='purple')
+                # Check use "old" or "new" main class
+                version_tuple = tuple(map(int, version_id.split(".")))
+                if version_tuple > (1, 5, 2):
+                    RunClass = " -cp {} net.minecraft.client.main.Main ".format(libraries)
+                    print("LaunchManager: Using modern methods to run Main Class", color='blue')
+                else:
+                    RunClass = " -cp {} net.minecraft.launchwrapper.Launch ".format(libraries)
+                    print("LaunchManager: Using old methods to run Main Class :)", color='purple')
 
-            # Get assetsIndex version....and set assets dir
-            assetsIndex = read_assets_index_version(Main, local, version_id)
-            assets_dir = get_assets_dir(version_id)
-            print(f"LaunchManager: assetsIndex: {assetsIndex}", color='blue')
-            print(f"LaunchManager: Using Index {assetsIndex}", color='blue')
+                # Get assetsIndex version....and set assets dir
+                assetsIndex = read_assets_index_version(Main, local, version_id)
+                assets_dir = get_assets_dir(version_id)
+                print(f"LaunchManager: assetsIndex: {assetsIndex}", color='blue')
+                print(f"LaunchManager: Using Index {assetsIndex}", color='blue')
 
-            # Get access token and username, uuid to set game args
-            print("Reading account data....", color='green')
-            os.chdir(local)
-            with open('data/AccountData.json', 'r') as file:
-                data = json.load(file)
-            username = data['AccountName']
-            uuid = data['UUID']
-            access_token = data['Token']
-            os.chdir(r'instances/' + version_id)
+                # Get access token and username, uuid to set game args
+                print("LaunchManager: Reading account data....", color='green')
+                os.chdir(local)
+                with open('data/AccountData.json', 'r') as file:
+                    data = json.load(file)
+                username = data['AccountName']
+                uuid = data['UUID']
+                access_token = data['Token']
+                os.chdir(r'instances/' + version_id)
 
-            # Add --UserProperties if version_id is high than 1.7.2 but low than 1.8.1
-            # Btw...Idk why some old version need this...if I don't add it will crash on lauch
-            if (version_tuple > (1, 7, 2)) and (version_tuple < (1, 8, 1)):
-                user_properties = "{}"
-                minecraft_args = f"--username {username} --version {version_id} --gameDir {minecraft_path} --assetsDir {assets_dir} --assetIndex {assetsIndex} --uuid {uuid} --accessToken {access_token} --userProperties {user_properties}"
-            else:
-                minecraft_args = f"--username {username} --version {version_id} --gameDir {minecraft_path} --assetsDir {assets_dir} --assetIndex {assetsIndex} --uuid {uuid} --accessToken {access_token}"
+                # Add --UserProperties if version_id is high than 1.7.2 but low than 1.8.1
+                # Btw...Idk why some old version need this...if I don't add it will crash on lauch
+                if (version_tuple > (1, 7, 2)) and (version_tuple < (1, 8, 1)):
+                    user_properties = "{}"
+                    minecraft_args = f"--username {username} --version {version_id} --gameDir {minecraft_path} --assetsDir {assets_dir} --assetIndex {assetsIndex} --uuid {uuid} --accessToken {access_token} --userProperties {user_properties}"
+                else:
+                    minecraft_args = f"--username {username} --version {version_id} --gameDir {minecraft_path} --assetsDir {assets_dir} --assetIndex {assetsIndex} --uuid {uuid} --accessToken {access_token}"
 
-            # Really old version's token are place on head
-            # But idk why some version think token are null
-            if (version_tuple >= (1, 0)) and (version_tuple < (1, 6)):
-                user_properties = "{}"
-                minecraft_args = f" {username} {access_token} --version {version_id} --gameDir {minecraft_path} --assetsDir {assets_dir} --session {access_token} --userProperties {user_properties}"
-            if (version_tuple >= (1, 6)) and (version_tuple < (1, 7)):
-                user_properties = "{}"
-                minecraft_args = f" --username {username} --version {version_id} --gameDir {minecraft_path} --assetsDir {assets_dir} --session {access_token} --userProperties {user_properties}"
+                # Really old version's token are place on head
+                # But idk why some version think token are null
+                if (version_tuple >= (1, 0)) and (version_tuple < (1, 6)):
+                    user_properties = "{}"
+                    minecraft_args = f" {username} {access_token} --version {version_id} --gameDir {minecraft_path} --assetsDir {assets_dir} --session {access_token} --userProperties {user_properties}"
+                if (version_tuple >= (1, 6)) and (version_tuple < (1, 7)):
+                    user_properties = "{}"
+                    minecraft_args = f" --username {username} --version {version_id} --gameDir {minecraft_path} --assetsDir {assets_dir} --session {access_token} --userProperties {user_properties}"
 
-            # Preparaing command...(unix-like os don't need jvm_argsWin)
-            if platform == "Windows":
-                RunCommand = Java_path + " " + jvm_argsWin + window_size + jvm_argsRAM + " " + jvm_args2 + RunClass + minecraft_args
-            else:
-                RunCommand = Java_path + " " + window_size + jvm_argsRAM + " " + jvm_args2 + RunClass + minecraft_args
+                # Preparaing command...(unix-like os don't need jvm_argsWin)
+                if platform == "Windows":
+                    RunCommand = Java_path + " " + jvm_argsWin + window_size + jvm_argsRAM + " " + jvm_args2 + RunClass + minecraft_args
+                else:
+                    RunCommand = Java_path + " " + window_size + jvm_argsRAM + " " + jvm_args2 + RunClass + minecraft_args
 
-            print("Preparations completed! Generating command.....", color='green')
-            print("Launch command: " + RunCommand, color='blue')
-            print("Baking Minecraft! :)", color='cyan')
-            print(" ")
-            print("Minecraft Log Start Here :)", color='green')
-            os.system(RunCommand)
-            os.chdir(local)
+                print("LaunchManager: Preparations completed! Generating command.....", color='green')
+                print("Launch command: " + RunCommand, color='blue')
+                print("Baking Minecraft! :)", color='cyan')
+                print(" ")
+                print("Minecraft Log Start Here :)", color='green')
+                os.system(RunCommand)
+                os.chdir(local)
 
-            # Check login status (But is after Minecraft close?)
-            if username == "None":
-                print("You didn't login!!!", color='red')
-                print("Although you can launch some old version of Minecraft but is illegal!!! ", color='red')
-                print("Some old version will crash when you try to join server if it already turn on online mode!", color='red')
-            print("Back to main menu.....", color='green')
+                # Check login status (But is after Minecraft close?)
+                if username == "None":
+                    print("LaunchManager: You didn't login!!!", color='red')
+                    print("LaunchManager: Although you can launch some old version of Minecraft but is illegal!!! ",
+                          color='red')
+                    print(
+                        "LaunchManager: Some old version will crash when you try to join server if it already turn on online mode!",
+                        color='red')
+                print("Back to main menu.....", color='green')
         else:
             # Can't find Java_HOME.json user will got this message.
-            print("You didn't configure your Java path!", color='red')
-            print("Please go back to the main menu and select 5: Config Java!", color='yellow')
-            print("Back to main menu.....", color='green')
+            print("LaunchManager: You didn't configure your Java path!", color='red')
+            print("If you already install jvm please go back to the main menu and select 5: Config Java!",
+                  color='yellow')
+            timer(5)
+
 
 

@@ -10,7 +10,7 @@ from Download import download_file
 from Download import download_natives
 from assets_grabber import get_asset
 from assets_grabber import get_assets_index_version
-from lwjgl_patch import unzip_natives
+from natives_tool import unzip_natives
 from __init__ import GetPlatformName
 
 def legacy_version_file_structure_fix():

@@ -7,8 +7,11 @@
 import os
 import subprocess
 import platform
+import requests
 import json
 import print_color
+import download_jvm
+from download_jvm import get_java_version_info
 from print_color import print
 
 local = os.getcwd()
@@ -27,6 +30,28 @@ def write_json(path, version):
     # Write the updated data back to the file
     with open("Java_HOME.json", "w") as jsonFile:
         json.dump(data, jsonFile, indent=4)
+
+
+def using_downloaded_jvm():
+    print("BreakPoint!")
+    runtimes_dir = "runtimes"  # Base directory for runtimes
+    if os.path.exists(runtimes_dir):
+        VERSIONLIST = [8, 16, 17, 18, 19, 20, 21]  # List of supported versions
+        for java_version in VERSIONLIST:
+            java_dir = os.path.join(runtimes_dir, "Java_" + str(java_version))  # Full path for Java version
+            if os.path.exists(java_dir):
+                print(f"JVMTool: Found Java {java_version}!")
+                jvm_path = os.path.join(java_dir, "bin")  # Path to the 'bin' directory
+                if os.path.exists(jvm_path):
+                    print(f"Java HOME: {jvm_path}")
+                    # Write JVM path and version to a config file (or other use)
+                    write_json(jvm_path, "Java_" + str(java_version))
+                else:
+                    print(f"Error: 'bin' directory not found for Java {java_version}")
+    else:
+        print("Error: 'runtimes' directory not found!")
+
+
 
 def find_jvm_path_windows(java_version, path):
     if platform.system() == "Windows":
@@ -77,7 +102,7 @@ def find_jvm_path_unix_like():
 
                 # Add "bin" to each Java path to get the bin directory
                 java_bins = [os.path.join(java_path, "bin") for java_path in java_paths]
-
+                write_json(java_bins, java_versions)
                 # Run java -version to verify Java installations for each version
                 for bin_path in java_bins:
                     java_executable = os.path.join(bin_path, "java")  # Get the java executable path
@@ -141,7 +166,7 @@ def java_search():
             Java_VERSION = [1.8, 17, 21]
             for jvm_version in Java_VERSION:
                 jvm_version = str(jvm_version)
-                find_jvm_path(jvm_version, path)
+                find_jvm_path_windows(jvm_version, path)
         else:
             find_jvm_path_unix_like()
 
@@ -162,28 +187,63 @@ def java_search():
     else:
         print("Failed to configure Java runtime path because JVM_Finder are not supported on your system!")
 
-def java_version_check(Main, version):
+def java_version_check(Main, version_id):
     """
-    Hmm...just a normal check....(Is for LaunchClient!)
+    Check the Minecraft version requirements for Java version.
     """
-    print("LaunchManager: Trying to check this version of Minecraft requirement Java version....", color='green')
-    version_tuple = tuple(map(int, version.split(".")))
+    print(f"{Main}: Trying to check the required Java version for this Minecraft version...", color='green')
 
-    with open("Java_HOME.json", "r") as file:
-        data = json.load(file)
+    # Get version_manifest_v2.json and list all versions
+    url = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
+    response = requests.get(url)
+    data = response.json()
+    version_list = data['versions']
 
-    if version_tuple > (1, 16):
-        if version_tuple >= (1, 20, 6):
-            Java_path = data.get("Java_21")
-            print(f"{Main}: Using Java 21!", color='blue')
+    # Find the URL for the given version_id
+    version_url = None
+    for v in version_list:
+        if v['id'] == version_id:
+            version_url = v['url']
+            break
+
+    if version_url is None:
+        print(f"{Main}: Invalid version ID", color='red')
+        return None
+
+    try:
+        # Get version data
+        version_response = requests.get(version_url)
+        version_data = version_response.json()
+
+        # Extract the Java version information
+        component, major_version = get_java_version_info(version_data)
+        print(f"{Main}: Required Java Component: {component}, Major Version: {major_version}", color='green')
+
+    except Exception as e:
+        print(f"{Main}: Error occurred while fetching version data: {e}", color='red')
+        return None
+
+    Java_VERSION = "Java_" + str(major_version)
+
+    try:
+        with open("Java_HOME.json", "r") as file:
+            data = json.load(file)
+
+        Java_path = data.get(Java_VERSION)
+        if Java_path:
+            print(f"{Main}: Using Java {major_version}!", color='blue')
+            print(f"{Main}: Java runtime path is: {Java_path}", color='blue')
+            return Java_path
         else:
-            Java_path = data.get("Java_17")
-            print(f"{Main}: Using Java 17!", color='blue')
-    else:
-        Java_path = data.get("Java_8")
-        print(f"{Main}: Using Java 8!", color='blue')
-    print(f"{Main}: Java runtime path is:{Java_path}", color='blue')
-    return Java_path
+            print(f"{Main}: Java version {Java_VERSION} not found in Java_HOME.json", color='red')
+            return None
+
+    except FileNotFoundError:
+        print(f"{Main}: Java_HOME.json file not found", color='red')
+        return None
+    except json.JSONDecodeError:
+        print(f"{Main}: Error decoding JSON from Java_HOME.json", color='red')
+        return None
 
 
 def java_finder():
@@ -194,6 +254,7 @@ def java_finder():
         if user_input == 1:
             os.remove('Java_HOME.json')
             java_search()
+            using_downloaded_jvm()
         else:
             print("Bypass reconfiguration...")
             print("Back to main menu.....")

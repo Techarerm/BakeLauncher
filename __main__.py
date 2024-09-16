@@ -24,7 +24,7 @@ def main():
         ClearOutput(platformName)
         main_memu(platformName)
     else:
-        print("BakeLauncher: Sorry :( BakeLauncher never plan for 32Bit system support :(", color="red")
+        print("BakeLauncher: Sorry :( BakeLauncher never plan for other arch system support :(", color="red")
     print("BakeLauncher thread terminated!")
     input("Press any key to continue...")
 

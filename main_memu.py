@@ -82,7 +82,7 @@ def main_memu(platform):
 
     print("What would you like to do?")
     print("1. Launch Minecraft 2. Log in 3. Clear login data (for expired session)")
-    print("4: DownloadTool 5: Configure Java 6: Config launch args 7: About 8: Exit launcher")
+    print("4: DownloadTool 5: Configure Java 6: Extra 7: About 8: Exit launcher")
 
     try:
         user_input = int(input(":"))
@@ -92,7 +92,7 @@ def main_memu(platform):
             back_to_memu(platform)
         if user_input == 1:
             print("Launching Minecraft...", color='green')
-            os.system('cls')
+            ClearOutput(platform)
             launch(platform)
             back_to_memu(platform)
         elif user_input == 2:
@@ -112,7 +112,11 @@ def main_memu(platform):
             java_finder()
             back_to_memu(platform)
         elif user_input == 6:
-            argsman()
+            print("Extra list:")
+            print("1: Custome JVM args")
+            user_input = int(input(":"))
+            if user_input == 1:
+                argsman()
             back_to_memu(platform)
         elif user_input == 7:
             print("POWERED BY BAKE!", color="yellow")

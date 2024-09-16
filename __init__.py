@@ -9,7 +9,7 @@ from print_color import print
 
 
 # Beta "Version"("Pre"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = "Beta 0.7(TEST-IH16924-1)"
+launcher_version = "Beta 0.7(TEST-IB17924-1)"
 
 
 
