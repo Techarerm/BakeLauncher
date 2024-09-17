@@ -9,7 +9,7 @@ from print_color import print
 
 
 # Beta "Version"("Pre"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = "Beta 0.7(RC-IB17924)"
+launcher_version = "Beta 0.7(RC2)"
 
 
 
@@ -18,6 +18,7 @@ BetaWarringMessage = ("You are running beta version of BakeLauncher.\n"
                       "Please run it only if you know what you are doing.\n")
 
 ChangeLog = ("Changelog:\n"
+             "Biggest Update!(I think)\n"
              "Now using local natives(When you download Minecraft it will automatic unzip to .minecraft/natives folder).\n"
              "Added download jvm after download game files.\n"
              "All old instances will be convert to new file structure(legacy_patch)\n"

@@ -1,27 +1,18 @@
-''''
+"""
 Is a small script to download game files.
 (Minecraft file download from Mojang CDN)
-'''
-import sys
+"""
+
 import platform
 import requests
 import os
-import json
-import subprocess
-import shutil
 import zipfile
 import time
-import assets_grabber
-import __init__
-import natives_tool
-import print_color
-import launch_version_patcher
 import download_jvm
 from __init__ import ClearOutput
 from __init__ import GetPlatformName
 from assets_grabber import get_asset
 from assets_grabber import get_assets_index_version
-from launch_version_patcher import patcher_main
 from print_color import print
 from natives_tool import unzip_natives
 from download_jvm import download_jvm
@@ -44,7 +35,7 @@ def get_version_data(version_id):
             break
 
     if version_url is None:
-        print(f"{Main}: Invalid version ID", color='red')
+        print(f"DownloadTool: Invalid version ID", color='red')
         return None
 
     try:
@@ -53,7 +44,7 @@ def get_version_data(version_id):
         version_data = version_response.json()
         return version_data
     except Exception as e:
-        print(f"{Main}: Error occurred while fetching version data: {e}", color='red')
+        print(f"DownloadTool: Error occurred while fetching version data: {e}", color='red')
         return None
 
 def download_file(url, dest_path):
@@ -72,7 +63,7 @@ def download_file(url, dest_path):
         with open(dest_path, 'wb') as file:
             for chunk in response.iter_content(chunk_size=8192):
                 file.write(chunk)
-        print(f"Download successful: {dest_path}", color='cyan')
+        print(f"Download successful: {dest_path}", color='blue')
         return True  # Indicate success
     except requests.exceptions.RequestException as e:
         print(f"Failed to download {url}: {e}", color='red')
@@ -225,7 +216,7 @@ def download_libraries(version_data, version_id):
 
 def download_with_version_id(version_list, release_versions, formatted_versions):
     local = os.getcwd()
-    print("DownloadTool: Using version_id method...", color='cyan')
+    print("DownloadTool: Using version_id method...", color='blue')
 
     try:
         print("DownloadTool: Activable version list:", color='purple')

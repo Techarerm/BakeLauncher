@@ -103,7 +103,7 @@ def find_jvm_path_windows(java_version, path):
                     return JVM_Path
         print(f"No Java {java_version} runtime found on this computer.", color='yellow')
 
-def find_jvm_path_unix_like():
+def find_jvm_path_unix_like(path):
     if platform.system() == "Darwin":  # macOS
         try:
             # Run the command to list all Java versions and their paths
@@ -195,7 +195,7 @@ def java_search():
                 jvm_version = str(jvm_version)
                 find_jvm_path_windows(jvm_version, path)
         else:
-            find_jvm_path_unix_like()
+            find_jvm_path_unix_like(path)
         using_downloaded_jvm()
         if os.path.exists("Java_HOME.json"):
                 print("Java runtime config successful!!!", color='green')
