@@ -40,6 +40,8 @@ def find_manifest_url(manifest_data, component, major_version):
     PlatformNameLW = PlatformName.lower()
     if PlatformNameLW == 'windows':
         PlatformNameLW = 'windows-x64'
+    elif PlatformNameLW == 'darwin':
+        PlatformNameLW = 'mac-os'
     if PlatformNameLW not in manifest_data:
         raise Exception(f"No {PlatformName} platform data found in the manifest.")
 
