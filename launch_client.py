@@ -1,128 +1,95 @@
+"""
+InternalName: LaunchManager
+In the file structure: launch_client.py
+
+Just a tool to prepare command for launching clients...
+"""
+
+
 import os
-import json
 import sys
-
-import launch_version_patcher
+import json
 import time
-from launch_version_patcher import patcher_main
-import print_color
-from print_color import print
-import assets_grabber
-from assets_grabber import get_assets_index_version
-from legacy_patch import legacy_version_natives_fix
-import requests
 import platform
+import requests
+import print_color
+import __init__
+import Download
+import assets_grabber
+import legacy_patch
+import jvm_tool
+import launch_version_patcher
+from print_color import print
+from __init__ import timer
+from assets_grabber import assetsIndexFix, read_assets_index_version, get_assets_index_version, get_assets_dir
+from jvm_tool import java_version_check
+from legacy_patch import legacy_version_natives_fix
+from launch_version_patcher import patcher_main
+from Download import get_version_data
+
+def SelectMainClass(version_id):
+    version_data = get_version_data(version_id)
+    main_class = version_data.get("mainClass")
+    return main_class
 
 
-def read_assets_index_version(local, version_id):
-    try:
-        with open('.minecraft\\assets_index.json', 'r') as file:
-            data = json.load(file)
-        assetsIndex_version = data['id']
-        return assetsIndex_version
+def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, assetsIndex, uuid):
+    version_data = get_version_data(version_id)  # Fetch version data
+    minecraftArguments = version_data.get("minecraftArguments", "")  # Get the arguments or an empty string
 
-    except FileNotFoundError:
-        # Trying fix use old version BakeLaunch didn't save assetsIndex to .minecraft(It will ask user to fix it)
-        # This functiom will be delete in the release
-        print("LaunchManager: Oops! Can't getting assetsIndex :O", color='red')
-        print("LaunchManager: Trying to fix it.....", color='green')
-        assetsIndexFix(local, version_id)
-        print("LaunchManager: Fixed assetsIndex config successfull!", color='blue')
-        try:
-            with open('.minecraft/assets_index.json', 'r') as file:
-                data = json.load(file)
-            assetsIndex_version = data['id']
-            return assetsIndex_version
+    user_properties = "{}"
 
-        except FileNotFoundError:
-            # Trying to fix use old version BakeLaunch didn't save assetsIndex to .minecraft(It will ask user to fix it)
-            # This functiom will be delete in the release
-            print("LaunchManager: Still can't fix it :(", color='red')
-            assetsIndexFix(local, version_id)
+    # Replace placeholders in minecraftArguments with actual values
+    minecraft_args = minecraftArguments.replace("{auth_player_name}", username) \
+        .replace("{auth_session}", access_token) \
+        .replace("{game_directory}", minecraft_path) \
+        .replace("{assets_root}", assets_dir) \
+        .replace("{version_name}", version_id) \
+        .replace("{assets_index_name}", assetsIndex) \
+        .replace("{auth_uuid}", uuid) \
+        .replace("{auth_access_token}", access_token)
 
-
-def get_assets_dir(version_id) -> str:
-    version_tuple = tuple(map(int, version_id.split(".")))
-    assets_dir = ".minecraft/assets"
-    if version_tuple <= (1, 7, 2) and version_tuple > (1, 5, 2):
-        return assets_dir + "/virtual/legacy"
-    elif version_tuple >= (1, 0) and version_tuple <= (1, 5, 2):
-        return assets_dir + "/virtual/legacy"
-    elif version_tuple == (1, 0):
-        return assets_dir + "/virtual/legacy"
+    # Check if minecraftArguments contains --userProperties and add it if needed
+    if "--userProperties" in minecraftArguments:
+        minecraft_args = minecraft_args.replace("--userProperties", f"--userProperties {user_properties}")
+    elif "${auth_player_name}" in minecraftArguments and minecraftArguments.startswith(
+            "${auth_player_name} ${auth_session}"):
+        # If {auth_player_name} and {auth_session} are at the beginning, format them properly
+        minecraft_args = f"{username} {access_token} " + minecraft_args
     else:
-        return assets_dir
+        # Fallback to standard argument format if nothing special is in minecraftArguments
+        minecraft_args = f"--username {username} --version {version_id} --gameDir {minecraft_path} " \
+                         f"--assetsDir {assets_dir} --assetIndex {assetsIndex} --uuid {uuid} " \
+                         f"--accessToken {access_token}"
 
-def java_version_check(version):
-    """
-    Hmm...just a normal check....
-    """
-    print("LaunchManager: Trying to check this version of Minecraft requirement Java version....", color='green')
-    version_tuple = tuple(map(int, version.split(".")))
-
-    with open("Java_HOME.json", "r") as file:
-        data = json.load(file)
-
-    if version_tuple > (1, 16):
-        if version_tuple >= (1, 20, 6):
-            Java_path = data.get("Java_21")
-            print("LaunchManager: Using Java 21!", color='blue')
-        else:
-            Java_path = data.get("Java_17")
-            print("LaunchManager: Using Java 17!", color='blue')
-    else:
-        Java_path = data.get("Java_8")
-        print("LaunchManager: Using Java 8!", color='blue')
-    print(f"LaunchManager: Java runtime path is:{Java_path}", color='blue')
-    return Java_path
-
-
-def assetsIndexFix(local, selected_version_id):
-    # Get version_manifest_v2.json and list all version(also add version_id in version's left :)
-    url = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
-    response = requests.get(url)
-    data = response.json()
-    version_list = data['versions']
-    release_versions = [version['id'] for version in version_list if version['type'] == 'release']
-    selected_version = next((version for version in version_list if version['id'] == selected_version_id), None)
-
-    try:
-        # Get version data
-        if selected_version:
-            print("LaunchManager: Loading version info...", color='green')
-            version_url = selected_version['url']
-            version_response = requests.get(version_url)
-            version_data = version_response.json()
-            get_assets_index_version(local, version_data, selected_version_id)
-
-    except ValueError:
-        # Back to main avoid crash
-        print("LaunchManager: Can't fix assetsIndex :(.", color='red')
-        back_to_main()
-
-
+    # Return the final constructed arguments
+    return minecraft_args
 
 def launch(platform):
+
+    Main = "LaunchManager"
     local = os.getcwd()
     # Check folder "versions" are activable in root (To avoid some user forgot to install)
     if not os.path.exists("instances"):
         os.makedirs("instances")
     instances_list = os.listdir('instances')
     if len(instances_list) == 0:
-        print("LaunchManager: No versions are activable to launch :(", color='red')
+        print("LaunchManager: No instances are activable to launch :(", color='red')
         print("Try to using DownloadTool to download the Minecraft!", color='yellow')
+        timer(4)
         return 0
     else:
-        print(f"LaunchManager: This version are activable to launch :D", color='blue')
+        print(f"LaunchManager: Instances list are activable :D", color='blue')
     print(instances_list, color='blue')
 
     # Ask user wanna launch version...
-    print("LaunchManager: Which one is you wanna launch version ? :)", color='green')
+    print("LaunchManager: Which instances is you want to launch instances ?", color='green')
     version_id = input(":")
 
+    # Check user type version of Minecraft are activable
     if version_id not in instances_list:
-        print("Can't found version " + version_id + " of Minecraft :(", color='red')
-        print("Please check you type version and try again or download it om DownloadTool!", color='yellow')
+        print("Can't found instances " + version_id + " of Minecraft :(", color='red')
+        print("Please check you type instances version and try again or download it on DownloadTool!", color='yellow')
         time.sleep(1.5)
     else:
         # Patch launch version path...(maybe I need to use .cfg not .json ?)
@@ -133,105 +100,107 @@ def launch(platform):
         if os.path.isfile('Java_HOME.json'):
 
             # Check Java_HOME.json file are activable to use(and getting jvm path from this file)
-            Java_path = java_version_check(version_id)
-            if platform == 'Windows':
-                Java_path = f'"{Java_path + "/java.exe"}"'
+            Java_path = java_version_check(Main, version_id)
+            if Java_path is None:
+                print("LaunchManager: Set Java_path failed! Cause by None path!", color='red')
+                print("Please download thid version of MInecraft support Java(In DownloadTool)!", color='yellow')
+                timer(5)
+                return "FailedToCheckJavaPath"
             else:
-                Java_path = f'"{Java_path + "/java"}"'
+                if platform == 'Windows':
+                    Java_path = f'"{Java_path + "/java.exe"}"'
+                else:
+                    Java_path = f'"{Java_path + "/java"}"'
 
-            # Set some .minecraft path...
-            os.chdir(r'instances/' + version_id)
-            minecraft_path = f".minecraft"
+                # Set some .minecraft path...
+                os.chdir(r'instances/' + version_id)
+                minecraft_path = f".minecraft"
 
-            # JVM args
-            jvm_args1 = r"-XX:HeapDumpPath=MojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump "
+                # JVM argsWin(? Only for Windows)
+                jvm_argsWin = r"-XX:HeapDumpPath=MojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump "
 
-            # Set this to prevent the windows too small
-            window_size = "-Dorg.lwjgl.opengl.Window.undecorated=false -Dorg.lwjgl.opengl.Display.width=1280 -Dorg.lwjgl.opengl.Display.height=720"
+                # Set this to prevent the windows too small
+                window_size = "-Dorg.lwjgl.opengl.Window.undecorated=false -Dorg.lwjgl.opengl.Display.width=1280 -Dorg.lwjgl.opengl.Display.height=720"
 
-            # Get requirement lwjgl version :)
-            print("LaunchManager: Checking natives...", color='green')
-            ErrorCheck = legacy_version_natives_fix(version_id)
-            if ErrorCheck == "FailedToFixNatives":
-                print("LaunchManager: Stopping launch... Cause by GetNativesFailed!", color='red')
-                return
-            natives_library = '.minecraft/natives'
-            jvm_args2 = "-Djava.library.path={}".format(natives_library)
+                # Get requirement lwjgl version :)
+                print("LaunchManager: Checking natives...", color='green')
 
-            # Set Xms and Xmx ram size (Maybe I can add change ram size in memu,,,hmm :)
-            jvm_argsRAM = r" -Xms1024m -Xmx4096m"
+                # Check user's instances are already downloaded natives(If not it will redownload it and unzip to .minecraft\natives)
+                ErrorCheck = legacy_version_natives_fix(version_id)
+                if ErrorCheck == "FailedToFixNatives":
+                    print("LaunchManager: Stopping launch... Cause by GetNativesFailed", color='red', tag_color='red',
+                          tag="Error")
+                    return "FailedToFixNatives"
 
-            # Get download libraries path (Is really important when launch Minecraft : )
-            with open('libraries_path.cfg', 'r', encoding='utf-8') as file:
-                libraries = file.read()
+                # Set natives path
+                natives_library = '.minecraft/natives'
+                jvm_args2 = "-Djava.library.path={}".format(natives_library)
 
-            # Check use "old" or "new" main class
-            version_tuple = tuple(map(int, version_id.split(".")))
-            if version_tuple > (1, 5, 2):
-                RunClass = " -cp {} net.minecraft.client.main.Main ".format(libraries)
-                print("LaunchManager: Using modern methods to run Main Class", color='blue')
-            else:
-                RunClass = " -cp {} net.minecraft.launchwrapper.Launch ".format(libraries)
-                print("LaunchManager: Using old methods to run Main Class :)", color='purple')
+                # Set Xms and Xmx ram size (Maybe I can add change ram size in memu...hmm...)
+                jvm_argsRAM = r" -Xms1024m -Xmx4096m"
 
-            # Get assetsIndex version....and set assets dir
+                # Get download libraries path (Is really important when launch Minecraft
+                with open('libraries_path.cfg', 'r', encoding='utf-8') as file:
+                    libraries = file.read()
 
-            assetsIndex = read_assets_index_version(local, version_id)
-            assets_dir = get_assets_dir(version_id)
-            print(f"LaunchManager: assetsIndex: {assetsIndex}", color='blue')
-            print(f"LaunchManager: Using Index {assetsIndex}", color='blue')
+                # Check use "old" or "new" main class
+                main_class = SelectMainClass(version_id)
+                print(f"LaunchManager: Using {main_class} as the Main Class.",
+                      color='blue' if "net.minecraft.client.main.Main" in main_class else 'purple')
+                RunClass = f"-cp {libraries} {main_class}"
 
+                # Get assetsIndex version....and set assets dir
+                assetsIndex = read_assets_index_version(Main, local, version_id)
+                assets_dir = get_assets_dir(version_id)
+                if assets_dir == "FailedToOpenAssetsIndexFile":
+                    print("LaunchManager: Failed to get assets directory :( Cause by FailedToOpenAssetsIndexFile", color='red', tag_color='red', tag='error')
 
+                print(f"LaunchManager: assetsIndex: {assetsIndex}", color='blue')
+                print(f"LaunchManager: Using Index {assetsIndex}", color='blue')
 
-            # Get access token and username, uuid to set game args
-            print("Reading account data....", color='green')
-            os.chdir(local)
-            with open('data/AccountData.json', 'r') as file:
-                data = json.load(file)
-            username = data['AccountName']
-            uuid = data['UUID']
-            access_token = data['Token']
-            os.chdir(r'instances/' + version_id)
+                # Get access token and username, uuid to set game args
+                print("LaunchManager: Reading account data....", color='green')
+                os.chdir(local)
+                with open('data/AccountData.json', 'r') as file:
+                    data = json.load(file)
+                username = data['AccountName']
+                uuid = data['UUID']
+                access_token = data['Token']
+                os.chdir(r'instances/' + version_id)
 
-            # Add --UserProperties if version_id is high than 1.7.2 but low than 1.8.1
-            # Btw...Idk why some old version need this...if I don't add it will crash on lauch
-            if (version_tuple > (1, 7, 2)) and (version_tuple < (1, 8, 1)):
-                user_properties = "{}"
-                minecraft_args = f"--username {username} --version {version_id} --gameDir {minecraft_path} --assetsDir {assets_dir} --assetIndex {assetsIndex} --uuid {uuid} --accessToken {access_token} --userProperties {user_properties}"
-            else:
-                minecraft_args = f"--username {username} --version {version_id} --gameDir {minecraft_path} --assetsDir {assets_dir} --assetIndex {assetsIndex} --uuid {uuid} --accessToken {access_token}"
+                # Add --UserProperties if version_id is high than 1.7.2 but low than 1.8.1
+                # Btw...Idk why some old version need this...if I don't add it will crash on lauch
+                game_args = GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, assetsIndex, uuid)
+                # Preparaing command...(unix-like os don't need jvm_argsWin)
+                if platform == "Windows":
+                    RunCommand = Java_path + " " + jvm_argsWin + window_size + jvm_argsRAM + " " + jvm_args2 + " " + RunClass + " " + game_args
+                else:
+                    RunCommand = Java_path + " " + window_size + jvm_argsRAM + " " + jvm_args2 + " " + RunClass + " " + game_args
 
-            # Really old version's token are place on head
-            # But idk why some version think token are null
-            if (version_tuple >= (1, 0)) and (version_tuple < (1, 6)):
-                user_properties = "{}"
-                minecraft_args = f" {username} {access_token} --version {version_id} --gameDir {minecraft_path} --assetsDir {assets_dir} --session {access_token} --userProperties {user_properties}"
-            if (version_tuple >= (1, 6)) and (version_tuple < (1, 7)):
-                user_properties = "{}"
-                minecraft_args = f" --username {username} --version {version_id} --gameDir {minecraft_path} --assetsDir {assets_dir} --session {access_token} --userProperties {user_properties}"
+                print("LaunchManager: Preparations completed! Generating command.....", color='green')
+                print("Launch command: " + RunCommand, color='blue')
+                print("Baking Minecraft! :)", color='cyan')
+                print(" ")
+                print("Minecraft Log Start Here :)", color='green')
+                os.system(RunCommand)
+                os.chdir(local)
 
-            # Preparaing command...
-            if platform == "Windows":
-                RunCommand = Java_path + " " + jvm_args1 + window_size + jvm_argsRAM + " " + jvm_args2 + RunClass + minecraft_args
-            else:
-                RunCommand = Java_path + " " + window_size + jvm_argsRAM + " " + jvm_args2 + RunClass + minecraft_args
-            print("Preparations completed! Generating command.....", color='green')
-            print("Launch command: " + RunCommand, color='blue')
-            print("Baking Minecraft! :)", color='cyan')
-            print(" ")
-            print("Minecraft Log Start Here :)", color='green')
-            os.system(RunCommand)
-            os.chdir(local)
+                # Check login status (But is after Minecraft close?)
+                if username == "None":
+                    print("LaunchManager: You didn't login!!!", color='red')
+                    print("LaunchManager: Although you can launch some old version of Minecraft but is illegal!!! ",
+                          color='red')
+                    print(
+                        "LaunchManager: Some old version will crash when you try to join server if it already turn on online mode!",
+                        color='red')
+                print("Back to main menu.....", color='green')
 
-            # Check login status :)
-            if username == "None":
-                print("You didn't login!!!", color='red')
-                print("Although you can launch some old version of Minecraft but is illegal!!! ", color='red')
-                print("Some old version will crash when you try to join server if it already turn on online mode!", color='red')
-            print("Back to main menu.....", color='green')
         else:
-            print("You didn't configure your Java path!", color='red')
-            print("Please go back to the main menu and select 5: Config Java!", color='yellow')
-            print("Back to main menu.....", color='green')
+            # Can't find Java_HOME.json user will got this message.
+            print("LaunchManager: You didn't configure your Java path!", color='red')
+            print("If you already install jvm please go back to the main menu and select 5: Config Java!",
+              color='yellow')
+            timer(5)
+
 
 
