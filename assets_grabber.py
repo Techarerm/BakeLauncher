@@ -78,17 +78,16 @@ def download_assets(asset_index, objects_dir):
             except Exception as e:
                 print(f"Error downloading {asset_name}: {e}", color='red')
 
-def get_assets_index_version(local, version_data, version_id):
+def get_assets_index_version(version_data, version_id):
     """
     Get the assets index version from the version_data and save it to a JSON file
     LaunchManager need this when launching Minecraft(To set assetsIndex)
     """
-    os.chdir(local)
     print("Trying to get assetsIndex version....", color='green')
     asset_index = version_data.get("assetIndex", {})
     asset_index_id = asset_index.get("id")
     if asset_index_id:
-        assets_index_file = os.path.join("instances", version_id, ".minecraft","assets_index.json")
+        assets_index_file = os.path.join(".minecraft","assets_index.json")
         with open(assets_index_file, 'w') as f:
             json.dump(asset_index, f, indent=4)
         print(f"AssetsIndex config has been saved :)", color='blue')
@@ -98,7 +97,6 @@ def get_assets_index_version(local, version_data, version_id):
         print("Please try again later(If still can't get assetsIndex please report this bug to GitHib!", color='yellow')
         print("IMPORANT:'Do not launch it if failed to get assetsIndex. You might get a broken version of Minecraft :D", color='yellow')
         print("Asset index not found.", color='red')
-    os.chdir(local + "/instances" + f"/{version_id}")
 
 def get_asset(version_id):
     local = os.getcwd()
@@ -135,19 +133,24 @@ def get_asset(version_id):
         objects_dir = os.path.join(minecraft, "assets", "objects")
         download_assets(asset_index, objects_dir)
     os.chdir(local)
-    version_tuple = tuple(map(int, version_id.split(".")))
-    if version_tuple <= (1, 7, 2):
+    if not os.path.exists("instances/" + version_id + "/.minecraft/" + "assets_index.json"):
+        version_data = get_version_json(version_id)
+        os.chdir("instances/" + version_id)
+        get_assets_index_version(version_data, version_id)
+        os.chdir(local)
+
+    with open("instances/" + version_id + "/.minecraft/" + "assets_index.json", "r") as file:
+        data = json.load(file)
+        assetsIndex = data["id"]
+    if assetsIndex == "pre-1.6" or assetsIndex == "legacy":
         print("Your want to download version's type are 'Legacy'!", color='green')
         print("Downloading Legacy assets now...", color='green')
         assets_dir = "instances/" + version_id + "/.minecraft/" + "assets"
-        if version_tuple < (1, 6, 0):
-            Index = "pre-1.6"
-            download_legacy_assets(version_id, assets_dir, Index)
+        if assetsIndex == "pre-1.6":
+            download_legacy_assets(version_id, assets_dir, assetsIndex)
         else:
-            Index = "Legacy"
-            if version_tuple < (1, 7, 3):
-                Index = "legacy"
-                download_legacy_assets(version_id, assets_dir, Index)
+            if assetsIndex == "legacy":
+                download_legacy_assets(version_id, assets_dir, assetsIndex)
             else:
                 print("??? Can't found assets name! Bypass it....)",color='red')
 
@@ -194,7 +197,7 @@ def assetsIndexFix(Main, local, selected_version_id):
             version_url = selected_version['url']
             version_response = requests.get(version_url)
             version_data = version_response.json()
-            get_assets_index_version(local, version_data, selected_version_id)
+            get_assets_index_version(version_data, selected_version_id)
 
     except ValueError:
         # Back to main avoid crash
@@ -227,14 +230,17 @@ def read_assets_index_version(Main, local, version_id):
             print("LaunchManager: Still can't fix it :(", color='red')
             assetsIndexFix(Main, local, version_id)
 
-def get_assets_dir(version_id) -> str:
-    version_tuple = tuple(map(int, version_id.split(".")))
+def get_assets_dir(version_id):
     assets_dir = ".minecraft/assets"
-    if version_tuple <= (1, 7, 2) and version_tuple > (1, 5, 2):
-        return assets_dir + "/virtual/legacy"
-    elif version_tuple >= (1, 0) and version_tuple <= (1, 5, 2):
-        return assets_dir + "/virtual/legacy"
-    elif version_tuple == (1, 0):
-        return assets_dir + "/virtual/legacy"
-    else:
-        return assets_dir
+
+    try:
+        with open(".minecraft/assets_index.json", "r") as file:
+            data = json.load(file)
+            AsstesIndex = data['id']
+            if AsstesIndex == "pre-1.6" or AsstesIndex == "legacy":
+                return assets_dir + "/virtual/legacy"
+            else:
+                return assets_dir
+    except FileNotFoundError:
+        return "FailedToOpenAssetsIndexFile"
+

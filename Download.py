@@ -26,6 +26,35 @@ from print_color import print
 from natives_tool import unzip_natives
 from download_jvm import download_jvm
 
+def get_version_data(version_id):
+    """
+    This only using on other functions!
+    """
+    # Get version_manifest_v2.json and list all versions
+    url = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
+    response = requests.get(url)
+    data = response.json()
+    version_list = data['versions']
+
+    # Find the URL for the given version_id
+    version_url = None
+    for v in version_list:
+        if v['id'] == version_id:
+            version_url = v['url']
+            break
+
+    if version_url is None:
+        print(f"{Main}: Invalid version ID", color='red')
+        return None
+
+    try:
+        # Get version data
+        version_response = requests.get(version_url)
+        version_data = version_response.json()
+        return version_data
+    except Exception as e:
+        print(f"{Main}: Error occurred while fetching version data: {e}", color='red')
+        return None
 
 def download_file(url, dest_path):
     """
@@ -228,17 +257,25 @@ def download_with_version_id(version_list, release_versions, formatted_versions)
                     download_libraries(version_data, selected_version_id)
                     print("DownoandTool: The required dependent libraries should have been downloaded :)", color='blue')
 
-                    # I know hosted lwjgl file on github is not a best way :) ( I will delete it when I found a nice way to simply download lwjgl library...)
+                    # Download assets(Also it will check this version are use legacy assets or don't use)
+                    ClearOutput(GetPlatformName.check_platform_valid_and_return())
+                    print("DownoandTool: Now create assets...", color='green')
+                    get_assets_index_version(version_data, selected_version_id)
+                    get_asset(selected_version_id)
+                    os.chdir(local)
+
+                    # Finally....
+                    ClearOutput(GetPlatformName.check_platform_valid_and_return())
                     print("DownoandTool: Now unzip natives...", color='green')
                     unzip_natives(selected_version_id)
 
-                    # Download assets(Also it will check this version are use legacy assets or don't use)
-                    print("DownoandTool: Now create assets...", color='green')
-                    get_asset(selected_version_id)
-                    get_assets_index_version(local, version_data, selected_version_id)
+                    ClearOutput(GetPlatformName.check_platform_valid_and_return())
+                    print("DownoandTool: Finally...download JVM!", color='green')
                     download_jvm(version_data)
+
                     print("DownoandTool: YAPPY! Now all files are download success :)", color='blue')
-                    print("DownoandTool: Exiting DownloadTool....", color='green')
+                    print("DownoandTool: Exiting download tool....", color='green')
+
                     # Add waiting time(If assets download failed it will print it?)
                     time.sleep(1.2)
 
@@ -286,14 +323,18 @@ def download_with_version_tunple(version_list):
             print("DownoandTool: The required dependent libraries should have been downloaded :)", color='blue')
 
             # Download assets(Also it will check this version are use legacy assets or don't use)
+            ClearOutput(GetPlatformName.check_platform_valid_and_return())
             print("DownoandTool: Now create assets...", color='green')
             get_asset(selected_version_id)
-            get_assets_index_version(local, version_data, selected_version_id)
+            get_assets_index_version(version_data, selected_version_id)
+            os.chdir(local)
 
             # Finally....
+            ClearOutput(GetPlatformName.check_platform_valid_and_return())
             print("DownoandTool: Now unzip natives...", color='green')
             unzip_natives(selected_version_id)
 
+            ClearOutput(GetPlatformName.check_platform_valid_and_return())
             print("DownoandTool: Finally...download JVM!", color='green')
             download_jvm(version_data)
 
@@ -311,6 +352,56 @@ def download_with_version_tunple(version_list):
         print("DownoandTool: Oops! Invalid input :( Please enter Minecraft version.")
         download_with_version_tunple(version_list)
 
+def download_snapshot(version_list, snapshot_versions, total_versions, max_lines, num_columns):
+    local = os.getcwd()
+    selected_version_id = input("Please enter snapshot version:")
+    # Find minecraft_version after get version_id(IMPORTANT:version =/= version_id!)
+    selected_version = next((version for version in version_list if version['id'] == selected_version_id), None)
+    try:
+        # Get version data
+        if selected_version:
+            version_url = selected_version['url']
+            version_response = requests.get(version_url)
+            version_data = version_response.json()
+
+            # Download game file( libraries, .jar files...., and lwjgl!)
+            ClearOutput(platform)
+            print("DownoandTool: Loading version info...")
+            download_libraries(version_data, selected_version_id)
+            print("DownoandTool: The required dependent libraries should have been downloaded :)", color='blue')
+
+            # Download assets(Also it will check this version are use legacy assets or don't use)
+            print("DownoandTool: Now create assets...", color='green')
+            get_assets_index_version(version_data, selected_version_id)
+            get_asset(selected_version_id)
+            os.chdir(local)
+
+            # Finally....
+            ClearOutput(GetPlatformName.check_platform_valid_and_return())
+            print("DownoandTool: Now unzip natives...", color='green')
+            unzip_natives(selected_version_id)
+
+            ClearOutput(GetPlatformName.check_platform_valid_and_return())
+            print("DownoandTool: Finally...download JVM!", color='green')
+            download_jvm(version_data)
+
+            print("DownoandTool: YAPPY! Now all files are download success :)", color='blue')
+            print("DownoandTool: Exiting download tool....", color='green')
+
+            # Add waiting time(If assets download failed it will print it?)
+            time.sleep(1.2)
+            ClearOutput(GetPlatformName.check_platform_valid_and_return())
+        else:
+            # idk this thing would happen or not :)  , just leave it and see what happen....
+            print(f"DownoandTool: You type snapshot version {selected_version_id} are not found :(", color='red')
+            download_snapshot(version_list, snapshot_versions, total_versions, max_lines, num_columns)
+
+    except ValueError:
+        # Back to download_main avoid crash(when user type illegal thing
+        print("DownoandTool: Oops! Invalid input :( Please enter a vaild snapshot version.")
+        download_snapshot(version_list, snapshot_versions, total_versions, max_lines, num_columns)
+
+
 def download_main():
     # Get version_manifest_v2.json and list all version(also add version_id in version's left :)
     url = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
@@ -322,8 +413,18 @@ def download_main():
     formatted_versions = '\n'.join([f"{index + 1}: {version}"
                                     for index, version in enumerate(release_versions)])
 
+    snapshot_versions = [version['id'] for version in version_list if version['type'] == 'snapshot']
+    formatted_snapshot_versions = '\n'.join([f"{version}"
+                                    for index, version in enumerate(snapshot_versions)])
+
+    # Small test...
+    total_versions = len(snapshot_versions)
+    num_columns = 5
+    max_lines = (total_versions + num_columns - 1)
+    total_entries = num_columns * max_lines
+
     print("Which method you wanna use?", color='green')
-    print("1:List all available versions and download 2:Type Minecraft version and download")
+    print("1:List all available versions and download 2:Type Minecraft version and download 3: Download snapshot")
 
     try:
         user_input = int(input(":"))
@@ -331,6 +432,10 @@ def download_main():
             download_with_version_id(version_list, release_versions, formatted_versions)
         elif user_input == 2:
             download_with_version_tunple(version_list)
+        elif user_input == 3:
+            print("DownloadTool: Download snapshot maybe unstable(You may get DownloadAssetsFailed!)")
+            time.sleep(1.5)
+            download_snapshot(version_list, snapshot_versions, total_versions, max_lines, max_lines)
         else:
             print("DownloadTool: Unknow options :( Please try again.", color='red')
             download_main()

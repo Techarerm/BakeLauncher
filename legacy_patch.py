@@ -9,7 +9,6 @@ from Download import download_with_version_tunple
 from Download import download_file
 from Download import download_natives
 from assets_grabber import get_asset
-from assets_grabber import get_assets_index_version
 from natives_tool import unzip_natives
 from __init__ import GetPlatformName
 

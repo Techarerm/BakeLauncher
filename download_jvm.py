@@ -1,8 +1,10 @@
 import os
 import requests
 import hashlib
+import print_color
 import __init__
 from __init__ import GetPlatformName
+from print_color import print
 
 # Step 1: Get the Minecraft version data
 def get_version_data(version_url):
@@ -38,14 +40,12 @@ def find_manifest_url(manifest_data, component, major_version):
     PlatformNameLW = PlatformName.lower()
     if PlatformNameLW == 'windows':
         PlatformNameED = 'windows-x64'
-    print(PlatformNameED)
     if PlatformNameED not in manifest_data:
         raise Exception(f"No {PlatformName} platform data found in the manifest.")
     java_versions = manifest_data[PlatformNameED].get(component, [])
     for version in java_versions:
         if version['version']['name'].startswith(str(major_version)):
             manifest_url = version['manifest']['url']
-            print(manifest_url)
             return manifest_url
     raise Exception(f"No matching Java manifest found for component {component} and version {major_version}.")
 
@@ -57,7 +57,7 @@ def download_java_manifest(manifest_url):
         manifest_file_name = manifest_url.split("/")[-2] + ".json"
         with open(manifest_file_name, "wb") as file:
             file.write(manifest_content)
-        print(f"Java manifest downloaded: {manifest_file_name}")
+        print(f"Java manifest downloaded: {manifest_file_name}", color="blue")
     else:
         raise Exception(f"Failed to download manifest. Status code: {response.status_code}")
 
@@ -93,19 +93,19 @@ def download_file(file_info, file_path, destination_folder):
 
     # Check if the file already exists and verify checksum
     if os.path.exists(full_file_path) and verify_checksum(full_file_path, expected_sha1):
-        print(f"{file_name} already exists and checksum matches. Skipping download.")
+        print(f"{file_name} already exists and checksum matches. Skipping download.", color='green')
         return
 
     # Download file
-    print(f"Downloading {file_name} from {file_url}")
+    print(f"Downloading {file_name} from {file_url}", color='green')
     response = requests.get(file_url)
     if response.status_code == 200:
         with open(full_file_path, "wb") as f:
             f.write(response.content)
         if verify_checksum(full_file_path, expected_sha1):
-            print(f"Downloaded and verified {file_name} to {full_file_path}")
+            print(f"Downloaded and verified {file_name} to {full_file_path}", color='green')
         else:
-            print(f"Checksum mismatch for {file_name}.")
+            print(f"Checksum mismatch for {file_name}.", color='yellow')
             os.remove(full_file_path)
     else:
         print(f"Failed to download {file_name}. Status code: {response.status_code}")
@@ -124,27 +124,32 @@ def download_jvm(version_data):
     try:
         # Step 2: Extract the Java version information
         component, major_version = get_java_version_info(version_data)
-        print(f"Required Java Component: {component}, Major Version: {major_version}")
+        print(f"Required Java Component: {component}, Major Version: {major_version}", color='green')
 
         # Step 3: Get the Java manifest URL
         java_manifest_url = 'https://launchermeta.mojang.com/v1/products/java-runtime/2ec0cc96c44e5a76b9c8b7c39df7210883d12871/all.json'
         java_manifest_data = get_java_manifest(java_manifest_url)
 
         # Step 4: Find the correct manifest URL for the required Java version
-        print(component)
-        print(major_version)
         manifest_url = find_manifest_url(java_manifest_data, component, major_version)
         print(f"Java manifest URL found: {manifest_url}")
 
         # Step 5: Download the Java manifest
         manifest = requests.get(manifest_url).json()
+        JVM_Path = os.path.join("runtimes/" + f'Java_{major_version}')
         if not os.path.exists("runtimes"):
             os.mkdir("runtimes")
+        if os.path.exists(f'runtimes' + f'Java_{major_version}'):
+            print("Found exits jvm! Do you want to reinstall it? Y/N")
+            user_input = input(":")
+            if user_input.upper() == "Y":
+                os.rmdir(f'runtimes' + f'Java_{major_version}')
+                os.mkdir("runtimes/" + f'Java_{major_version}')
+                download_java_files(manifest, JVM_Path)
+        else:
+            download_java_files(manifest, JVM_Path)
 
-        os.mkdir("runtimes/" + f'Java_{major_version}')
-        JVM_Path = os.path.join("runtimes/" + f'Java_{major_version}')
 
-        download_java_files(manifest, JVM_Path)
 
 
     except Exception as e:

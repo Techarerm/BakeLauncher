@@ -14,6 +14,7 @@ import platform
 import requests
 import print_color
 import __init__
+import Download
 import assets_grabber
 import legacy_patch
 import jvm_tool
@@ -24,9 +25,45 @@ from assets_grabber import assetsIndexFix, read_assets_index_version, get_assets
 from jvm_tool import java_version_check
 from legacy_patch import legacy_version_natives_fix
 from launch_version_patcher import patcher_main
+from Download import get_version_data
+
+def SelectMainClass(version_id):
+    version_data = get_version_data(version_id)
+    main_class = version_data.get("mainClass")
+    return main_class
 
 
+def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, assetsIndex, uuid):
+    version_data = get_version_data(version_id)  # Fetch version data
+    minecraftArguments = version_data.get("minecraftArguments", "")  # Get the arguments or an empty string
 
+    user_properties = "{}"
+
+    # Replace placeholders in minecraftArguments with actual values
+    minecraft_args = minecraftArguments.replace("{auth_player_name}", username) \
+        .replace("{auth_session}", access_token) \
+        .replace("{game_directory}", minecraft_path) \
+        .replace("{assets_root}", assets_dir) \
+        .replace("{version_name}", version_id) \
+        .replace("{assets_index_name}", assetsIndex) \
+        .replace("{auth_uuid}", uuid) \
+        .replace("{auth_access_token}", access_token)
+
+    # Check if minecraftArguments contains --userProperties and add it if needed
+    if "--userProperties" in minecraftArguments:
+        minecraft_args = minecraft_args.replace("--userProperties", f"--userProperties {user_properties}")
+    elif "${auth_player_name}" in minecraftArguments and minecraftArguments.startswith(
+            "${auth_player_name} ${auth_session}"):
+        # If {auth_player_name} and {auth_session} are at the beginning, format them properly
+        minecraft_args = f"{username} {access_token} " + minecraft_args
+    else:
+        # Fallback to standard argument format if nothing special is in minecraftArguments
+        minecraft_args = f"--username {username} --version {version_id} --gameDir {minecraft_path} " \
+                         f"--assetsDir {assets_dir} --assetIndex {assetsIndex} --uuid {uuid} " \
+                         f"--accessToken {access_token}"
+
+    # Return the final constructed arguments
+    return minecraft_args
 
 def launch(platform):
 
@@ -46,13 +83,13 @@ def launch(platform):
     print(instances_list, color='blue')
 
     # Ask user wanna launch version...
-    print("LaunchManager: Which one is you wanna launch instances ? :)", color='green')
+    print("LaunchManager: Which instances is you want to launch instances ?", color='green')
     version_id = input(":")
 
     # Check user type version of Minecraft are activable
     if version_id not in instances_list:
         print("Can't found instances " + version_id + " of Minecraft :(", color='red')
-        print("Please check you type instances version and try again or download it om DownloadTool!", color='yellow')
+        print("Please check you type instances version and try again or download it on DownloadTool!", color='yellow')
         time.sleep(1.5)
     else:
         # Patch launch version path...(maybe I need to use .cfg not .json ?)
@@ -69,6 +106,7 @@ def launch(platform):
                 print("Please download thid version of MInecraft support Java(In DownloadTool)!", color='yellow')
                 timer(5)
                 return "FailedToCheckJavaPath"
+            else:
                 if platform == 'Windows':
                     Java_path = f'"{Java_path + "/java.exe"}"'
                 else:
@@ -92,7 +130,7 @@ def launch(platform):
                 if ErrorCheck == "FailedToFixNatives":
                     print("LaunchManager: Stopping launch... Cause by GetNativesFailed", color='red', tag_color='red',
                           tag="Error")
-                    return
+                    return "FailedToFixNatives"
 
                 # Set natives path
                 natives_library = '.minecraft/natives'
@@ -106,17 +144,17 @@ def launch(platform):
                     libraries = file.read()
 
                 # Check use "old" or "new" main class
-                version_tuple = tuple(map(int, version_id.split(".")))
-                if version_tuple > (1, 5, 2):
-                    RunClass = " -cp {} net.minecraft.client.main.Main ".format(libraries)
-                    print("LaunchManager: Using modern methods to run Main Class", color='blue')
-                else:
-                    RunClass = " -cp {} net.minecraft.launchwrapper.Launch ".format(libraries)
-                    print("LaunchManager: Using old methods to run Main Class :)", color='purple')
+                main_class = SelectMainClass(version_id)
+                print(f"LaunchManager: Using {main_class} as the Main Class.",
+                      color='blue' if "net.minecraft.client.main.Main" in main_class else 'purple')
+                RunClass = f"-cp {libraries} {main_class}"
 
                 # Get assetsIndex version....and set assets dir
                 assetsIndex = read_assets_index_version(Main, local, version_id)
                 assets_dir = get_assets_dir(version_id)
+                if assets_dir == "FailedToOpenAssetsIndexFile":
+                    print("LaunchManager: Failed to get assets directory :( Cause by FailedToOpenAssetsIndexFile", color='red', tag_color='red', tag='error')
+
                 print(f"LaunchManager: assetsIndex: {assetsIndex}", color='blue')
                 print(f"LaunchManager: Using Index {assetsIndex}", color='blue')
 
@@ -132,26 +170,13 @@ def launch(platform):
 
                 # Add --UserProperties if version_id is high than 1.7.2 but low than 1.8.1
                 # Btw...Idk why some old version need this...if I don't add it will crash on lauch
-                if (version_tuple > (1, 7, 2)) and (version_tuple < (1, 8, 1)):
-                    user_properties = "{}"
-                    minecraft_args = f"--username {username} --version {version_id} --gameDir {minecraft_path} --assetsDir {assets_dir} --assetIndex {assetsIndex} --uuid {uuid} --accessToken {access_token} --userProperties {user_properties}"
-                else:
-                    minecraft_args = f"--username {username} --version {version_id} --gameDir {minecraft_path} --assetsDir {assets_dir} --assetIndex {assetsIndex} --uuid {uuid} --accessToken {access_token}"
-
-                # Really old version's token are place on head
-                # But idk why some version think token are null
-                if (version_tuple >= (1, 0)) and (version_tuple < (1, 6)):
-                    user_properties = "{}"
-                    minecraft_args = f" {username} {access_token} --version {version_id} --gameDir {minecraft_path} --assetsDir {assets_dir} --session {access_token} --userProperties {user_properties}"
-                if (version_tuple >= (1, 6)) and (version_tuple < (1, 7)):
-                    user_properties = "{}"
-                    minecraft_args = f" --username {username} --version {version_id} --gameDir {minecraft_path} --assetsDir {assets_dir} --session {access_token} --userProperties {user_properties}"
-
+                game_args = GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, assetsIndex, uuid)
+                print(game_args)
                 # Preparaing command...(unix-like os don't need jvm_argsWin)
                 if platform == "Windows":
-                    RunCommand = Java_path + " " + jvm_argsWin + window_size + jvm_argsRAM + " " + jvm_args2 + RunClass + minecraft_args
+                    RunCommand = Java_path + " " + jvm_argsWin + window_size + jvm_argsRAM + " " + jvm_args2 + " " + RunClass + " " + game_args
                 else:
-                    RunCommand = Java_path + " " + window_size + jvm_argsRAM + " " + jvm_args2 + RunClass + minecraft_args
+                    RunCommand = Java_path + " " + window_size + jvm_argsRAM + " " + jvm_args2 + " " + RunClass + " " + game_args
 
                 print("LaunchManager: Preparations completed! Generating command.....", color='green')
                 print("Launch command: " + RunCommand, color='blue')
@@ -170,11 +195,12 @@ def launch(platform):
                         "LaunchManager: Some old version will crash when you try to join server if it already turn on online mode!",
                         color='red')
                 print("Back to main menu.....", color='green')
+
         else:
             # Can't find Java_HOME.json user will got this message.
             print("LaunchManager: You didn't configure your Java path!", color='red')
             print("If you already install jvm please go back to the main menu and select 5: Config Java!",
-                  color='yellow')
+              color='yellow')
             timer(5)
 
 

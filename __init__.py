@@ -9,7 +9,7 @@ from print_color import print
 
 
 # Beta "Version"("Pre"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = "Beta 0.7(TEST-IB17924-1)"
+launcher_version = "Beta 0.7(TEST-IB17924-Final)"
 
 
 
@@ -18,12 +18,15 @@ BetaWarringMessage = ("You are running beta version of BakeLauncher.\n"
                       "Please run it only if you know what you are doing.\n")
 
 ChangeLog = ("Changelog:\n"
-             "Fix some grammer problem and add more explain.\n"
-             "Fix 1.14~1.14.2 can't launch(forgot add LWJGL 3.2.1 in support list) Sorry :(\n"
-             "Recoding some DownloadTool code and add more method :)\n"
-             "Using new function to get assetsIndex(Don't need to code version support list....)\n"
-             "Versions folder has been renamed to instances!\n"
-             "Added license(GPLv3) to Github page.\n")
+             "Now using local natives(When you download Minecraft it will automatic unzip to .minecraft/natives folder).\n"
+             "Added download jvm after download game files.\n"
+             "All old instances will be convert to new file structure(legacy_patch)\n"
+             "Main Memu has been separated from main!\n"
+             "Added experimental macOS, Linux(untested) support.\n"
+             "Fully support Windows!."
+             "Added experimental download snapshot support!(All in the version_manifest_v2.json version can be download? :)\n"
+             "Linux user may got error when using internal jvm! (Please using BakeLauncher to download Java!)"
+             "\n")
 
 def ClearOutput(platform):
     if platform == "Windows":

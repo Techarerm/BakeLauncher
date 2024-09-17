@@ -32,24 +32,51 @@ def write_json(path, version):
         json.dump(data, jsonFile, indent=4)
 
 
+
 def using_downloaded_jvm():
-    print("BreakPoint!")
+    local = os.getcwd()
     runtimes_dir = "runtimes"  # Base directory for runtimes
     if os.path.exists(runtimes_dir):
         VERSIONLIST = [8, 16, 17, 18, 19, 20, 21]  # List of supported versions
         for java_version in VERSIONLIST:
             java_dir = os.path.join(runtimes_dir, "Java_" + str(java_version))  # Full path for Java version
             if os.path.exists(java_dir):
-                print(f"JVMTool: Found Java {java_version}!")
-                jvm_path = os.path.join(java_dir, "bin")  # Path to the 'bin' directory
+                if str(java_version) == "8":
+                    RealJVMVersion = "Java_1.8"
+                else:
+                    RealJVMVersion = None
+                print(f"JVMTool: Found downloaded Java {java_version}!")
+                jvm_path = os.path.join(local, java_dir, "bin")  # Path to the 'bin' directory
                 if os.path.exists(jvm_path):
                     print(f"Java HOME: {jvm_path}")
                     # Write JVM path and version to a config file (or other use)
-                    write_json(jvm_path, "Java_" + str(java_version))
-                else:
-                    print(f"Error: 'bin' directory not found for Java {java_version}")
-    else:
-        print("Error: 'runtimes' directory not found!")
+                    if platform.system() == 'Windows':
+                        os.system(jvm_path + "/java.exe -version")
+                    else:
+                        os.system(jvm_path + "/java -version")
+                    print("Saving path to Java_HOME.json...")
+                    if os.path.isfile("Java_HOME.json"):
+                        with open("Java_HOME.json", "r") as file:
+                            data = json.load(file)
+                            if RealJVMVersion is not None:
+                                JVM_VERSION = RealJVMVersion
+                            else:
+                                JVM_VERSION = "Java_" + str(java_version)
+                            if data.get(JVM_VERSION) is not None:
+                                print("JVMTool: Found existing JVM path!")
+                                old_version_path = data.get(JVM_VERSION)
+                                print(f"Old Path: {old_version_path} to New Path: {jvm_path}")
+                                print("Want to overwrite it? Y/N")
+                                user_input = input(":").upper()
+                                if user_input == "Y":
+                                    print("Overwriting it....")
+                                    # Assuming write_json is defined elsewhere
+                                    write_json(jvm_path, JVM_VERSION)
+                            else:
+                                print(f"Error: JVM version {JVM_VERSION} not found in the file.")
+
+                    else:
+                        print("Error: Java_HOME.json file not found!")
 
 
 
@@ -169,7 +196,7 @@ def java_search():
                 find_jvm_path_windows(jvm_version, path)
         else:
             find_jvm_path_unix_like()
-
+        using_downloaded_jvm()
         if os.path.exists("Java_HOME.json"):
                 print("Java runtime config successful!!!")
                 print("Press any key to back to the main menu...")
@@ -224,6 +251,8 @@ def java_version_check(Main, version_id):
         return None
 
     Java_VERSION = "Java_" + str(major_version)
+    if Java_VERSION == "Java_8":
+        Java_VERSION = "Java_1.8"
 
     try:
         with open("Java_HOME.json", "r") as file:
@@ -249,12 +278,11 @@ def java_version_check(Main, version_id):
 def java_finder():
     system = platform.system()
     if os.path.isfile('Java_HOME.json'):
-        print("Found Java path config! Do you want to reconfigure this file? (Yes=1, No=0)")
+        print("Found old jvm path config! Do you want to reconfigure this file? (Yes=1, No=0)")
         user_input = int(input(":"))
         if user_input == 1:
             os.remove('Java_HOME.json')
             java_search()
-            using_downloaded_jvm()
         else:
             print("Bypass reconfiguration...")
             print("Back to main menu.....")
