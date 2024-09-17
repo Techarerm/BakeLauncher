@@ -39,10 +39,11 @@ def find_manifest_url(manifest_data, component, major_version):
     PlatformName = GetPlatformName.check_platform_valid_and_return()
     PlatformNameLW = PlatformName.lower()
     if PlatformNameLW == 'windows':
-        PlatformNameED = 'windows-x64'
-    if PlatformNameED not in manifest_data:
+        PlatformNameLW = 'windows-x64'
+    if PlatformNameLW not in manifest_data:
         raise Exception(f"No {PlatformName} platform data found in the manifest.")
-    java_versions = manifest_data[PlatformNameED].get(component, [])
+
+    java_versions = manifest_data[PlatformNameLW].get(component, [])
     for version in java_versions:
         if version['version']['name'].startswith(str(major_version)):
             manifest_url = version['manifest']['url']
