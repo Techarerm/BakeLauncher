@@ -1,7 +1,5 @@
 import zipfile
 import os
-import print_color
-import __init__
 from __init__ import GetPlatformName
 from print_color import print
 
@@ -13,9 +11,11 @@ def unzip_natives(version):
     if PlatformName == 'darwin':
         PlatformName = 'macos'
 
-    if not os.path.exists(".minecraft/natives"):
-        os.mkdir(".minecraft/natives")
+    local = os.getcwd()
+    if not os.path.exists(f"instances/{version}/.minecraft/natives"):
+        os.mkdir(f"instances/{version}/.minecraft/natives")
 
+    os.chdir(f"instances/{version}")
     # Find all natives and unzip
     print("LWJGLPatch: Unzipping Natives...")
     jar_files = []
@@ -43,5 +43,7 @@ def unzip_natives(version):
                     if not member.endswith('/'):
                         jar.extract(member, ".minecraft/natives")
                         print(f"Extracted: {member} to {natives_dir}", color='green')
+
     else:
         print("LWJGLPatch: No natives found to unzip!")
+    os.chdir(local)
