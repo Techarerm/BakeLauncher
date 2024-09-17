@@ -1,0 +1,68 @@
+name: Build Executables
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-windows:
+    name: Build Windows Executable
+    runs-on: windows-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+
+    - name: Build .exe
+      run: |
+        pyinstaller --onefile __main__.py
+      # Ensure the executable file is accessible in the GitHub Actions workflow
+      continue-on-error: false
+
+    - name: Upload exe artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: windows-executable
+        path: dist/your_script.exe
+
+  build-macos:
+    name: Build macOS Executable
+    runs-on: macos-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+
+    - name: Build .app
+      run: |
+        pyinstaller --onefile --windowed __main__.py
+      # Ensure the .app file is accessible in the GitHub Actions workflow
+      continue-on-error: false
+
+    - name: Upload app artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: macos-app
+        path: dist/__main__.py
