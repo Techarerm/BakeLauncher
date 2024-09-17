@@ -46,7 +46,11 @@ def using_downloaded_jvm():
                 else:
                     RealJVMVersion = None
                 print(f"JVMTool: Found downloaded Java {java_version}!", color='blue')
-                jvm_path = os.path.join(local, java_dir, "bin")  # Path to the 'bin' directory
+                if platform.system() == "Darwin":
+                    jvm_path = os.path.join(local, java_dir, "jre.bundle", "Contents", "Home", "bin")
+                    os.system(f"chmod 755 {jvm_path}/*")
+                else:
+                    jvm_path = os.path.join(local, java_dir, "bin")  # Path to the 'bin' directory
                 if os.path.exists(jvm_path):
                     print(f"Java HOME: {jvm_path}")
                     # Write JVM path and version to a config file (or other use)
