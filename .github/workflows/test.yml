@@ -17,10 +17,12 @@ jobs:
     - name: Install dependencies
       run: |
         pip install pyinstaller
+        pip install -r requirements.txt
 
     - name: Build Windows Executable
       run: |
-        pyinstaller --onefile __main__.py
+        pyinstaller __main__.py
+        
 
     - name: List dist folder contents (for debugging)
       run: |
@@ -29,7 +31,7 @@ jobs:
     - name: Upload exe artifact
       uses: actions/upload-artifact@v3
       with:
-        name: windows-executable
+        name: BakeLauncher-Windows(0.7RC)
         path: dist/__main__.exe
 
   build-macos:
@@ -49,7 +51,7 @@ jobs:
 
     - name: Build macOS Executable
       run: |
-        pyinstaller --onefile --windowed __main__.py
+        pyinstaller --windowed __main__.py
 
     - name: List dist folder contents (for debugging)
       run: |
@@ -58,5 +60,5 @@ jobs:
     - name: Upload app artifact
       uses: actions/upload-artifact@v3
       with:
-        name: macos-app
+        name: BakeLauncher-macOS(0.7RC)
         path: dist/__main__.app
