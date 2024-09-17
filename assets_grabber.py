@@ -84,6 +84,7 @@ def get_assets_index_version(version_data, version_id):
     LaunchManager need this when launching Minecraft(To set assetsIndex)
     """
     print("Trying to get assetsIndex version....", color='green')
+    print(os.getcwd())
     asset_index = version_data.get("assetIndex", {})
     asset_index_id = asset_index.get("id")
     if asset_index_id:
