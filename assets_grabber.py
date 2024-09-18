@@ -86,8 +86,13 @@ def get_assets_index_version(version_data, version_id):
     print("Trying to get assetsIndex version....", color='green')
     asset_index = version_data.get("assetIndex", {})
     asset_index_id = asset_index.get("id")
-    if asset_index_id:
+    print(os.getcwd())
+    if os.getcwd().endswith(version_id):
+        assets_index_file = os.path.join('.minecraft', "assets_index.json")
+    else:
         assets_index_file = os.path.join("instances", version_id, ".minecraft", "assets_index.json")
+    print(assets_index_file)
+    if asset_index_id:
         with open(assets_index_file, 'w') as f:
             json.dump(asset_index, f, indent=4)
         print(f"AssetsIndex config has been saved :)", color='blue')
