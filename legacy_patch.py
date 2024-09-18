@@ -129,4 +129,3 @@ def legacy_version_natives_fix(version):
         ErrorCheck = fix_natives(version)
         os.chdir(instance_local)
         return ErrorCheck
-

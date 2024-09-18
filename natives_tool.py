@@ -1,8 +1,30 @@
 import zipfile
 import os
+import requests
 from __init__ import GetPlatformName
 from print_color import print
 
+def download_file(url, dest_path):
+    """
+    Download file :)
+    Hmm...just a normal function(also optimized
+    """
+    try:
+        response = requests.get(url, stream=True)
+        response.raise_for_status()
+
+        dest_dir = os.path.dirname(dest_path)
+        if dest_dir:  # Check if dest_dir is not empty
+            os.makedirs(dest_dir, exist_ok=True)
+
+        with open(dest_path, 'wb') as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                file.write(chunk)
+        print(f"Download successful: {dest_path}", color='blue')
+        return True  # Indicate success
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to download {url}: {e}", color='red')
+        return False  # Indicate failure
 
 def unzip_natives(version):
     PlatformName = GetPlatformName.check_platform_valid_and_return().lower()
@@ -47,3 +69,11 @@ def unzip_natives(version):
     else:
         print("LWJGLPatch: No natives found to unzip!")
     os.chdir(local)
+
+def Legacy_natives_bug_fix(Java_version, minecraft_version):
+    if GetPlatformName.check_platform_valid_and_return() == "Darwin":
+        print("NativesTool:Patching MC-118506...")
+        if not os.path.exists(f"instances/{minecraft_version}/libraries/ca/weblite/"):
+            os.mkdir(f"instances/{minecraft_version}/libraries/ca/weblite/")
+            url = "https://libraries.minecraft.net/ca/weblite/java-objc-bridge/1.0.0/java-objc-bridge-1.0.0.jar"
+            download_file(url, f"instances/{minecraft_version}/libraries/ca/weblite/")

@@ -264,6 +264,8 @@ def download_with_version_id(version_list, release_versions, formatted_versions)
                     print("DownoandTool: Finally...download JVM!", color='green')
                     download_jvm(version_data)
 
+
+                    print("DownoandTool: When you install a Java version that has never been installed before, you need to reconfig Java Path!", color='blue')
                     print("DownoandTool: YAPPY! Now all files are download success :)", color='blue')
                     print("DownoandTool: Exiting download tool....", color='green')
 

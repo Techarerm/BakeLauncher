@@ -13,7 +13,7 @@ import print_color
 import download_jvm
 from download_jvm import get_java_version_info
 from print_color import print
-
+from natives_tool import Legacy_natives_bug_fix
 local = os.getcwd()
 
 
@@ -288,6 +288,7 @@ def java_version_check(Main, version_id):
         if Java_path:
             print(f"{Main}: Using Java {major_version}!", color='blue')
             print(f"{Main}: Java runtime path is: {Java_path}", color='blue')
+            Legacy_natives_bug_fix(Java_VERSION, version_id)
             return Java_path
         else:
             print(f"{Main}: Java version {Java_VERSION} not found in Java_HOME.json", color='red')
@@ -299,6 +300,7 @@ def java_version_check(Main, version_id):
     except json.JSONDecodeError:
         print(f"{Main}: Error decoding JSON from Java_HOME.json", color='red')
         return None
+
 
 
 def java_finder():
