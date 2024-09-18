@@ -103,7 +103,6 @@ def get_assets_index_version(version_data, version_id):
         assets_index_file = os.path.join('.minecraft', "assets_index.json")
     else:
         assets_index_file = os.path.join("instances", version_id, ".minecraft", "assets_index.json")
-    print(assets_index_file)
     if asset_index_id:
         with open(assets_index_file, 'w') as f:
             json.dump(asset_index, f, indent=4)
@@ -229,8 +228,7 @@ def read_assets_index_version(Main, local, version_id):
         return assetsIndex_version
 
     except FileNotFoundError:
-        # Trying fix use old version BakeLaunch didn't save assetsIndex to .minecraft(It will ask user to fix it)
-        # This functiom will be delete in the release
+        # Trying to fix use old version BakeLaunch didn't save assetsIndex to .minecraft(It will ask user to fix it)
         print("LaunchManager: Oops! Can't getting assetsIndex :O", color='red')
         print("LaunchManager: Trying to fix it.....", color='green')
         assetsIndexFix(Main, local, version_id)
