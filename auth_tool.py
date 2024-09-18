@@ -158,4 +158,3 @@ def check_minecraft_token():
         return True
     except requests.RequestException:
         print("AuthTool: Your token is expired!", color='red')
-        print("AuthTool: Please login your account again!", color='green')

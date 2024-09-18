@@ -76,6 +76,7 @@ def login_status():
             print("Hi,", username, color="blue")  # Now this should work correctly
         else:
             print("Login Status: Expired session :0", color='red')
+            print("AuthTool: Please login your account again!", color='red')
             print("Hi,", username, color="blue")  # Now this should work correctly
 
 
