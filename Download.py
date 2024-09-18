@@ -219,7 +219,7 @@ def download_with_version_id(version_list, release_versions, formatted_versions)
     print("DownloadTool: Using version_id method...", color='blue')
 
     try:
-        print("DownloadTool: Activable version list:", color='purple')
+        print("DownloadTool: Actionable version list:", color='purple')
         print(formatted_versions)
         print("VersionID: MinecraftVersion", "\n", color='purple')
         print("Example: 15: 1.12.2 , 15 is version 1.12's ID", color='green')
@@ -229,7 +229,7 @@ def download_with_version_id(version_list, release_versions, formatted_versions)
             version_id -= 1
             if 0 <= version_id < len(release_versions):
 
-                # Check user type version_id are activable
+                # Check user type version_id are available
                 selected_version_id = release_versions[version_id]
 
                 # Find minecraft_version after get version_id(IMPORTANT:version =/= version_id!)
@@ -244,54 +244,54 @@ def download_with_version_id(version_list, release_versions, formatted_versions)
 
                     # Download game file( libraries, .jar files...., and lwjgl!)
                     ClearOutput(GetPlatformName.check_platform_valid_and_return())
-                    print("DownoandTool: Loading version info...")
+                    print("DownloadTool: Loading version info...")
                     download_libraries(version_data, selected_version_id)
-                    print("DownoandTool: The required dependent libraries should have been downloaded :)", color='blue')
+                    print("DownloadTool: The required dependent libraries should have been downloaded :)", color='blue')
 
                     # Download assets(Also it will check this version are use legacy assets or don't use)
                     ClearOutput(GetPlatformName.check_platform_valid_and_return())
-                    print("DownoandTool: Now create assets...", color='green')
+                    print("DownloadTool: Now create assets...", color='green')
                     get_assets_index_version(version_data, selected_version_id)
                     get_asset(selected_version_id)
                     os.chdir(local)
 
                     # Finally....
                     ClearOutput(GetPlatformName.check_platform_valid_and_return())
-                    print("DownoandTool: Now unzip natives...", color='green')
+                    print("DownloadTool: Now unzip natives...", color='green')
                     unzip_natives(selected_version_id)
 
                     ClearOutput(GetPlatformName.check_platform_valid_and_return())
-                    print("DownoandTool: Finally...download JVM!", color='green')
+                    print("DownloadTool: Finally...download JVM!", color='green')
                     download_jvm(version_data)
 
 
-                    print("DownoandTool: When you install a Java version that has never been installed before, you need to reconfig Java Path!", color='blue')
-                    print("DownoandTool: YAPPY! Now all files are download success :)", color='blue')
-                    print("DownoandTool: Exiting download tool....", color='green')
+                    print("DownloadTool: When you install a Java version that has never been installed before, you need to reconfig Java Path!", color='blue')
+                    print("DownloadTool: YAPPY! Now all files are download success :)", color='blue')
+                    print("DownloadTool: Exiting download tool....", color='green')
 
                     # Add waiting time(If assets download failed it will print it?)
                     time.sleep(1.2)
 
                 else:
                     # idk this thing would happen or not :)  , just leave it and see what happen....
-                    print("DownoandTool: Version not found or can't getting this version of Minecraft :(", color='red')
-                    print("DownoandTool: Please try again...if still can't please report this to GitHub",
+                    print("DownloadTool: Version not found or can't getting this version of Minecraft :(", color='red')
+                    print("DownloadTool: Please try again...if still can't please report this to GitHub",
                           color='yellow')
                     download_with_version_id(version_list, release_versions, formatted_versions)
             else:
-                print(f"DownoandTool: You type Version{version_id} are not found :(", color='red')
+                print(f"DownloadTool: You type Version{version_id} are not found :(", color='red')
                 download_with_version_id(version_list, release_versions, formatted_versions)
         else:
             print("DownloadTool: You are NOT typing VersionID!")
             print("VersionID: MinecraftVersion", "\n")
             print(
-                "Please type VersionID not MinecraftVersion or exit launcher and using '2:Type Minecraft version' method :)")
+                "Please type VersionID not MinecraftVersion or exit launcher and using '2:Type Minecraft version' method !")
             print("Example: 15: 1.12.2 , 15 is version 1.12's ID", color='green')
             time.sleep(2)
             download_with_version_id(version_list, release_versions, formatted_versions)
     except ValueError:
         # Back to download_main avoid crash(when user type illegal thing
-        print("DownoandTool: Oops! Invalid input. Please enter a number corresponding to a version ID.", color='red')
+        print("DownloadTool: Oops! Invalid input. Please enter a number corresponding to a version ID.", color='red')
         download_with_version_id(version_list, release_versions, formatted_versions)
 
 
@@ -311,38 +311,39 @@ def download_with_version_tunple(version_list):
 
             # Download game file( libraries, .jar files...., and lwjgl!)
             ClearOutput(GetPlatformName.check_platform_valid_and_return())
-            print("DownoandTool: Loading version info...")
+            print("DownloadTool: Loading version info...")
             download_libraries(version_data, selected_version_id)
-            print("DownoandTool: The required dependent libraries should have been downloaded :)", color='blue')
+            print("DownloadTool: The required dependent libraries should have been downloaded :)", color='blue')
 
             # Download assets(Also it will check this version are use legacy assets or don't use)
             ClearOutput(GetPlatformName.check_platform_valid_and_return())
-            print("DownoandTool: Now create assets...", color='green')
+            print("DownloadTool: Now create assets...", color='green')
             get_asset(selected_version_id)
             get_assets_index_version(version_data, selected_version_id)
             os.chdir(local)
 
             # Finally....
             ClearOutput(GetPlatformName.check_platform_valid_and_return())
-            print("DownoandTool: Now unzip natives...", color='green')
+            print("DownloadTool: Now unzip natives...", color='green')
             unzip_natives(selected_version_id)
 
             ClearOutput(GetPlatformName.check_platform_valid_and_return())
-            print("DownoandTool: Finally...download JVM!", color='green')
+            print("DownloadTool: Finally...download JVM!", color='green')
             download_jvm(version_data)
 
-            print("DownoandTool: YAPPY! Now all files are download success :)", color='blue')
-            print("DownoandTool: Exiting download tool....", color='green')
+            print("DownloadTool: When you install a Java version that has never been installed before, you need to reconfig Java Path!",color='blue')
+            print("DownloadTool: YAPPY! Now all files are download success :)", color='blue')
+            print("DownloadTool: Exiting download tool....", color='green')
 
             # Add waiting time(If assets download failed it will print it?)
             time.sleep(1.2)
         else:
             # idk this thing would happen or not :)  , just leave it and see what happen....
-            print(f"DownoandTool: You type Minecraft version {selected_version_id} are not found :(", color='red')
+            print(f"DownloadTool: You type Minecraft version {selected_version_id} are not found :(", color='red')
             download_with_version_tunple(version_list)
     except ValueError:
         # Back to download_main avoid crash(when user type illegal thing
-        print("DownoandTool: Oops! Invalid input :( Please enter Minecraft version.")
+        print("DownloadTool: Oops! Invalid input :( Please enter Minecraft version.")
         download_with_version_tunple(version_list)
 
 def download_snapshot(version_list, snapshot_versions, total_versions, max_lines, num_columns):
@@ -359,39 +360,40 @@ def download_snapshot(version_list, snapshot_versions, total_versions, max_lines
 
             # Download game file( libraries, .jar files...., and lwjgl!)
             ClearOutput(platform)
-            print("DownoandTool: Loading version info...")
+            print("DownloadTool: Loading version info...")
             download_libraries(version_data, selected_version_id)
-            print("DownoandTool: The required dependent libraries should have been downloaded :)", color='blue')
+            print("DownloadTool: The required dependent libraries should have been downloaded :)", color='blue')
 
             # Download assets(Also it will check this version are use legacy assets or don't use)
-            print("DownoandTool: Now create assets...", color='green')
+            print("DownloadTool: Now create assets...", color='green')
             get_assets_index_version(version_data, selected_version_id)
             get_asset(selected_version_id)
             os.chdir(local)
 
             # Finally....
             ClearOutput(GetPlatformName.check_platform_valid_and_return())
-            print("DownoandTool: Now unzip natives...", color='green')
+            print("DownloadTool: Now unzip natives...", color='green')
             unzip_natives(selected_version_id)
 
             ClearOutput(GetPlatformName.check_platform_valid_and_return())
-            print("DownoandTool: Finally...download JVM!", color='green')
+            print("DownloadTool: Finally...download JVM!", color='green')
             download_jvm(version_data)
 
-            print("DownoandTool: YAPPY! Now all files are download success :)", color='blue')
-            print("DownoandTool: Exiting download tool....", color='green')
+            print("DownloadTool: When you install a Java version that has never been installed before, you need to reconfig Java Path!",color='blue')
+            print("DownloadTool: YAPPY! Now all files are download success :)", color='blue')
+            print("DownloadTool: Exiting download tool....", color='green')
 
             # Add waiting time(If assets download failed it will print it?)
             time.sleep(1.2)
             ClearOutput(GetPlatformName.check_platform_valid_and_return())
         else:
             # idk this thing would happen or not :)  , just leave it and see what happen....
-            print(f"DownoandTool: You type snapshot version {selected_version_id} are not found :(", color='red')
+            print(f"DownloadTool: You type snapshot version {selected_version_id} are not found :(", color='red')
             download_snapshot(version_list, snapshot_versions, total_versions, max_lines, num_columns)
 
     except ValueError:
         # Back to download_main avoid crash(when user type illegal thing
-        print("DownoandTool: Oops! Invalid input :( Please enter a vaild snapshot version.")
+        print("DownloadTool: Oops! Invalid input :( Please enter a valid snapshot version.")
         download_snapshot(version_list, snapshot_versions, total_versions, max_lines, num_columns)
 
 
@@ -430,7 +432,7 @@ def download_main():
             time.sleep(1.5)
             download_snapshot(version_list, snapshot_versions, total_versions, max_lines, max_lines)
         else:
-            print("DownloadTool: Unknow options :( Please try again.", color='red')
+            print("DownloadTool: Unknown options :( Please try again.", color='red')
             download_main()
 
     except ValueError:

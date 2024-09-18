@@ -87,25 +87,25 @@ def fix_natives(selected_version_id):
         version_data = version_response.json()
 
         # Download game file( libraries, .jar files...., and lwjgl!)
-        print("DownoandTool(LP): Loading version info...", color="green")
+        print("DownloadTool(LP): Loading version info...", color="green")
 
         ErrorCheck = down_tool(version_data, selected_version_id)
         if not ErrorCheck == "NativeKeyCheckFailed":
-            print("DownoandTool(LP): The required dependent libraries should have been downloaded :)", color='blue')
+            print("DownloadTool(LP): The required dependent libraries should have been downloaded :)", color='blue')
 
             # Finally....
-            print("DownoandTool(LP): Now unzip natives...", color='green')
+            print("DownloadTool(LP): Now unzip natives...", color='green')
             unzip_natives(selected_version_id)
 
-            print("DownoandTool(LP): YAPPY! Now natives are download success :)", color='blue')
-            print("DownoandTool(LP): Exiting download tool....", color='green')
+            print("DownloadTool(LP): YAPPY! Now natives are download success :)", color='blue')
+            print("DownloadTool(LP): Exiting download tool....", color='green')
         else:
-            print("DownoandTool(LP): Cannot found natives :(", color='red', tag_color="red", tag='Error')
-            print("DownoandTool(LP): This issus can cause the game crash on launching!", color='yellow')
+            print("DownloadTool(LP): Cannot found natives :(", color='red', tag_color="red", tag='Error')
+            print("DownloadTool(LP): This issues can cause the game crash on launching!", color='yellow')
             print(
-                "DownoandTool(LP): Please try again ! If still got this error please report this issue to GitHub(also send your system name!)",
+                "DownloadTool(LP): Please try again ! If still got this error please report this issue to GitHub(also send your system name!)",
                 color='yellow')
-            print("DownoandTool(LP): Stopping launch...", color='red')
+            print("DownloadTool(LP): Stopping launch...", color='red')
             return "FailedToFixNatives"
 
 def legacy_version_natives_fix(version):

@@ -7,11 +7,8 @@ import os
 import time
 from print_color import print
 
-
 # Beta "Version"("Pre"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = "Beta 0.7(RC2)"
-
-
+launcher_version = "Beta 0.7(RC-Final)"
 
 BetaWarringMessage = ("You are running beta version of BakeLauncher.\n"
                       "This is an 'Experimental' version with potential instability.\n"
@@ -19,15 +16,20 @@ BetaWarringMessage = ("You are running beta version of BakeLauncher.\n"
 
 ChangeLog = ("Changelog:\n"
              "Biggest Update!(I think)\n"
-             "Now using local natives(When you download Minecraft it will automatic unzip to .minecraft/natives folder).\n"
+             "Now using local natives(When you download Minecraft it will automatic unzip to .minecraft/natives "
+             "folder).\n"
              "Added download jvm after download game files.\n"
              "All old instances will be convert to new file structure(legacy_patch)\n"
              "Main Memu has been separated from main!\n"
-             "Added experimental macOS, Linux(untested) support.\n"
              "Fully support Windows!."
-             "Added experimental download snapshot support!(All in the version_manifest_v2.json version can be download? :)\n"
+             "Added experimental macOS, Linux(untested) support.\n"
+             "Using unix-like system user launch use LWJGL 3.x version of Minecraft may got crash(unzip natives file "
+             "structure are not correctly installed)\n"
+             "Added experimental download snapshot support!\n"
+             "Fix AssetsGrabber assets_index.json file not found error."
              "Linux user may got error when using internal jvm! (Please using BakeLauncher to download Java!)"
              "\n")
+
 
 def ClearOutput(platform):
     if platform == "Windows":
@@ -41,6 +43,7 @@ def ClearOutput(platform):
         os.system("clear")
     else:
         print("Unsupported platform! Bypassing ClearOutput...")
+
 
 def timer(seconds):
     for remaining in range(seconds, 0, -1):
@@ -78,7 +81,7 @@ class PlatformCheck:
             return "Linux"
         else:
             return "Unsupported"
-            print("Warning! BakeLauncher is not supported on this platform :(")
+            print("Warning! BakeLauncher are not supported on this platform :(")
             print("Launcher can still run on this platform, but you may encounter serious issues with the file system!")
             return "Unsupported"
 
@@ -87,5 +90,6 @@ class PlatformCheck:
             return "OK"
         else:
             return "Unsupported"
+
 
 GetPlatformName = PlatformCheck()

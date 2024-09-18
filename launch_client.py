@@ -43,68 +43,54 @@ def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, 
         .replace("${user_type}", user_type) \
         .replace("${user_properties}", user_properties)  # Replace user_properties if present
 
-
     if "--userProperties" in minecraftArguments:
+        print("LaunchManage: This version of Minecraft requires --userProperties!", color='green')
         # Properly replace ${user_properties} or add user properties if not present
-        minecraft_args = minecraft_args.replace("${user_properties}", user_properties)
-        if "${user_properties}" not in minecraftArguments:
-            minecraft_args += f" --userProperties {user_properties}"
-        userCustomArgs == 1
 
     # Handle special case where ${auth_player_name} and ${auth_session} are at the beginning
     elif minecraftArguments.startswith("${auth_player_name} ${auth_session}"):
         # Prepend the username and access token as per the special case
-        print("Breakpoint!")
-        print(assets_dir)
         minecraft_args = f"{username} {access_token} --gameDir {minecraft_path} " \
                          f"--assetsDir {assets_dir} --assetIndex {assetsIndex}"
-        userCustomArgs == 1
 
     elif minecraftArguments.endswith("${game_assets}"):
-        print("Breakpoint!")
         minecraft_args = f"--username {username} --session {access_token} --version {version_id} --gameDir {minecraft_path} " \
                          f"--assetsDir {assets_dir} --assetIndex {assetsIndex}"
-        userCustomArgs == 1
 
     elif minecraftArguments.startswith("--username") and minecraftArguments.endswith("${auth_access_token}"):
-        print("Breakpoint!")
         minecraft_args = f"--username {username} --version {version_id} --gameDir {minecraft_path} " \
                          f"--assetsDir {assets_dir} --assetIndex {assetsIndex} --accessToken {access_token}"
-        userCustomArgs == 1
 
-
-    # Fallback to standard argument format if placeholders are not used
-    if userCustomArgs == 0:
+    else:
         minecraft_args = f"--username {username} --version {version_id} --gameDir {minecraft_path} " \
                          f"--assetsDir {assets_dir} --assetIndex {assetsIndex} --uuid {uuid} " \
                          f"--accessToken {access_token} --userType {user_type}"
 
+
     return minecraft_args
-
-
 
 def launch(platform):
 
     Main = "LaunchManager"
     local = os.getcwd()
-    # Check folder "versions" are activable in root (To avoid some user forgot to install)
+    # Check folder "versions" are available in root (To avoid some user forgot to install)
     if not os.path.exists("instances"):
         os.makedirs("instances")
     instances_list = os.listdir('instances')
     if len(instances_list) == 0:
-        print("LaunchManager: No instances are activable to launch :(", color='red')
+        print("LaunchManager: No instances are available to launch :(", color='red')
         print("Try to using DownloadTool to download the Minecraft!", color='yellow')
         timer(4)
         return 0
     else:
-        print(f"LaunchManager: Instances list are activable :D", color='blue')
+        print(f"LaunchManager: Instances list are available :D", color='blue')
     print(instances_list, color='blue')
 
     # Ask user wanna launch version...
     print("LaunchManager: Which instances is you want to launch instances ?", color='green')
     version_id = input(":")
 
-    # Check user type version of Minecraft are activable
+    # Check user type version of Minecraft are available
     if version_id not in instances_list:
         print("Can't found instances " + version_id + " of Minecraft :(", color='red')
         print("Please check you type instances version and try again or download it on DownloadTool!", color='yellow')
@@ -114,14 +100,14 @@ def launch(platform):
         patcher_main(version_id)
         print("Getting JVM path from saved config.....", color='green')
 
-        # Get requirement JVM version and path (If can't found it will stop and ask user to config Java path)
+        # Get requirement JVM version and path (If it can't found in root dir it will stop and ask user to config Java path)
         if os.path.isfile('Java_HOME.json'):
 
-            # Check Java_HOME.json file are activable to use(and getting jvm path from this file)
+            # Check Java_HOME.json file are available to use(and getting jvm path from this file)
             Java_path = java_version_check(Main, version_id)
             if Java_path is None:
                 print("LaunchManager: Set Java_path failed! Cause by None path!", color='red')
-                print("Please download thid version of MInecraft support Java(In DownloadTool)!", color='yellow')
+                print("Please download third version of Minecraft support Java(In DownloadTool)!", color='yellow')
                 timer(5)
                 return "FailedToCheckJavaPath"
             else:
@@ -187,10 +173,10 @@ def launch(platform):
                 access_token = data['Token']
                 os.chdir(r'instances/' + version_id)
 
-                # Add --UserProperties if version_id is high than 1.7.2 but low than 1.8.1
-                # Btw...idk why some old version need this...if I don't add it will crash on lauch
+                # Add --UserProperties if version_id is higher than 1.7.2 but low than 1.8.1
+                # Btw...idk why some old version need this...if I don't add it will crash on launch
                 game_args = GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, assetsIndex, uuid)
-                # Preparaing command...(unix-like os don't need jvm_argsWin)
+                # Preparing command...(unix-like os don't need jvm_argsWin)
                 if platform == "Windows":
                     RunCommand = Java_path + " " + jvm_argsWin + window_size + jvm_argsRAM + " " + jvm_args2 + " " + RunClass + " " + game_args
                 else:
@@ -215,7 +201,7 @@ def launch(platform):
                 print("Back to main menu.....", color='green')
 
         else:
-            # Can't find Java_HOME.json user will got this message.
+            # Can't find Java_HOME.json user will get this message.
             print("LaunchManager: You didn't configure your Java path!", color='red')
             print("If you already install jvm please go back to the main menu and select 5: Config Java!",
               color='yellow')

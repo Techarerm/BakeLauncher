@@ -14,7 +14,7 @@ def get_version_json(version):
     # Find the specific version JSON URL
     version_info = next((v for v in manifest['versions'] if v['id'] == version), None)
     if not version_info:
-        raise ValueError(f"AssetsGarbber: Version {version} not found.", tag='Failed', tag_color='red')
+        raise ValueError(f"AssetsGrabber: Version {version} not found.", tag='Failed', tag_color='red')
 
     # Download the version JSON
     version_json_url = version_info['url']
@@ -34,7 +34,7 @@ def download_asset_index(version_json, save_dir):
     with open(asset_index_file, 'wb') as f:
         f.write(response.content)
 
-    print(f"AssetsGarbber: Asset index {version_json['assetIndex']['id']}.json downloaded successfully to {save_dir}", color='blue')
+    print(f"AssetsGrabber: Asset index {version_json['assetIndex']['id']}.json downloaded successfully to {save_dir}", color='blue')
     return response.json()
 
 
@@ -111,7 +111,7 @@ def get_assets_index_version(version_data, version_id):
         print("Failed to config AssetsIndex :(", color='red')
         print("Maybe is the server issue let DownloadTool can't getting AssetsIndex?", color='yellow')
         print("Please try again later(If still can't get assetsIndex please report this bug to GitHib!", color='yellow')
-        print("IMPORANT:'Do not launch it if failed to get assetsIndex. You might get a broken version of Minecraft :D", color='yellow')
+        print("IMPORTANT:'Do not launch it if failed to get assetsIndex. You might get a broken version of Minecraft :D", color='yellow')
         print("Asset index not found.", color='red')
 
 def get_asset(version_id):
@@ -232,7 +232,7 @@ def read_assets_index_version(Main, local, version_id):
         print("LaunchManager: Oops! Can't getting assetsIndex :O", color='red')
         print("LaunchManager: Trying to fix it.....", color='green')
         assetsIndexFix(Main, local, version_id)
-        print("LaunchManager: Fixed assetsIndex config successfull!", color='blue')
+        print("LaunchManager: Fixed assetsIndex config successful!", color='blue')
         try:
             with open('.minecraft/assets_index.json', 'r') as file:
                 data = json.load(file)
@@ -250,8 +250,8 @@ def get_assets_dir(version_id):
     try:
         with open(".minecraft/assets_index.json", "r") as file:
             data = json.load(file)
-            AsstesIndex = data['id']
-            if AsstesIndex == "pre-1.6" or AsstesIndex == "legacy":
+            AssetsIndex = data['id']
+            if AssetsIndex == "pre-1.6" or AssetsIndex == "legacy":
                 return assets_dir + "/virtual/legacy"
             else:
                 return assets_dir

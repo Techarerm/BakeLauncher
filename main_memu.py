@@ -120,7 +120,7 @@ def main_memu(platform):
             back_to_memu(platform)
         elif user_input == 6:
             print("Extra list:")
-            print("1: Custome JVM args")
+            print("1: Custom JVM args")
             user_input = int(input(":"))
             if user_input == 1:
                 argsman()
