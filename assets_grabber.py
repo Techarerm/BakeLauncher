@@ -2,8 +2,7 @@ import requests
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
-import hashlib
-import print_color
+import concurrent.futures
 from print_color import print
 
 def get_version_json(version):
@@ -39,7 +38,7 @@ def download_asset_index(version_json, save_dir):
     return response.json()
 
 
-def download_asset(asset_name, asset_info, objects_dir):
+def download_asset_normal(asset_name, asset_info, objects_dir):
     asset_hash = asset_info['hash']
     hash_prefix = asset_hash[:2]
     url = f"https://resources.download.minecraft.net/{hash_prefix}/{asset_hash}"
@@ -61,7 +60,21 @@ def download_asset(asset_name, asset_info, objects_dir):
                     f.write(chunk)
         print(f"Downloaded: {asset_name} -> {asset_hash}")
     except Exception as e:
-        print(f"Failed to download: {asset_name}. Error: {e}",color='red')
+        print(f"Failed to download: {asset_name}. Error: {e}")
+
+
+def download_assets(assets, objects_dir, max_workers=8):
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = []
+        for asset_name, asset_info in assets.items():
+            futures.append(executor.submit(download_asset_normal, asset_name, asset_info, objects_dir))
+
+        # Wait for all downloads to complete
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                future.result()  # This will raise an exception if the download failed
+            except Exception as e:
+                print(f"Error during download: {e}")
 
 
 def download_assets(asset_index, objects_dir):
@@ -69,7 +82,7 @@ def download_assets(asset_index, objects_dir):
 
     # Use ThreadPoolExecutor to download assets concurrently
     with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = {executor.submit(download_asset, asset_name, asset_info, objects_dir): asset_name for
+        futures = {executor.submit(download_asset_normal, asset_name, asset_info, objects_dir): asset_name for
                    asset_name, asset_info in assets.items()}
         for future in as_completed(futures):
             asset_name = futures[future]

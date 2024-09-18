@@ -7,21 +7,11 @@ Just a tool to prepare command for launching clients...
 
 
 import os
-import sys
 import json
 import time
-import platform
-import requests
-import print_color
-import __init__
-import Download
-import assets_grabber
-import legacy_patch
-import jvm_tool
-import launch_version_patcher
 from print_color import print
 from __init__ import timer
-from assets_grabber import assetsIndexFix, read_assets_index_version, get_assets_index_version, get_assets_dir
+from assets_grabber import read_assets_index_version, get_assets_dir
 from jvm_tool import java_version_check
 from legacy_patch import legacy_version_natives_fix
 from launch_version_patcher import patcher_main
@@ -38,32 +28,56 @@ def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, 
     minecraftArguments = version_data.get("minecraftArguments", "")  # Get the arguments or an empty string
 
     user_properties = "{}"
+    user_type = "msa"  # Set user type to 'msa'
 
     # Replace placeholders in minecraftArguments with actual values
-    minecraft_args = minecraftArguments.replace("{auth_player_name}", username) \
-        .replace("{auth_session}", access_token) \
-        .replace("{game_directory}", minecraft_path) \
-        .replace("{assets_root}", assets_dir) \
-        .replace("{version_name}", version_id) \
-        .replace("{assets_index_name}", assetsIndex) \
-        .replace("{auth_uuid}", uuid) \
-        .replace("{auth_access_token}", access_token)
+    minecraft_args = minecraftArguments \
+        .replace("${auth_player_name}", username) \
+        .replace("${auth_session}", access_token) \
+        .replace("${game_directory}", minecraft_path) \
+        .replace("${assets_root}", assets_dir) \
+        .replace("${version_name}", version_id) \
+        .replace("${assets_index_name}", assetsIndex) \
+        .replace("${auth_uuid}", uuid) \
+        .replace("${auth_access_token}", access_token) \
+        .replace("${user_type}", user_type) \
+        .replace("${user_properties}", user_properties)  # Replace user_properties if present
 
-    # Check if minecraftArguments contains --userProperties and add it if needed
+
     if "--userProperties" in minecraftArguments:
-        minecraft_args = minecraft_args.replace("--userProperties", f"--userProperties {user_properties}")
-    elif "${auth_player_name}" in minecraftArguments and minecraftArguments.startswith(
-            "${auth_player_name} ${auth_session}"):
-        # If {auth_player_name} and {auth_session} are at the beginning, format them properly
-        minecraft_args = f"{username} {access_token} " + minecraft_args
-    else:
-        # Fallback to standard argument format if nothing special is in minecraftArguments
+        # Properly replace ${user_properties} or add user properties if not present
+        minecraft_args = minecraft_args.replace("${user_properties}", user_properties)
+        if "${user_properties}" not in minecraftArguments:
+            minecraft_args += f" --userProperties {user_properties}"
+
+    # Handle special case where ${auth_player_name} and ${auth_session} are at the beginning
+    elif minecraftArguments.startswith("${auth_player_name} ${auth_session}"):
+        # Prepend the username and access token as per the special case
+        print("Breakpoint!")
+        print(assets_dir)
+        minecraft_args = f"{username} {access_token} --gameDir {minecraft_path} " \
+                         f"--assetsDir {assets_dir} --assetIndex {assetsIndex}"
+
+    elif minecraftArguments.endswith("${game_assets}"):
+        print("Breakpoint!")
+        minecraft_args = f"--username {username} --session {access_token} --version {version_id} --gameDir {minecraft_path} " \
+                         f"--assetsDir {assets_dir} --assetIndex {assetsIndex}"\
+
+    elif minecraftArguments.startswith("--username") and minecraftArguments.endswith("${auth_access_token}"):
+        print("Breakpoint!")
+        minecraft_args = f"--username {username} --version {version_id} --gameDir {minecraft_path} " \
+                         f"--assetsDir {assets_dir} --assetIndex {assetsIndex} --accessToken {access_token}"
+
+
+    # Fallback to standard argument format if placeholders are not used
+    if not minecraftArguments:
         minecraft_args = f"--username {username} --version {version_id} --gameDir {minecraft_path} " \
                          f"--assetsDir {assets_dir} --assetIndex {assetsIndex} --uuid {uuid} " \
-                         f"--accessToken {access_token}"
+                         f"--accessToken {access_token} --userType {user_type}"
 
-    # Return the final constructed arguments
     return minecraft_args
+
+
 
 def launch(platform):
 
@@ -114,7 +128,7 @@ def launch(platform):
 
                 # Set some .minecraft path...
                 os.chdir(r'instances/' + version_id)
-                minecraft_path = f".minecraft"
+                minecraft_path = ".minecraft"
 
                 # JVM argsWin(? Only for Windows)
                 jvm_argsWin = r"-XX:HeapDumpPath=MojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump "
@@ -169,7 +183,7 @@ def launch(platform):
                 os.chdir(r'instances/' + version_id)
 
                 # Add --UserProperties if version_id is high than 1.7.2 but low than 1.8.1
-                # Btw...Idk why some old version need this...if I don't add it will crash on lauch
+                # Btw...idk why some old version need this...if I don't add it will crash on lauch
                 game_args = GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, assetsIndex, uuid)
                 # Preparaing command...(unix-like os don't need jvm_argsWin)
                 if platform == "Windows":

@@ -271,8 +271,10 @@ def java_version_check(Main, version_id):
         print(f"{Main}: Required Java Component: {component}, Major Version: {major_version}", color='green')
 
     except Exception as e:
+        # If get support Java version failed, using Java 8(some old version will get this error)
         print(f"{Main}: Error occurred while fetching version data: {e}", color='red')
-        return None
+        print(f"{Main}: Warring: BakeLauncher will using Java 8 instead original support version of Java.", color='yellow')
+        major_version = str("8")
 
     Java_VERSION = "Java_" + str(major_version)
     if Java_VERSION == "Java_8":
