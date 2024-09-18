@@ -222,7 +222,7 @@ def assetsIndexFix(Main, local, selected_version_id):
 
 def read_assets_index_version(Main, local, version_id):
     try:
-        with open('.minecraft\\assets_index.json', 'r') as file:
+        with open('.minecraft/assets_index.json', 'r') as file:
             data = json.load(file)
         assetsIndex_version = data['id']
         return assetsIndex_version
