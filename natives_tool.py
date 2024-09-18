@@ -70,11 +70,11 @@ def unzip_natives(version):
         print("LWJGLPatch: No natives found to unzip!")
     os.chdir(local)
 
-def Legacy_natives_bug_fix(Java_version, minecraft_version):
+def Legacy_natives_bug_fix(Java_version):
     if Java_version == "Java_1.8":
         if GetPlatformName.check_platform_valid_and_return() == "Darwin":
             print("NativesTool:Patching MC-118506...")
-            if not os.path.exists(f"instances/{minecraft_version}/libraries/ca/weblite/"):
-                os.mkdir(f"instances/{minecraft_version}/libraries/ca/weblite/")
+            if not os.path.exists(f"libraries/ca/weblite/"):
+                os.mkdir(f"libraries/ca/weblite/")
                 url = "https://libraries.minecraft.net/ca/weblite/java-objc-bridge/1.0.0/java-objc-bridge-1.0.0.jar"
-                download_file(url, f"instances/{minecraft_version}/libraries/ca/weblite/")
+                download_file(url, f"libraries/ca/weblite/")

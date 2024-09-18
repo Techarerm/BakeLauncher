@@ -288,7 +288,7 @@ def java_version_check(Main, version_id):
         if Java_path:
             print(f"{Main}: Using Java {major_version}!", color='blue')
             print(f"{Main}: Java runtime path is: {Java_path}", color='blue')
-            Legacy_natives_bug_fix(Java_VERSION, version_id)
+            Legacy_natives_bug_fix(Java_VERSION)
             return Java_path
         else:
             print(f"{Main}: Java version {Java_VERSION} not found in Java_HOME.json", color='red')
