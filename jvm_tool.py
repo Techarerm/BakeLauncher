@@ -16,20 +16,32 @@ from print_color import print
 
 local = os.getcwd()
 
-def write_json(path, version):
-    # Load existing data if the file exists
-    if os.path.exists("Java_HOME.json"):
-        with open("Java_HOME.json", "r") as jsonFile:
-            data = json.load(jsonFile)
-    else:
-        data = {}
 
-    # Update the data with the new path
-    data[version] = path
+def write_json(path, JVM_VERSION):
+    # Define how data should be written into the JSON file
+    try:
+        # Read existing data, or create an empty structure
+        if os.path.isfile("Java_HOME.json"):
+            with open("Java_HOME.json", "r") as file:
+                try:
+                    data = json.load(file)
+                except json.JSONDecodeError:
+                    print("Error: Corrupted JSON file. Recreating it.", color='red')
+                    data = {}
+        else:
+            print("Java_HOME.json not found, creating a new file.", color='yellow')
+            data = {}
 
-    # Write the updated data back to the file
-    with open("Java_HOME.json", "w") as jsonFile:
-        json.dump(data, jsonFile, indent=4)
+        # Update or add new JVM version information
+        data[JVM_VERSION] = path
+
+        # Write the updated data back to the file
+        with open("Java_HOME.json", "w") as file:
+            json.dump(data, file, indent=4)
+            print(f"Successfully saved JVM path for {JVM_VERSION}.", color='green')
+
+    except Exception as e:
+        print(f"Error: Failed to write JSON data due to {e}", color='red')
 
 
 
@@ -60,29 +72,33 @@ def using_downloaded_jvm():
                     else:
                         os.system(jvm_path + "/java -version")
                     print("Saving path to Java_HOME.json...", color='green')
-                    os.path.join("Java_HOME.json")
+                    # Ensure Java_HOME.json exists or handle its creation
                     if os.path.isfile("Java_HOME.json"):
-                        with open("Java_HOME.json", "r") as file:
-                            data = json.load(file)
-                            if RealJVMVersion is not None:
-                                JVM_VERSION = RealJVMVersion
-                            else:
-                                JVM_VERSION = "Java_" + str(java_version)
-                            if data.get(JVM_VERSION) is not None:
-                                print("JVMTool: Found existing JVM path!", color='purple')
-                                old_version_path = data.get(JVM_VERSION)
-                                print(f"Old Path: {old_version_path} to New Path: {jvm_path}")
-                                print("Want to overwrite it? Y/N", color='green')
-                                user_input = input(":").upper()
-                                if user_input == "Y":
-                                    print("Overwriting it....")
-                                    # Assuming write_json is defined elsewhere
-                                    write_json(jvm_path, JVM_VERSION)
-                            else:
-                                print(f"Error: JVM version {JVM_VERSION} not found in the file.", color='red')
+                        try:
+                            with open("Java_HOME.json", "r") as file:
+                                data = json.load(file)
+                        except json.JSONDecodeError:
+                            print("Error: Java_HOME.json contains invalid JSON, recreating file.", color='red')
+                            data = {}
+
+                        JVM_VERSION = RealJVMVersion if RealJVMVersion else "Java_" + str(java_version)
+
+                        if JVM_VERSION in data:
+                            print("JVMTool: Found existing JVM path!", color='purple')
+                            old_version_path = data[JVM_VERSION]
+                            print(f"Old Path: {old_version_path} to New Path: {jvm_path}", color='blue')
+                            print("Want to overwrite it? Y/N", color='green')
+                            user_input = input(":").upper()
+                            if user_input == "Y":
+                                print("Overwriting it....", color='green')
+                                write_json(jvm_path, JVM_VERSION)
+                        else:
+                            print(f"JVM version {JVM_VERSION} not found. Saving new version.", color='yellow')
+                            write_json(jvm_path, JVM_VERSION)
 
                     else:
-                        print("Error: Java_HOME.json file not found!", color='red')
+                        print("Error: Java_HOME.json file not found! Creating a new one.", color='yellow')
+                        write_json(jvm_path, RealJVMVersion if RealJVMVersion else "Java_" + str(java_version))
 
 
 
@@ -136,7 +152,7 @@ def find_jvm_path_unix_like(path):
 
                 # Add "bin" to each Java path to get the bin directory
                 java_bins = [os.path.join(java_path, "bin") for java_path in java_paths]
-                os.system(java_bins + "java -version")
+                os.system(java_path + "/bin/java -version")
                 write_json(java_bins, java_versions)
                 # Run java -version to verify Java installations for each version
                 for bin_path in java_bins:
