@@ -74,7 +74,7 @@ def Legacy_natives_bug_fix(Java_version, minecraft_version):
     if Java_version == "Java_1.8":
         if GetPlatformName.check_platform_valid_and_return() == "Darwin":
             print("NativesTool:Patching MC-118506...")
-            directory = f"instances/{minecraft_version}/libraries/ca/weblite/"
+            directory = f"instances/{minecraft_version}/libraries/ca/weblite/1.0.0"
             if not os.path.exists(directory):
                 os.makedirs(directory)  # Create intermediate directories if needed
                 url = "https://libraries.minecraft.net/ca/weblite/java-objc-bridge/1.0.0/java-objc-bridge-1.0.0.jar"
