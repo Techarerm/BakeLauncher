@@ -26,7 +26,7 @@ def SelectMainClass(version_id):
 def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, assetsIndex, uuid):
     version_data = get_version_data(version_id)  # Fetch version data
     minecraftArguments = version_data.get("minecraftArguments", "")  # Get the arguments or an empty string
-
+    userCustomArgs = 0
     user_properties = "{}"
     user_type = "msa"  # Set user type to 'msa'
 
@@ -49,6 +49,7 @@ def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, 
         minecraft_args = minecraft_args.replace("${user_properties}", user_properties)
         if "${user_properties}" not in minecraftArguments:
             minecraft_args += f" --userProperties {user_properties}"
+        userCustomArgs == 1
 
     # Handle special case where ${auth_player_name} and ${auth_session} are at the beginning
     elif minecraftArguments.startswith("${auth_player_name} ${auth_session}"):
@@ -57,20 +58,23 @@ def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, 
         print(assets_dir)
         minecraft_args = f"{username} {access_token} --gameDir {minecraft_path} " \
                          f"--assetsDir {assets_dir} --assetIndex {assetsIndex}"
+        userCustomArgs == 1
 
     elif minecraftArguments.endswith("${game_assets}"):
         print("Breakpoint!")
         minecraft_args = f"--username {username} --session {access_token} --version {version_id} --gameDir {minecraft_path} " \
-                         f"--assetsDir {assets_dir} --assetIndex {assetsIndex}"\
+                         f"--assetsDir {assets_dir} --assetIndex {assetsIndex}"
+        userCustomArgs == 1
 
     elif minecraftArguments.startswith("--username") and minecraftArguments.endswith("${auth_access_token}"):
         print("Breakpoint!")
         minecraft_args = f"--username {username} --version {version_id} --gameDir {minecraft_path} " \
                          f"--assetsDir {assets_dir} --assetIndex {assetsIndex} --accessToken {access_token}"
+        userCustomArgs == 1
 
 
     # Fallback to standard argument format if placeholders are not used
-    if not minecraftArguments:
+    if userCustomArgs == 0:
         minecraft_args = f"--username {username} --version {version_id} --gameDir {minecraft_path} " \
                          f"--assetsDir {assets_dir} --assetIndex {assetsIndex} --uuid {uuid} " \
                          f"--accessToken {access_token} --userType {user_type}"
