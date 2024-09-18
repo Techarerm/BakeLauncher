@@ -206,7 +206,7 @@ def assetsIndexFix(Main, local, selected_version_id):
     except ValueError:
         # Back to main avoid crash
         print(f"{Main}: Can't fix assetsIndex :(.", color='red')
-        back_to_main()
+        return
 
 def read_assets_index_version(Main, local, version_id):
     try:
@@ -230,7 +230,6 @@ def read_assets_index_version(Main, local, version_id):
 
         except FileNotFoundError:
             # Trying to fix use old version BakeLaunch didn't save assetsIndex to .minecraft(It will ask user to fix it)
-            # This functiom will be delete in the release
             print("LaunchManager: Still can't fix it :(", color='red')
             assetsIndexFix(Main, local, version_id)
 

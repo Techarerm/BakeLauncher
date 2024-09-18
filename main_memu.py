@@ -4,9 +4,6 @@ BakeLaunch Main Memu
 """
 import platform
 
-
-
-
 import os
 import sys
 import time
@@ -29,6 +26,7 @@ from __init__ import BetaWarringMessage
 from __init__ import ClearOutput
 from __init__ import timer
 
+
 def back_to_memu(platform):
     if platform == "Windows":
         print("Clearing output...")
@@ -38,6 +36,7 @@ def back_to_memu(platform):
         print("Clearing output...")
         os.system("clear")
         main_memu(platform)
+
 
 def initialize_account_data():
     default_data = {
@@ -49,6 +48,7 @@ def initialize_account_data():
         os.makedirs('data')
     with open('data/AccountData.json', 'w') as file:
         json.dump(default_data, file)
+
 
 def login_status():
     """
@@ -71,13 +71,12 @@ def login_status():
         print("Please log in to your account first!", color='red')
     else:
         ErrorCheck = check_minecraft_token()
-        if ErrorCheck == True:
+        if ErrorCheck:
             print("Login Status: Already logged in :)", color='green')
             print("Hi,", username, color="blue")  # Now this should work correctly
         else:
             print("Login Status: Expired session :0", color='red')
             print("Hi,", username, color="blue")  # Now this should work correctly
-
 
 
 def main_memu(platform):
