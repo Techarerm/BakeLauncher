@@ -131,6 +131,7 @@ def launch(platform):
                     Java_path = f'"{Java_path + "/java"}"'
 
                 # Set some .minecraft path...
+
                 os.chdir(r'instances/' + version_id)
                 minecraft_path = ".minecraft"
 
