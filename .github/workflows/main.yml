@@ -37,7 +37,7 @@ jobs:
           path: dist/
 
   macos-build:
-    runs-on: macos-latest
+    runs-on: 	macos-13
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -55,7 +55,7 @@ jobs:
 
       - name: Build APP with custom name and x86-64 target
         run: |
-          pyinstaller __main__.py -D --icon=bread.ico --name BakeLauncher --target-arch "x86_64"
+          pyinstaller __main__.py -D --icon=bread.ico --name BakeLauncher
 
       - name: Upload APP
         uses: actions/upload-artifact@v4
