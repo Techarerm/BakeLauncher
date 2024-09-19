@@ -42,7 +42,7 @@ jobs:
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: windows-build
+          name: BakeLauncher-0.7.Windows.zip
           path: BakeLauncher-0.7.Windows.zip
 
   macos-build:
@@ -78,5 +78,5 @@ jobs:
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: macos-build
-          path: BakeLauncher-0.7.MacOS.zip
+          name: BakeLauncher-0.7.macOS.zip
+          path: BakeLauncher-0.7.macOS.zip
