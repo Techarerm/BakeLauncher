@@ -26,14 +26,14 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: Build EXE
+      - name: Build EXE with custom name
         run: |
-          pyinstaller __main__.py -D --icon=bread.ico
+          pyinstaller __main__.py -D --icon=bread.ico --name BakeLauncher
 
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
-          name: BakeLauncher-0.7.Windows.zip
+          name: BakeLauncher-0.7.Windows
           path: dist/
 
   macos-build:
@@ -53,12 +53,12 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: Build APP
+      - name: Build APP with custom name and x86-64 target
         run: |
-          pyinstaller __main__.py -D --icon=bread.ico
+          pyinstaller __main__.py -D --icon=bread.ico --name BakeLauncher --target-arch "x86_64"
 
       - name: Upload APP
         uses: actions/upload-artifact@v4
         with:
-          name: BakeLauncher-0.7.macOS.zip
+          name: BakeLauncher-0.7.macOS
           path: dist/
