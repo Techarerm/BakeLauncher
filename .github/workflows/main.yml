@@ -40,7 +40,7 @@ jobs:
           powershell Compress-Archive -Path BakeLauncher -DestinationPath BakeLauncher-0.7.Windows.zip
 
       - name: Upload ZIP
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: windows-build
           path: BakeLauncher-0.7.Windows.zip
@@ -76,7 +76,7 @@ jobs:
           zip -r BakeLauncher-0.7.MacOS.zip BakeLauncher
 
       - name: Upload ZIP
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: macos-build
           path: BakeLauncher-0.7.MacOS.zip
