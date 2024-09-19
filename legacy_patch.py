@@ -1,16 +1,10 @@
 import os
-import print_color
-import Download
-import platform
 import requests
-import __init__
 from print_color import print
-from Download import download_with_version_tunple
 from Download import download_file
 from Download import download_natives
-from assets_grabber import get_asset
 from natives_tool import unzip_natives
-from __init__ import GetPlatformName
+from __function__ import GetPlatformName
 
 def legacy_version_file_structure_fix():
     if os.path.exists('versions'):

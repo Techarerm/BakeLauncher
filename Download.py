@@ -9,8 +9,8 @@ import os
 import zipfile
 import time
 import download_jvm
-from __init__ import ClearOutput
-from __init__ import GetPlatformName
+from __function__ import ClearOutput
+from __function__ import GetPlatformName
 from assets_grabber import get_asset
 from assets_grabber import get_assets_index_version
 from print_color import print

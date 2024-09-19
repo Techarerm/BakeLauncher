@@ -1,9 +1,7 @@
 import os
 import requests
 import hashlib
-import print_color
-import __init__
-from __init__ import GetPlatformName
+from __function__ import GetPlatformName
 from print_color import print
 
 # Step 1: Get the Minecraft version data

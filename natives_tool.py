@@ -1,7 +1,7 @@
 import zipfile
 import os
 import requests
-from __init__ import GetPlatformName
+from __function__ import GetPlatformName
 from print_color import print
 
 def download_file(url, dest_path):

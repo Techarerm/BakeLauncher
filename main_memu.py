@@ -2,29 +2,21 @@
 BakeLaunch Main Memu
 (Main memu has been separated from main since Beta 0.7(Pre-hg30824)
 """
-import platform
 
 import os
-import sys
 import time
-import print_color
 import json
-import __init__
 from auth_tool import login
 from auth_tool import check_minecraft_token
 from launch_client import launch
 from Download import download_main
-from launch_version_patcher import patcher_main
-from launch_version_patcher import generate_jar_paths
 from jvm_tool import java_finder
 from args_manager import argsman
-from assets_grabber import get_asset
 from print_color import print
-from __init__ import ChangeLog
-from __init__ import launcher_version
-from __init__ import BetaWarringMessage
-from __init__ import ClearOutput
-from __init__ import timer
+from __function__ import ChangeLog
+from __function__ import launcher_version
+from __function__ import ClearOutput
+from __function__ import timer
 
 
 def back_to_memu(platform):

@@ -9,8 +9,6 @@ import subprocess
 import platform
 import requests
 import json
-import print_color
-import download_jvm
 from download_jvm import get_java_version_info
 from print_color import print
 from natives_tool import Legacy_natives_bug_fix

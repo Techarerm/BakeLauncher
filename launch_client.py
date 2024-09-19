@@ -10,7 +10,7 @@ import os
 import json
 import time
 from print_color import print
-from __init__ import timer
+from __function__ import timer
 from assets_grabber import read_assets_index_version, get_assets_dir
 from jvm_tool import java_version_check
 from legacy_patch import legacy_version_natives_fix
