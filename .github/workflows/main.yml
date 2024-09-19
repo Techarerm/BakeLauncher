@@ -30,14 +30,14 @@ jobs:
         run: |
           pyinstaller __main__.py -D --icon=bread.ico
 
-      - name: Create directory for zip
+      - name: Create directory and move build files
         run: |
-          mkdir -p BakeLauncher
+          mkdir BakeLauncher
           mv dist/* BakeLauncher/
 
       - name: Zip build files
         run: |
-          powershell Compress-Archive -Path BakeLauncher -DestinationPath BakeLauncher-0.7.Windows.zip
+          powershell Compress-Archive -Path BakeLauncher/* -DestinationPath BakeLauncher-0.7.Windows.zip
 
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
@@ -66,17 +66,17 @@ jobs:
         run: |
           pyinstaller __main__.py -D --icon=bread.ico
 
-      - name: Create directory for zip
+      - name: Create directory and move build files
         run: |
-          mkdir -p BakeLauncher
+          mkdir BakeLauncher
           mv dist/* BakeLauncher/
 
       - name: Zip build files
         run: |
-          zip -r BakeLauncher-0.7.MacOS.zip BakeLauncher
+          zip -r BakeLauncher-0.7.MacOS.zip BakeLauncher/*
 
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: BakeLauncher-0.7.macOS.zip
-          path: BakeLauncher-0.7.macOS.zip
+          name: BakeLauncher-0.7.MacOS.zip
+          path: BakeLauncher-0.7.MacOS.zip
