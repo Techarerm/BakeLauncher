@@ -6,8 +6,8 @@ import os
 import time
 from print_color import print
 
-# Beta "Version"("Pre"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = "Beta 0.7"
+# Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
+launcher_version = "Beta 0.7.1(Dev-IE20924) "
 
 BetaWarringMessage = ("You are running beta version of BakeLauncher.\n"
                       "This is an 'Experimental' version with potential instability.\n"
