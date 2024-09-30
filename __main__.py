@@ -5,6 +5,7 @@ import argparse
 import main_memu
 import time
 import args_manager
+import __function__
 from args_manager import parse_arguments
 from print_color import print
 from main_memu import main_memu

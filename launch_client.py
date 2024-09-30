@@ -8,15 +8,15 @@ CustomArgs = "--quickPlayMultiplayer 2b2t.org"
 
 import os
 import json
-import time
+import multiprocessing
+import subprocess
+import tempfile
 from print_color import print
-from __function__ import timer, GetPlatformName
+from __function__ import timer, GetPlatformName, launcher_version
 from assets_grabber import read_assets_index_version, get_assets_dir
 from jvm_tool import java_version_check, java_search
-from legacy_patch import legacy_version_natives_fix
 from Download import get_version_data
 from libraries_path import generate_libraries_paths
-from libraries_path import patcher_main
 
 
 def SelectMainClass(version_id):
@@ -75,79 +75,82 @@ def launch_wit_args(platform, version_id, librariesCFG, gameDir, assetsDir, asse
     Main = "LaunchManager"
     local = os.getcwd()
 
-    print("Getting JVM path from saved config.....", color='green')
+    # I "will" choose a free time to refactor this code....
+    print(f"Launch with args has been deleted since {launcher_version}", color='green')
+    timer(8)
 
-    # Get requirement JVM version and path (If it can't found in root dir it will stop and ask user to config Java path)
-    if os.path.isfile('Java_HOME.json'):
+def create_client_process(launch_command):
+    PlatFormName = GetPlatformName.check_platform_valid_and_return()
 
-        if platform == 'Windows':
-            Java_path = f'"{jvm_path + "/java.exe"}"'
-        else:
-            Java_path = f'"{jvm_path + "/java"}"'
+    if PlatFormName == 'Windows':
+        # Create a temporary batch file to hold the commands...
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.bat') as command:
+            # Write the commands to the batch file(CRAZY, WHY I CANT SIMPLY DO IT!)
+            command.write(f"@echo off\n".encode())
+            command.write(f"{launch_command}\n".encode())
+            command.write("pause\n".encode())  # Press any key to continue . . .
+            command.write("exit\n".encode())  # Exit after pause
+            final_command = command.name
 
-        # JVM argsWin(? Only for Windows)
-        jvm_argsWin = r"-XX:HeapDumpPath=MojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump "
+        # Open a new terminal(cmd) and execute
+        subprocess.run(['cmd.exe', '/c', 'start', 'cmd.exe', '/k', final_command], shell=True)
 
-        # Set this to prevent the windows too small
-        window_size = "-Dorg.lwjgl.opengl.Window.undecorated=false -Dorg.lwjgl.opengl.Display.width=1280 -Dorg.lwjgl.opengl.Display.height=720"
+    elif PlatFormName == 'Linux':
+        # Open a new terminal in Linux (gnome-terminal or xterm)
+        try:
+            subprocess.run(['gnome-terminal', '--', 'bash', '-c', f'{launch_command}; exec bash'])
+        except FileNotFoundError:
+            # Fallback to xterm if gnome-terminal is not available
+            subprocess.run(['xterm', '-hold', '-e', f'{launch_command}'])
+    elif PlatFormName == 'Darwin':  # macOS
+        # Open a new terminal in macOS
+        subprocess.run(['open', '-a', 'Terminal', '--args', 'bash', '-c', f'{launch_command}; exec bash'])
+    else:
+        raise OSError(f"LaunchManager: Unsupported operating system: {PlatFormName}")
+    print("LaunchManager: Please check the launcher already created a new terminal.", color='purple')
+    print("LaunchManager: If it didn't create it please check the output and report it to GitHub!", color='green')
 
-        # Get requirement lwjgl version :)
-        print("LaunchManager: Checking natives...", color='green')
+def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
+                 JVM_Args, JVM_ArgsWindowsSize, JVM_ArgsRAM, GameArgs, custom_game_args, instances_id):
+    # Construct the Minecraft launch command with proper quoting
+    minecraft_command = (
+        f'{JVMPath} {JVM_Args} {JVM_ArgsWindowsSize} {JVM_ArgsRAM} '
+        f'-Djava.library.path="{NativesPath}" -cp "{libraries_paths_strings}" '
+        f'{MainClass} {GameArgs} {custom_game_args}'
+    )
 
-        # Set natives path
-        natives_library = nativespath
-        jvm_args2 = "-Djava.library.path={}".format(natives_library)
+    print("OriginalLaunchCommand:", minecraft_command)
+    green = "\033[32m"
+    blue = "\033[34m"
+    light_yellow = "\033[93m"
+    light_blue = "\033[94m"
+    reset = "\033[0m"
 
-        # Set Xms and Xmx ram size (Maybe I can add change ram size in memu...hmm...)
-        jvm_argsRAM = r" -Xms1024m -Xmx4096m"
+    # Create the full launch command with version logging and Minecraft command
+    launch_command_lines = [
+        f'echo {light_yellow}BakeLauncher Version: {launcher_version}{reset}',
+        f'echo {light_blue}Minecraft Log Start Here :) {reset}',
+        'echo ================================================',
+        f'{minecraft_command}',
+        f'echo {green}LaunchManager: Minecraft has stopped running! (Thread terminated){reset}'
+    ]
 
-        # Get download libraries path (Is really important when launch Minecraft)
-        with open(librariesCFG, 'r', encoding='utf-8') as file:
-            libraries = file.read()
+    # Join the commands with newline characters for the batch file
+    launch_command = '\n'.join(launch_command_lines)
 
-        # Check use "old" or "new" main class
-        print(f"LaunchManager: Using {main_class} as the Main Class.",
-              color='blue' if "net.minecraft.client.main.Main" in main_class else 'purple')
-        RunClass = f"-cp {libraries} {main_class}"
+    process_id = f"BakaLauncher[LaunchClient]: {instances_id}"
 
-        print(f"LaunchManager: assetsIndex: {assetsIndex}", color='blue')
-        print(f"LaunchManager: Using Index {assetsIndex}", color='blue')
+    # Launch a new process using multiprocessing
+    client_process = multiprocessing.Process(
+        target=create_client_process,
+        args=(launch_command,)  # Pass the launch_command as an argument
+    )
 
-        # Get access token and username, uuid to set game args
-        print("LaunchManager: Reading account data....", color='green')
-        os.chdir(local)
-        with open('data/AccountData.json', 'r') as file:
-            data = json.load(file)
-        username = data['AccountName']
-        uuid = data['UUID']
-        access_token = data['Token']
+    # Start the process
+    client_process.start()
 
-        # Add --UserProperties if version_id is higher than 1.7.2 but low than 1.8.1
-        # Btw...idk why some old version need this...if I don't add it will crash on launch
-
-        game_args = GetGameArgs(version_id, username, access_token, gameDir, assetsDir, assetsIndex, uuid)
-        # Preparing command...(unix-like os don't need jvm_argsWin)
-        if platform == "Windows":
-            RunCommand = Java_path + " " + jvm_argsWin + window_size + jvm_argsRAM + " " + jvm_args2 + " " + RunClass + " " + game_args + " " + CustomArgs
-        else:
-            RunCommand = Java_path + " " + window_size + jvm_argsRAM + " " + jvm_args2 + " " + RunClass + " " + game_args + " " + CustomArgs
-
-        print("LaunchManager: Preparations completed! Generating command.....", color='green')
-        print("Launch command: " + RunCommand, color='blue')
-        print("Baking Minecraft! :)", color='blue')
-        print(" ")
-        print("Minecraft Log Start Here :)", color='green')
-        os.system(RunCommand)
-
-
-def LaunchClient( JVMPath, libraries_paths_strings, NativesPath, MainClass,
-                 JVM_Args, JVM_ArgsWindowsSize, JVM_ArgsRAM, GameArgs, custom_game_args):
-
-    launch_command = JVMPath + " " + JVM_Args + " " + JVM_ArgsWindowsSize + " " + JVM_ArgsRAM + "" + f" -Djava.library.path={NativesPath}" + "" + f" -cp {libraries_paths_strings}" + " " + MainClass + " " + GameArgs + " " + custom_game_args
-    print("Launch command: " + launch_command, color='blue')
-    print("Baking Minecraft! :)", color='blue')
-    print("Minecraft Log Start Here :)", color='green')
-    os.system(launch_command)
+    # Optional: Wait for the process to finish (if needed)
+    # client_process.join()
 
 
 def LaunchManager():
@@ -268,7 +271,7 @@ def LaunchManager():
     NativesPath = ".minecraft/natives"
 
     # Get librariesPath(Example: /path/LWJGL-1.0.jar:/path/Hopper-1.2.jar:/path/client.jar)
-    libraries_paths_strings = generate_libraries_paths(version_id,"libraries")
+    libraries_paths_strings = generate_libraries_paths(version_id, "libraries")
 
     # Get MainClass Name And Set Args(-cp "libraries":client.jar net.minecraft.client.main.Main or
     # net.minecraft.launchwrapper.Launch(old))
@@ -286,15 +289,18 @@ def LaunchManager():
     # Coming soon :)
     CustomGameArgs = " "
 
+    instances_id = f"Minecraft {version_id}"
+
     # Bake Minecraft :)
     if PlatformName == "Windows":
-        LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump, JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
-                     CustomGameArgs)
+        LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump,
+                     JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
+                     CustomGameArgs, instances_id)
     else:
         JVM_Args_HeapDump = " "
-        LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump, JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
-                     CustomGameArgs)
+        LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump,
+                     JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
+                     CustomGameArgs, instances_id)
 
-    print("LaunchManager: Minecraft has stopped running! (Thread terminated)")
     os.chdir(root_directory)
     timer(2)

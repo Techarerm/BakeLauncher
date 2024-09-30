@@ -61,7 +61,6 @@ def parse_arguments(platform, custom_args):
     MainClass = args.MainClass
 
     # Return the parsed arguments
-    print(version)
     ErrorCheck_Launch = launch_wit_args(platform, version, librariesCFG, gameDir, assetsDir, assetsIndex, JVMPath, nativespath, MainClass)
     if ErrorCheck_Launch == None:
         return

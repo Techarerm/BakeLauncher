@@ -35,6 +35,7 @@ def generate_libraries_paths(version, libraries_dir):
     PlatformName = GetPlatformName.check_platform_valid_and_return()
 
     # Traverse the libraries directory
+    print("LaunchPatcher: Generating dependent libraries path for " + version + " of Minecraft...", color="green")
     for root, dirs, files in os.walk(libraries_dir):
         for file in files:
             if file.endswith('.jar') and not file.startswith("client.jar"):
