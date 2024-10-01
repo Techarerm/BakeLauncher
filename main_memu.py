@@ -8,7 +8,7 @@ import time
 import json
 from auth_tool import login
 from auth_tool import check_minecraft_token
-from launch_client import launch
+from launch_client import LaunchManager
 from Download import download_main
 from jvm_tool import java_finder
 from args_manager import argsman
@@ -92,7 +92,7 @@ def main_memu(platform):
         if user_input == 1:
             print("Launching Minecraft...", color='green')
             ClearOutput(platform)
-            launch(platform)
+            LaunchManager()
             back_to_memu(platform)
         elif user_input == 2:
             login()
