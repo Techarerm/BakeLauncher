@@ -3,10 +3,10 @@ name: Build EXE and APP
 on:
   push:
     branches:
-      - main
+      - dev
   pull_request:
     branches:
-      - main
+      - dev
 
 jobs:
   windows-build:
@@ -33,7 +33,7 @@ jobs:
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
-          name: BakeLauncher-Dev-IE20924.Windows
+          name: BakeLauncher-Dev-JB011024.Windows
           path: dist/
 
   macos-build:
@@ -60,5 +60,5 @@ jobs:
       - name: Upload APP
         uses: actions/upload-artifact@v4
         with:
-          name: BakeLauncher-Dev-IE20924.macOS
+          name: BakeLauncher-Dev-JB011024.macOS
           path: dist/
