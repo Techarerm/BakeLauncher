@@ -79,21 +79,27 @@ def launch_wit_args(platform, version_id, librariesCFG, gameDir, assetsDir, asse
     print(f"Launch with args has been deleted since {launcher_version}", color='green')
     timer(8)
 
-def create_client_process(launch_command):
+def create_client_process(launch_command, title):
     PlatFormName = GetPlatformName.check_platform_valid_and_return()
+    print("LaunchManager: Please check the launcher already created a new terminal.", color='purple')
+    print("LaunchManager: If it didn't create it please check the output and report it to GitHub!", color='green')
 
     if PlatFormName == 'Windows':
-        # Create a temporary batch file to hold the commands...
         with tempfile.NamedTemporaryFile(delete=False, suffix='.bat') as command:
-            # Write the commands to the batch file(CRAZY, WHY I CANT SIMPLY DO IT!)
             command.write(f"@echo off\n".encode())
+            command.write(f'title {title}\n'.encode())
             command.write(f"{launch_command}\n".encode())
-            command.write("pause\n".encode())  # Press any key to continue . . .
-            command.write("exit\n".encode())  # Exit after pause
+            command.write("pause\n".encode())
+            command.write("exit\n".encode())
             final_command = command.name
-
-        # Open a new terminal(cmd) and execute
-        subprocess.run(['cmd.exe', '/c', 'start', 'cmd.exe', '/k', final_command], shell=True)
+        try:
+            process = subprocess.Popen(['cmd.exe', '/c', 'start', 'cmd.exe', '/k', final_command],
+                                       shell=True,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE,
+                                       stdin=subprocess.PIPE)
+        except Exception as e:
+            print(f"Error in Windows process: {e}")
 
     elif PlatFormName == 'Linux':
         # Open a new terminal in Linux (gnome-terminal or xterm)
@@ -107,8 +113,6 @@ def create_client_process(launch_command):
         subprocess.run(['open', '-a', 'Terminal', '--args', 'bash', '-c', f'{launch_command}; exec bash'])
     else:
         raise OSError(f"LaunchManager: Unsupported operating system: {PlatFormName}")
-    print("LaunchManager: Please check the launcher already created a new terminal.", color='purple')
-    print("LaunchManager: If it didn't create it please check the output and report it to GitHub!", color='green')
 
 def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
                  JVM_Args, JVM_ArgsWindowsSize, JVM_ArgsRAM, GameArgs, custom_game_args, instances_id):
@@ -138,12 +142,12 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
     # Join the commands with newline characters for the batch file
     launch_command = '\n'.join(launch_command_lines)
 
-    process_id = f"BakaLauncher[LaunchClient]: {instances_id}"
+    title = f"BakaLauncher: {instances_id}"
 
     # Launch a new process using multiprocessing
     client_process = multiprocessing.Process(
         target=create_client_process,
-        args=(launch_command,)  # Pass the launch_command as an argument
+        args=(launch_command, title,)  # Pass the launch_command as an argument
     )
 
     # Start the process
@@ -195,6 +199,7 @@ def LaunchManager():
         user_input = input(":")
         if user_input.upper() == "Y":
             print("LaunchManager: Calling java_search..")
+            os.chdir(root_directory)
             java_search()
 
     print("LaunchManager: Getting JVM Path...", color='c')

@@ -6,6 +6,7 @@ import main_memu
 import time
 import args_manager
 import __function__
+import multiprocessing
 from args_manager import parse_arguments
 from print_color import print
 from main_memu import main_memu
@@ -65,4 +66,6 @@ def main():
     input("Press any key to continue...")
 
 if __name__ == "__main__":
+    # Added multitasking(?) support(for LaunchClient)
+    multiprocessing.freeze_support()
     main()
