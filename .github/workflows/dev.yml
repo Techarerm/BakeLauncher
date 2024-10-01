@@ -1,12 +1,12 @@
-name: Build Dev Version
+name: Build EXE and APP
 
 on:
   push:
     branches:
-      - dev
+      - main
   pull_request:
     branches:
-      - dev
+      - main
 
 jobs:
   windows-build:
@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r Dev/requirements.txt
           pip install pyinstaller
 
       - name: Build EXE with custom name
@@ -33,7 +33,7 @@ jobs:
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
-          name: BakeLauncher-Dev-IA30924.Windows
+          name: BakeLauncher-Dev-IE20924.Windows
           path: dist/
 
   macos-build:
@@ -50,7 +50,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r Dev/requirements.txt
           pip install pyinstaller
 
       - name: Build APP with custom name and x86-64 target
@@ -60,5 +60,5 @@ jobs:
       - name: Upload APP
         uses: actions/upload-artifact@v4
         with:
-          name: BakeLauncher-Dev-IA30924.macOS
+          name: BakeLauncher-Dev-IE20924.macOS
           path: dist/
