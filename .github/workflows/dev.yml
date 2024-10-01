@@ -1,4 +1,4 @@
-name: Build EXE and APP
+name: Build Dev Version
 
 on:
   push:
@@ -50,7 +50,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r Dev\requirements.txt
+          pip install -r Dev/requirements.txt
           pip install pyinstaller
 
       - name: Build APP with custom name and x86-64 target
