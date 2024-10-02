@@ -84,7 +84,7 @@ def create_client_process(launch_command, title):
     PlatFormName = GetPlatformName.check_platform_valid_and_return()
     print("LaunchManager: Please check the launcher already created a new terminal.", color='purple')
     print("LaunchManager: If it didn't create it please check the output and report it to GitHub!", color='green')
-
+    print(launch_command)
     if PlatFormName == 'Windows':
         with tempfile.NamedTemporaryFile(delete=False, suffix='.bat') as command:
             command.write(f"@echo off\n".encode())
@@ -111,13 +111,13 @@ def create_client_process(launch_command, title):
             subprocess.run(['xterm', '-hold', '-e', f'{launch_command}'])
     elif PlatFormName == 'Darwin':  # macOS
         try:
-            # Join the launch_command_lines into one single command string, ensuring newlines are preserved
-            full_command = ' && '.join(launch_command)
-            # Escape any double quotes inside the command
+            # Join the launch_command_lines with "\n" to create a multi-line command
+            full_command = "\n".join(launch_command)
+            # Escape special characters like double quotes and dollar signs
             escaped_command = full_command.replace('"', '\\"').replace('$', '\\$')
-            # Build the osascript AppleScript command
+            # Create AppleScript command
             osascript_command = f'tell application "Terminal" to do script "{escaped_command}; exec bash"'
-            # Execute the command
+            # Execute the AppleScript command
             subprocess.run(['osascript', '-e', osascript_command])
         except Exception as e:
             print(f"Error in macOS process: {e}")
