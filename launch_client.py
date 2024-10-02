@@ -112,7 +112,7 @@ def create_client_process(launch_command, title):
     elif PlatFormName == 'Darwin':  # macOS
         try:
             # Join the launch_command_lines into one single command string, ensuring newlines are preserved
-            full_command = ' && '.join(launch_command_lines)
+            full_command = ' && '.join(launch_command)
             # Escape any double quotes inside the command
             escaped_command = full_command.replace('"', '\\"').replace('$', '\\$')
             # Build the osascript AppleScript command
