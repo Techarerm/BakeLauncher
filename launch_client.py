@@ -11,6 +11,7 @@ import json
 import multiprocessing
 import subprocess
 import tempfile
+import shlex
 from print_color import print
 from __function__ import timer, GetPlatformName, launcher_version
 from assets_grabber import read_assets_index_version, get_assets_dir
@@ -109,7 +110,8 @@ def create_client_process(launch_command, title):
             # Fallback to xterm if gnome-terminal is not available
             subprocess.run(['xterm', '-hold', '-e', f'{launch_command}'])
     elif PlatFormName == 'Darwin':  # macOS
-        osascript_command = f'tell application "Terminal" to do script "{launch_command}; exec bash"'
+        escaped_command = shlex.quote(launch_command)
+        osascript_command = f'tell application "Terminal" to do script "{escaped_command}; exec bash"'
         subprocess.run(['osascript', '-e', osascript_command])
     else:
         raise OSError(f"LaunchManager: Unsupported operating system: {PlatFormName}")
