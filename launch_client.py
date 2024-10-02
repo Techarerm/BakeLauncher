@@ -111,9 +111,9 @@ def create_client_process(launch_command, title):
             subprocess.run(['xterm', '-hold', '-e', f'{launch_command}'])
     elif PlatFormName == 'Darwin':  # macOS
         try:
-            # Join launch_command_lines into one single command with newline characters
-            full_command = '\n'.join(launch_command)
-            # Escape quotes inside the command
+            # Join the launch_command_lines into one single command string, ensuring newlines are preserved
+            full_command = '; '.join(launch_command)
+            # Escape any double quotes inside the command
             escaped_command = full_command.replace('"', '\\"')
             # Build the osascript AppleScript command
             osascript_command = f'tell application "Terminal" to do script "{escaped_command}; exec bash"'
@@ -121,7 +121,6 @@ def create_client_process(launch_command, title):
             subprocess.run(['osascript', '-e', osascript_command])
         except Exception as e:
             print(f"Error in macOS process: {e}")
-
     else:
         raise OSError(f"LaunchManager: Unsupported operating system: {PlatFormName}")
 
