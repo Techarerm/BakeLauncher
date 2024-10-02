@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <direct.h>
+#include <stdlib.h>
 
 int main() {
     printf("BakeLauncher C Loader :)\n");
