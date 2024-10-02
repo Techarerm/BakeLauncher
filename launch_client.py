@@ -110,9 +110,7 @@ def create_client_process(launch_command, title):
             # Fallback to xterm if gnome-terminal is not available
             subprocess.run(['xterm', '-hold', '-e', f'{launch_command}'])
     elif PlatFormName == 'Darwin':  # macOS
-        escaped_command = shlex.quote(launch_command)
-        osascript_command = f'tell application "Terminal" to do script "{escaped_command}; exec bash"'
-        subprocess.run(['osascript', '-e', osascript_command])
+        subprocess.run(['open', '-a', 'Terminal', '--args', 'bash', '-c', f'{launch_command}; exec bash'])
     else:
         raise OSError(f"LaunchManager: Unsupported operating system: {PlatFormName}")
 
