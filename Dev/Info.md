@@ -18,6 +18,6 @@ Ensure you have `gcc` installed as it's required for building.
 
 **Build Command:**
 ```bash
-gcc -o BakeLauncherLoad BakeLoader.c
+gcc -o Dev/BakeLauncherLoad BakeLoader.c
 ```
 After build, please copy BakeLauncherLoad to Launcher root directory!
