@@ -110,7 +110,7 @@ def create_client_process(launch_command, title):
             subprocess.run(['xterm', '-hold', '-e', './LaunchLoadCommandTemp.sh'])
     elif PlatFormName == 'Darwin':  # macOS
         try:
-            subprocess.run(['open', '-a', 'Terminal', 'bash', '-c', "'./LaunchLoadCommandTemp.sh; exec bash'"])
+            subprocess.run(['open', '-a', 'Terminal', '--args', 'bash', '-c', './LaunchLoadCommandTemp.sh; exec bash'])
         except Exception as e:
             print(f"Error in macOS process: {e}")
     else:
