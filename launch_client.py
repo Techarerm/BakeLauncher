@@ -133,13 +133,25 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
     reset = "\033[0m"
 
     # Create the full launch command with version logging and Minecraft command
-    launch_command = [
-        f'echo {light_yellow}BakeLauncher Version: {launcher_version}{reset}',
-        f'echo {light_blue}Minecraft Log Start Here :) {reset}',
-        'echo ================================================',
-        f'{minecraft_command}',
-        f'echo {green}LaunchManager: Minecraft has stopped running! (Thread terminated){reset}'
-    ]
+    if GetPlatformName.check_platform_valid_and_return() == 'Windows':
+        launch_command = [
+            f'echo {light_yellow}BakeLauncher Version: {launcher_version}{reset}',
+            f'echo {light_blue}Minecraft Log Start Here :) {reset}',
+            'echo ================================================',
+            f'{minecraft_command}',
+            f'echo {green}LaunchManager: Minecraft has stopped running! (Thread terminated){reset}'
+        ]
+    else:
+        launch_command = [
+            f'echo -e {light_yellow}"BakeLauncher Version: {launcher_version}"{reset}',
+            f'echo -e {light_blue}"Minecraft Log Start Here :)"{reset}',
+            'echo "==============================================="',
+            f'{minecraft_command}',
+            f'echo -e {green}"LaunchManager: Minecraft has stopped running! (Thread terminated)"{reset}'
+        ]
+
+    # Join the commands with newline characters for the batch file
+    launch_command = '\n'.join(launch_command)
 
     # For unix-like...
     if not GetPlatformName.check_platform_valid_and_return() == "Windows":
@@ -147,7 +159,8 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
             os.remove("LaunchLoadCommandTemp.sh")
 
         with open("LaunchLoadCommandTemp.sh", "w+") as f:
-            f.write("\n".join(launch_command))
+            f.write(launch_command)
+
 
 
     title = f"BakaLauncher: {instances_id}"
