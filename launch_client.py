@@ -11,7 +11,7 @@ import json
 import multiprocessing
 import subprocess
 import tempfile
-import shlex
+import time
 from print_color import print
 from __function__ import timer, GetPlatformName, launcher_version
 from assets_grabber import read_assets_index_version, get_assets_dir
@@ -82,10 +82,12 @@ def launch_wit_args(platform, version_id, librariesCFG, gameDir, assetsDir, asse
 
 
 def create_client_process(launch_command, title):
+    FailedToLaunch = False
     PlatFormName = GetPlatformName.check_platform_valid_and_return()
     print("LaunchManager: Please check the launcher already created a new terminal.", color='purple')
     print("LaunchManager: If it didn't create it please check the output and report it to GitHub!", color='green')
     if PlatFormName == 'Windows':
+        print("LaunchClient: Add command for windows support...", color='green')
         with tempfile.NamedTemporaryFile(delete=False, suffix='.bat') as command:
             command.write(f"@echo off\n".encode())
             command.write(f'title {title}\n'.encode())
@@ -94,21 +96,26 @@ def create_client_process(launch_command, title):
             command.write("exit\n".encode())
             final_command = command.name
         try:
+            print("LaunchClient: Creating launch thread...", color='green')
             process = subprocess.Popen(['cmd.exe', '/c', 'start', 'cmd.exe', '/k', final_command],
                                        shell=True,
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE,
                                        stdin=subprocess.PIPE)
         except Exception as e:
+            FailedToLaunch = True
             print(f"Error in Windows process: {e}")
 
     elif PlatFormName == 'Linux':
         # Open a new terminal in Linux (gnome-terminal or xterm)
         try:
             os.system("chmod 755 LaunchLoadCommandTemp.sh")
+            print("LaunchClient: Creating launch thread...", color='green')
             subprocess.run(['gnome-terminal', '--', 'bash', '-c', "'./LaunchLoadCommandTemp.sh; exec bash'"])
         except FileNotFoundError:
             # Fallback to xterm if gnome-terminal is not available
+            os.system("chmod 755 LaunchLoadCommandTemp.sh")
+            print("LaunchClient: Creating launch thread...", 'green')
             subprocess.run(['xterm', '-hold', '-e', './LaunchLoadCommandTemp.sh'])
     elif PlatFormName == 'Darwin':  # macOS
         now_directory = os.getcwd()
@@ -118,14 +125,26 @@ def create_client_process(launch_command, title):
         end tell
         '''
         try:
+            print("LaunchClient: Creating launch thread...", 'green')
             os.system("chmod 755 LaunchLoadCommandTemp.sh")
             subprocess.run(['osascript', '-e', script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            print(f"LaunchClient: Cleaning up launch files...", color='green')
-            os.remove("LaunchLoadCommandTemp.sh")
         except Exception as e:
+            FailedToLaunch = True
             print(f"Error in macOS process: {e}")
     else:
         raise OSError(f"LaunchManager: Unsupported operating system: {PlatFormName}")
+
+    if not FailedToLaunch:
+        if PlatFormName == 'Windows':
+            print("LaunchClient: Successfully created launch thread!", color='blue')
+        else:
+            print("LaunchClient: Successfully created launch thread!", color='blue')
+            time.sleep(2)
+            print(f"LaunchClient: Cleaning up launch files...", color='green')
+            os.remove("LaunchLoadCommandTemp.sh")
+    else:
+        print("LaunchClient: Creating launch thread failed !", 'red')
+        print("LaunchClient: Cause by unknown system or launch can't find shell :(", color='red')
 
 
 def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass, JVM_Args_macOSGLFW,
