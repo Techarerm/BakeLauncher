@@ -105,20 +105,13 @@ def create_client_process(launch_command, title):
     elif PlatFormName == 'Linux':
         # Open a new terminal in Linux (gnome-terminal or xterm)
         try:
-            subprocess.run(['gnome-terminal', '--', 'bash', '-c', f'{launch_command}; exec bash'])
+            subprocess.run(['gnome-terminal', '--', 'bash', '-c', "'./LaunchLoadCommandTemp.sh; exec bash'"])
         except FileNotFoundError:
             # Fallback to xterm if gnome-terminal is not available
-            subprocess.run(['xterm', '-hold', '-e', f'{launch_command}'])
+            subprocess.run(['xterm', '-hold', '-e', './LaunchLoadCommandTemp.sh'])
     elif PlatFormName == 'Darwin':  # macOS
         try:
-            # Join the launch_command_lines with "\n" to create a multi-line command
-            full_command = "\n".join(launch_command)
-            # Escape special characters like double quotes and dollar signs
-            escaped_command = full_command.replace('"', '\\"').replace('$', '\\$')
-            # Create AppleScript command
-            osascript_command = f'tell application "Terminal" to do script "{escaped_command}; exec bash"'
-            # Execute the AppleScript command
-            subprocess.run(['osascript', '-e', osascript_command])
+            subprocess.run(['open', '-a', 'Terminal', 'bash', '-c', "'./LaunchLoadCommandTemp.sh; exec bash'"])
         except Exception as e:
             print(f"Error in macOS process: {e}")
     else:
@@ -141,7 +134,7 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
     reset = "\033[0m"
 
     # Create the full launch command with version logging and Minecraft command
-    launch_command_lines = [
+    launch_command = [
         f'echo {light_yellow}BakeLauncher Version: {launcher_version}{reset}',
         f'echo {light_blue}Minecraft Log Start Here :) {reset}',
         'echo ================================================',
@@ -149,8 +142,14 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
         f'echo {green}LaunchManager: Minecraft has stopped running! (Thread terminated){reset}'
     ]
 
-    # Join the commands with newline characters for the batch file
-    launch_command = '\n'.join(launch_command_lines)
+    # For unix-like...
+    if not GetPlatformName.check_platform_valid_and_return() == "Windows":
+        if os.path.exists("LaunchLoadCommandTemp.sh"):
+            os.remove("LaunchLoadCommandTemp.sh")
+
+        with open("LaunchLoadCommandTemp.sh", "w+") as f:
+            f.write("\n".join(launch_command))
+
 
     title = f"BakaLauncher: {instances_id}"
 
