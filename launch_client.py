@@ -84,7 +84,6 @@ def create_client_process(launch_command, title):
     PlatFormName = GetPlatformName.check_platform_valid_and_return()
     print("LaunchManager: Please check the launcher already created a new terminal.", color='purple')
     print("LaunchManager: If it didn't create it please check the output and report it to GitHub!", color='green')
-    print(launch_command)
     if PlatFormName == 'Windows':
         with tempfile.NamedTemporaryFile(delete=False, suffix='.bat') as command:
             command.write(f"@echo off\n".encode())
