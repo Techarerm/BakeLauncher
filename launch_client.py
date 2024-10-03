@@ -110,9 +110,10 @@ def create_client_process(launch_command, title):
             # Fallback to xterm if gnome-terminal is not available
             subprocess.run(['xterm', '-hold', '-e', './LaunchLoadCommandTemp.sh'])
     elif PlatFormName == 'Darwin':  # macOS
-        script = '''
+        now_directory = os.getcwd()
+        script = f'''
         tell application "Terminal"
-            do script "bash -c './LaunchLoadCommandTemp.sh; exec bash'"
+            do script "cd {now_directory} && bash -c './LaunchLoadCommandTemp.sh; exec bash'"
         end tell
         '''
         try:
