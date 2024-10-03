@@ -113,7 +113,7 @@ def create_client_process(launch_command, title):
         now_directory = os.getcwd()
         script = f'''
         tell application "Terminal"
-            do script "cd {now_directory} && bash -c './LaunchLoadCommandTemp.sh; read -p \\"Press any key to continue . . .\\"; exit'"
+            do script "cd {now_directory} && bash -c './LaunchLoadCommandTemp.sh > /dev/null 2>&1; read -p \\"Press any key to continue . . .\\"; exit'"
         end tell
         '''
         try:
