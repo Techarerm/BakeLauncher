@@ -116,12 +116,9 @@ def create_client_process(launch_command, title):
             do script "cd {now_directory} && bash -c './LaunchLoadCommandTemp.sh; read -p \\"Press any key to continue . . .\\"; exit'"
         end tell
         '''
-
-        # Run the AppleScript to open Terminal and suppress output
-        subprocess.run(['osascript', '-e', script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         try:
             os.system("chmod 755 LaunchLoadCommandTemp.sh")
-            subprocess.run(['osascript', '-e', script])
+            subprocess.run(['osascript', '-e', script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except Exception as e:
             print(f"Error in macOS process: {e}")
     else:
