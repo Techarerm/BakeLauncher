@@ -113,7 +113,7 @@ def create_client_process(launch_command, title):
         now_directory = os.getcwd()
         script = f'''
         tell application "Terminal"
-            do script "cd {now_directory} && bash -c './LaunchLoadCommandTemp.sh; exec bash'"
+            do script "cd {now_directory} && bash -c './LaunchLoadCommandTemp.sh; exec bash' && exit"
         end tell
         '''
         try:
