@@ -80,6 +80,7 @@ def launch_wit_args(platform, version_id, librariesCFG, gameDir, assetsDir, asse
     print(f"Launch with args has been deleted since {launcher_version}", color='green')
     timer(8)
 
+
 def create_client_process(launch_command, title):
     PlatFormName = GetPlatformName.check_platform_valid_and_return()
     print("LaunchManager: Please check the launcher already created a new terminal.", color='purple')
@@ -124,11 +125,12 @@ def create_client_process(launch_command, title):
     else:
         raise OSError(f"LaunchManager: Unsupported operating system: {PlatFormName}")
 
-def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
+
+def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass, JVM_Args_macOSGLFW,
                  JVM_Args, JVM_ArgsWindowsSize, JVM_ArgsRAM, GameArgs, custom_game_args, instances_id):
     # Construct the Minecraft launch command with proper quoting
     minecraft_command = (
-        f'{JVMPath} {JVM_Args} {JVM_ArgsWindowsSize} {JVM_ArgsRAM} '
+        f'{JVMPath} {JVM_Args_macOSGLFW} {JVM_Args} {JVM_ArgsWindowsSize} {JVM_ArgsRAM} '
         f'-Djava.library.path="{NativesPath}" -cp "{libraries_paths_strings}" '
         f'{MainClass} {GameArgs} {custom_game_args}'
     )
@@ -168,8 +170,6 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
 
         with open("LaunchLoadCommandTemp.sh", "w+") as f:
             f.write(launch_command)
-
-
 
     title = f"BakaLauncher: {instances_id}"
 
@@ -282,6 +282,9 @@ def LaunchManager():
     JVM_Args_WindowsSize = (r"-Dorg.lwjgl.opengl.Window.undecorated=false -Dorg.lwjgl.opengl.Display.width=1280 "
                             r"-Dorg.lwjgl.opengl.Display.height=720")
 
+    # Makes the JVM starts with thread 0, required on OSX (From wiki.vg)
+    JVM_Args_macOSGLFW = "-XstartOnFirstThread"
+
     # Check natives are available to use
     print("LaunchManager: Checking natives...", color='green')
     if os.path.isdir(".minecraft/natives"):
@@ -327,12 +330,19 @@ def LaunchManager():
 
     # Bake Minecraft :)
     if PlatformName == "Windows":
-        LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump,
+        JVM_Args_macOSGLFW = " "
+        LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_macOSGLFW, JVM_Args_HeapDump,
+                     JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
+                     CustomGameArgs, instances_id)
+    elif PlatformName == "Darwin":
+        JVM_Args_HeapDump = " "
+        LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_macOSGLFW, JVM_Args_HeapDump,
                      JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
                      CustomGameArgs, instances_id)
     else:
         JVM_Args_HeapDump = " "
-        LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump,
+        JVM_Args_macOSGLFW = " "
+        LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_macOSGLFW, JVM_Args_HeapDump,
                      JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
                      CustomGameArgs, instances_id)
 
