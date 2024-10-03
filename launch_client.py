@@ -109,8 +109,13 @@ def create_client_process(launch_command, title):
             # Fallback to xterm if gnome-terminal is not available
             subprocess.run(['xterm', '-hold', '-e', './LaunchLoadCommandTemp.sh'])
     elif PlatFormName == 'Darwin':  # macOS
+        script = '''
+        tell application "Terminal"
+            do script "bash -c './LaunchLoadCommandTemp.sh; exec bash'"
+        end tell
+        '''
         try:
-            subprocess.run(['open', '-a', 'Terminal', '--args', 'bash', '-c', './LaunchLoadCommandTemp.sh; exec bash'])
+            subprocess.run(['osascript', '-e', script])
         except Exception as e:
             print(f"Error in macOS process: {e}")
     else:
