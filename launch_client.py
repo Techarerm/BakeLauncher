@@ -120,6 +120,8 @@ def create_client_process(launch_command, title):
         try:
             os.system("chmod 755 LaunchLoadCommandTemp.sh")
             subprocess.run(['osascript', '-e', script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            print(f"LaunchClient: Cleaning up launch files...", color='green')
+            os.remove("LaunchLoadCommandTemp.sh")
         except Exception as e:
             print(f"Error in macOS process: {e}")
     else:
