@@ -104,6 +104,7 @@ def create_client_process(launch_command, title):
     elif PlatFormName == 'Linux':
         # Open a new terminal in Linux (gnome-terminal or xterm)
         try:
+            os.system("chmod 755 LaunchLoadCommandTemp.sh")
             subprocess.run(['gnome-terminal', '--', 'bash', '-c', "'./LaunchLoadCommandTemp.sh; exec bash'"])
         except FileNotFoundError:
             # Fallback to xterm if gnome-terminal is not available
@@ -115,6 +116,7 @@ def create_client_process(launch_command, title):
         end tell
         '''
         try:
+            os.system("chmod 755 LaunchLoadCommandTemp.sh")
             subprocess.run(['osascript', '-e', script])
         except Exception as e:
             print(f"Error in macOS process: {e}")
@@ -153,6 +155,7 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
             'echo "==============================================="',
             f'{minecraft_command}',
             f'echo -e {green}"LaunchManager: Minecraft has stopped running! (Thread terminated)"{reset}'
+            f'exit'
         ]
 
     # Join the commands with newline characters for the batch file
