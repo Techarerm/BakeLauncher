@@ -14,21 +14,8 @@ BetaWarringMessage = ("You are running beta version of BakeLauncher.\n"
                       "Please run it only if you know what you are doing.\n")
 
 ChangeLog = ("Changelog:\n"
-             "Biggest Update!(I think)\n"
-             "Now using local natives(When you download Minecraft it will automatic unzip to .minecraft/natives "
-             "folder).\n"
-             "Added download jvm after download game files.\n"
-             "All old instances will be convert to new file structure(legacy_patch)\n"
-             "Main Memu has been separated from main!\n"
-             "Fully support Windows!"
-             "Added experimental macOS, Linux(untested) support.\n"
-             "Using unix-like system user launch use LWJGL 3.x version of Minecraft may got crash(unzip natives file "
-             "structure are not correctly installed)\n"
-             "Added experimental download snapshot support!\n"
-             "Fix AssetsGrabber assets_index.json file not found error."
-             "Linux user may got error when using internal jvm! (Please using BakeLauncher to download Java!)"
-             "\n")
-
+             "If your token are expired. AuthTool will automatic refresh it (if RefreshToken is valid)\n"
+             "Ahh...just one :D")
 
 def ClearOutput(platform):
     if platform == "Windows":
