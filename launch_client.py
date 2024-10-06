@@ -18,7 +18,7 @@ from assets_grabber import read_assets_index_version, get_assets_dir
 from jvm_tool import java_version_check, java_search
 from Download import get_version_data
 from libraries_path import generate_libraries_paths
-
+from auth_tool import get_account_data
 
 def SelectMainClass(version_id):
     version_data = get_version_data(version_id)
@@ -81,7 +81,7 @@ def launch_wit_args(platform, version_id, librariesCFG, gameDir, assetsDir, asse
     timer(8)
 
 
-def create_client_process(launch_command, title):
+def create_new_launch_thread(launch_command, title):
     FailedToLaunch = False
     PlatFormName = GetPlatformName.check_platform_valid_and_return()
     print("LaunchManager: Please check the launcher already created a new terminal.", color='purple')
@@ -196,7 +196,7 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass, JVM_A
 
     # Launch a new process using multiprocessing
     client_process = multiprocessing.Process(
-        target=create_client_process,
+        target=create_new_launch_thread,
         args=(launch_command, title,)  # Pass the launch_command as an argument
     )
 
@@ -283,12 +283,20 @@ def LaunchManager():
 
     # Get access token and username, uuid to set game args
     print("LaunchManager: Reading account data...", color='green')
-    with open('data/AccountData.json', 'r') as file:
-        data = json.load(file)
-    username = data['AccountName']
-    uuid = data['UUID']
-    access_token = data['Token']
+    with open("data/config.bakelh.cfg", 'r') as file:
+        for line in file:
+            if "DefaultAccountID" in line:
+                id = line.split('=')[1].strip()  # Extract the value if found
+                break  # Stop after finding the ID
 
+    account_data = get_account_data(int(id))
+
+    username = account_data['Username']
+    uuid = account_data['UUID']
+    access_token = account_data['AccessToken']
+
+    if username == "Unknown":
+        print("LaunchManager: Warring! You are not logged ! Client will crash when you trying to launch it!!!", color='red')
     # Transfer the current path to launch instances path and set gameDir
     os.chdir(r'instances/' + version_id)
     gameDir = ".minecraft"

@@ -8,26 +8,17 @@ import re
 from print_color import print
 
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = "Beta 0.7.1(Dev-JB011024)"
+launcher_version = "Beta 0.8(Dev-JG061024)"
 
 BetaWarringMessage = ("You are running beta version of BakeLauncher.\n"
                       "This is an 'Experimental' version with potential instability.\n"
                       "Please run it only if you know what you are doing.\n")
 
 ChangeLog = ("Changelog:\n"
-             "Biggest Update!(I think)\n"
-             "Now using local natives(When you download Minecraft it will automatic unzip to .minecraft/natives "
-             "folder).\n"
-             "Added download jvm after download game files.\n"
-             "All old instances will be convert to new file structure(legacy_patch)\n"
-             "Main Memu has been separated from main!\n"
-             "Fully support Windows!"
-             "Added experimental macOS, Linux(untested) support.\n"
-             "Using unix-like system user launch use LWJGL 3.x version of Minecraft may got crash(unzip natives file "
-             "structure are not correctly installed)\n"
-             "Added experimental download snapshot support!\n"
-             "Fix AssetsGrabber assets_index.json file not found error."
-             "Linux user may got error when using internal jvm! (Please using BakeLauncher to download Java!)"
+             "Multitask+ Update!\n"
+             ""
+             "AccountManager(AutoTool): Added support for multiple accounts!\n"
+             "LaunchClient: Added support for multiple client! Now you can launch several clients at same time!\n"
              "\n")
 
 

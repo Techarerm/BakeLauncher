@@ -6,8 +6,9 @@ BakeLaunch Main Memu
 import os
 import time
 import json
-from auth_tool import login
+from auth_tool import AccountManager
 from auth_tool import check_minecraft_token
+from auth_tool import get_account_data
 from launch_client import LaunchManager
 from Download import download_main
 from jvm_tool import java_finder
@@ -30,16 +31,34 @@ def back_to_memu(platform):
         main_memu(platform)
 
 
-def initialize_account_data():
-    default_data = {
-        "AccountName": "None",
-        "UUID": "None",
-        "Token": "None"
-    }
+def initialize_config():
+    print("Can't find config! Creating...", color='yellow')
+    default_data = "[BakeLauncher Configuration]\n\n<Global>\nEnableConfig = true\nDefaultAccountID = 1"
     if not os.path.exists('data'):
         os.makedirs('data')
-    with open('data/AccountData.json', 'w') as file:
-        json.dump(default_data, file)
+    with open('data/config.bakelh.cfg', 'w') as file:
+        file.write(default_data)
+
+
+def initialize_account_data():
+    if not os.path.exists('data'):
+        os.makedirs('data')
+    json_data = []
+
+    default_data = {
+        "id": 1,
+        "Username": 'BakeLauncherLocalPlayer',
+        "UUID": "Unknown",
+        "RefreshToken": None,  # When auth_tool notice RefreshToken = None it will stop refresh
+        "AccessToken": "Unknown",
+        "tag": "LocalTESTPlayerDoNOTUSE"
+    }
+
+    json_data.append(default_data)
+
+    with open("data/AccountData.json", "w") as jsonFile:
+        json.dump(json_data, jsonFile, indent=4)
+
 
 
 def login_status():
@@ -49,28 +68,40 @@ def login_status():
     """
     username = "Player"  # Initialize username to avoid UnboundLocalError-
     try:
-        with open('data/AccountData.json', 'r') as file:
-            data = json.load(file)
-            username = data['AccountName']  # Set username here
-    except (FileNotFoundError, json.JSONDecodeError):
-        initialize_account_data()
-        with open('data/AccountData.json', 'r') as file:
-            data = json.load(file)
-            username = data['AccountName']
+        with open("data/config.bakelh.cfg", 'r') as file:
+            for line in file:
+                if "DefaultAccountID" in line:
+                    id = line.split('=')[1].strip()  # Extract the value if found
+                    break  # Stop after finding the ID
+    except FileNotFoundError:
+        initialize_config()
+        id = 1
 
-    if data['AccountName'] == "None":
+
+    if os.path.exists('data/AccountData.json'):
+        account_data = get_account_data(int(id))
+        username = account_data['Username']  # Set username here
+        if account_data['Username'] == "None":
+            print("Login Status: Not logged in :(", color='red')
+            print("Please log in to your account first!", color='red')
+        elif account_data['Username'] == "BakeLauncherLocalPlayer":
+            print("Warning: You are currently using a local account!", color='red')
+            print("Login Status: Not logged in :(", color='red')
+            print("Please log in to your account or switch to a different account.", color='red')
+        else:
+            ErrorCheck = check_minecraft_token(id)
+            if ErrorCheck:
+                print("Login Status: Already logged in :)", color='green')
+                print("Hi,", username, color="blue")  # Now this should work correctly
+            else:
+                print("Login Status: Expired session :0", color='red')
+                print("Please login your account again!", color='red')
+                print("Hi,", username, color="blue")  # Now this should work correctly
+    else:
+        initialize_account_data()
+        username = "Player"
         print("Login Status: Not logged in :(", color='red')
         print("Please log in to your account first!", color='red')
-    else:
-        ErrorCheck = check_minecraft_token()
-        if ErrorCheck:
-            print("Login Status: Already logged in :)", color='green')
-            print("Hi,", username, color="blue")  # Now this should work correctly
-        else:
-            print("Login Status: Expired session :0", color='red')
-            print("Please login your account again!", color='red')
-            print("Hi,", username, color="blue")  # Now this should work correctly
-
 
 def main_memu(platform):
     print('"BakeLauncher Main Menu"', color='blue')
@@ -80,8 +111,8 @@ def main_memu(platform):
     login_status()
 
     print("What would you like to do?")
-    print("1. Launch Minecraft 2. Log in 3. Clear login data (for expired session)")
-    print("4: DownloadTool 5: Configure Java 6: Extra 7: About 8: Exit launcher")
+    print("1. Launch Minecraft 2. AccountManager 3: DownloadTool")
+    print("4: Configure Java 5: About 6: Exit launcher 7: Extra")
 
     try:
         user_input = int(input(":"))
@@ -95,29 +126,17 @@ def main_memu(platform):
             LaunchManager()
             back_to_memu(platform)
         elif user_input == 2:
-            login()
+            AccountManager()
             back_to_memu(platform)
         elif user_input == 3:
-            print("Cleaning login data...", color='purple')
-            initialize_account_data()
-            print("Login data cleared.", color='blue')
-            back_to_memu(platform)
-        elif user_input == 4:
             root = os.getcwd()
             download_main()
             os.chdir(root)
             back_to_memu(platform)
-        elif user_input == 5:
+        elif user_input == 4:
             java_finder()
             back_to_memu(platform)
-        elif user_input == 6:
-            print("Extra list:")
-            print("1: Custom JVM args")
-            user_input = int(input(":"))
-            if user_input == 1:
-                argsman()
-            back_to_memu(platform)
-        elif user_input == 7:
+        elif user_input == 5:
             print("POWERED BY BAKE!", color="yellow")
             print("BakeLauncher " + launcher_version, color='yellow')
             print("Contact Me :) TedKai/@Techarerm", color="blue")
@@ -127,10 +146,21 @@ def main_memu(platform):
             print(ChangeLog, color='cyan')
             timer(10)
             back_to_memu(platform)
-        elif user_input == 8:
+        elif user_input == 6:
             print("Exiting launcher...", color='green')
             print("Bye :)", color='blue')
             print(" ")
+        elif user_input == 7:
+            print("Extra list:")
+            print("1: Custom JVM args 2: Reset AccountData.json")
+            user_input = int(input(":"))
+            if user_input == 1:
+                argsman()
+            elif user_input == 2:
+                print("BakeLauncher: Resting AccountData.json...",color='purple')
+                initialize_account_data()
+                print("BakeLauncher: AccountData.json has been cleared.", color='blue')
+            back_to_memu(platform)
         else:
             print(f"BakeLauncher: Can't found option {user_input} :( ", color='red')
             print("Please check you type option's number and try again!", color='yellow')
