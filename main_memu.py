@@ -5,10 +5,8 @@ BakeLaunch Main Memu
 
 import os
 import time
-import json
 from auth_tool import AccountManager
-from auth_tool import check_minecraft_token
-from auth_tool import get_account_data
+from auth_tool import login_status
 from launch_client import LaunchManager
 from Download import download_main
 from jvm_tool import java_finder
@@ -30,78 +28,6 @@ def back_to_memu(platform):
         os.system("clear")
         main_memu(platform)
 
-
-def initialize_config():
-    print("Can't find config! Creating...", color='yellow')
-    default_data = "[BakeLauncher Configuration]\n\n<Global>\nEnableConfig = true\nDefaultAccountID = 1"
-    if not os.path.exists('data'):
-        os.makedirs('data')
-    with open('data/config.bakelh.cfg', 'w') as file:
-        file.write(default_data)
-
-
-def initialize_account_data():
-    if not os.path.exists('data'):
-        os.makedirs('data')
-    json_data = []
-
-    default_data = {
-        "id": 1,
-        "Username": 'BakeLauncherLocalPlayer',
-        "UUID": "Unknown",
-        "RefreshToken": None,  # When auth_tool notice RefreshToken = None it will stop refresh
-        "AccessToken": "Unknown",
-        "tag": "LocalTESTPlayerDoNOTUSE"
-    }
-
-    json_data.append(default_data)
-
-    with open("data/AccountData.json", "w") as jsonFile:
-        json.dump(json_data, jsonFile, indent=4)
-
-
-
-def login_status():
-    """
-    Check login status.
-    Avoid Minecraft crash on auth... However, if the token expires, it will still crash on launch :)
-    """
-    username = "Player"  # Initialize username to avoid UnboundLocalError-
-    try:
-        with open("data/config.bakelh.cfg", 'r') as file:
-            for line in file:
-                if "DefaultAccountID" in line:
-                    id = line.split('=')[1].strip()  # Extract the value if found
-                    break  # Stop after finding the ID
-    except FileNotFoundError:
-        initialize_config()
-        id = 1
-
-
-    if os.path.exists('data/AccountData.json'):
-        account_data = get_account_data(int(id))
-        username = account_data['Username']  # Set username here
-        if account_data['Username'] == "None":
-            print("Login Status: Not logged in :(", color='red')
-            print("Please log in to your account first!", color='red')
-        elif account_data['Username'] == "BakeLauncherLocalPlayer":
-            print("Warning: You are currently using a local account!", color='red')
-            print("Login Status: Not logged in :(", color='red')
-            print("Please log in to your account or switch to a different account.", color='red')
-        else:
-            ErrorCheck = check_minecraft_token(id)
-            if ErrorCheck:
-                print("Login Status: Already logged in :)", color='green')
-                print("Hi,", username, color="blue")  # Now this should work correctly
-            else:
-                print("Login Status: Expired session :0", color='red')
-                print("Please login your account again!", color='red')
-                print("Hi,", username, color="blue")  # Now this should work correctly
-    else:
-        initialize_account_data()
-        username = "Player"
-        print("Login Status: Not logged in :(", color='red')
-        print("Please log in to your account first!", color='red')
 
 def main_memu(platform):
     print('"BakeLauncher Main Menu"', color='blue')

@@ -1,14 +1,56 @@
+"""
+AutoTool
+
+A tool can get Microsoft Refresh Token, Minecraft Account Data(username, uuid), and AccessToken
+Some code is from GitHub: https://gist.github.com/dewycube/223d4e9b3cddde932fbbb7cfcfb96759
+Modify some functions for automatic refresh token and mult account support...
+
+When you log in your account AutoTool will save all account to AccountData(Also create an id when you want to select use
+account.
+
+Example In AccountData:
+[
+    {
+        "id": 1,
+        "Username": "BakeLauncherLocalPlayer",
+        "UUID": "Unknown",
+        "RefreshToken": "None",
+        "AccessToken": "Unknown",
+        "tag": "LocalTESTPlayerDoNOTUSE"
+    },
+    {
+        "id": 2,
+        "Username": "TedKai", # Your username
+        "UUID": "576477ee9099488798f478d81e6f9fae", # Your Minecraft Account UUID
+        "RefreshToken": "Example RefreshToken", # Your Microsoft Account Refresh Token(it use on refresh token)
+        "AccessToken": "Example AccessToken" # Your Minecraft Account Token(Or session token. Seems like it will expire
+        in one day.
+    }
+]
+
+"""
+
+
+
 import webbrowser
 import requests
 import json
 import os
-from __function__ import ClearOutput, GetPlatformName, timer
+from __function__ import ClearOutput, GetPlatformName, timer, initialize_config
 from print_color import print
 
+
+
 def get_new_id(data):
+    """
+    The ID(AccountID) is for BakeLauncher can simply to get account without required uuid or username
+    "Data is from AccountData!"
+    """
+    # Get all id inside the AccountData
     ids = [entry['id'] for entry in data]
     new_id = 1
     while new_id in ids:
+        # If id 1 is in data, new_id + 1 until can't find same one.
         new_id += 1
     return new_id
 
@@ -143,13 +185,17 @@ def login():
                     json_data = json.load(f)
                     # Ensure json_data is a list
                     if not isinstance(json_data, list):
-                        print("AuthTool: JSON data is not a list, resetting to empty list.", color='yellow')
+                        print("AuthTool: JSON data is not valid! Go to Extra>2: Reset AccountData.json to reset "
+                              "AccountData.json!", color='yellow')
+                        timer(4)
                         json_data = []
                 except json.JSONDecodeError:
-                    print("AuthTool: Failed to load existing JSON data, resetting to empty list.", color='yellow')
+                    print("AuthTool: Failed to load existing JSON data, resetting to empty list.", color='red')
+                    print("AutoTool: Go to Extra>2: Reset AccountData.json to reset "
+                          "AccountData.json!", color='yellow')
                     json_data = []
 
-        # Check if the UUID already exists
+        # Check if the UUID already exists in the AccountData
         existing_entry = next((entry for entry in json_data if entry["UUID"] == uuid), None)
 
         if existing_entry:
@@ -170,11 +216,11 @@ def login():
                 "AccessToken": minecraft_token
             }
 
-            # Append new data
+            # Append new data to old json data(or new?)
             json_data.append(data)
             print(f"AuthTool: Added new account data for UUID: {uuid}", color='green')
 
-        # Write the updated or new data back to the JSON file
+        # Write the updated or new data back to the AccountData
         with open("data/AccountData.json", "w") as jsonFile:
             json.dump(json_data, jsonFile, indent=4)
 
@@ -188,7 +234,6 @@ def login():
                 for i in range(len(lines)):
                     if 'DefaultAccountID' in lines[i]:
                         # Use the new or existing account ID
-                        print(new_id)
                         lines[i] = f'DefaultAccountID = {new_id}\n'
             with open("data/config.bakelh.cfg", 'w') as file:
                 file.writelines(lines)
@@ -207,7 +252,7 @@ def get_account_data(target_id):
                 json_data = json.load(f)
                 # Loop through the data and find the matching ID
                 for entry in json_data:
-                    if entry['id'] == int(target_id):  # Use int(target_id)
+                    if entry['id'] == int(target_id):
                         # Return the matching entry
                         return entry
                 print(f"AuthTool: No account found with ID {target_id}.", color='yellow')
@@ -220,7 +265,7 @@ def get_account_data(target_id):
     return None
 def refresh_microsoft_token(refresh_token):
     try:
-        # Request a new access token using the refresh token
+        # Request a new access token using the RefreshToken
         r = requests.post("https://login.live.com/oauth20_token.srf", data={
             "client_id": "00000000402B5328",
             "scope": "service::user.auth.xboxlive.com::MBI_SSL",
@@ -229,7 +274,7 @@ def refresh_microsoft_token(refresh_token):
             "grant_type": "refresh_token"
         })
         r.raise_for_status()
-        # Return the new access token and refresh token
+        # Return the new access token and RefreshToken
         return r.json()["access_token"], r.json()["refresh_token"]
     except requests.RequestException as e:
         print(f"AuthTool: Failed to refresh Microsoft token. Error: {e}", color='red')
@@ -275,6 +320,7 @@ def refresh_minecraft_token(microsoft_token):
         return None
 
 def check_minecraft_token(id):
+    id = int(id) # Account ID (in AccountData.json) "MUST" be an integer
     account_data = get_account_data(id)
 
     accessToken = account_data["AccessToken"]
@@ -327,7 +373,7 @@ def check_minecraft_token(id):
                 with open("data/AccountData.json", "w") as jsonFile:
                     json.dump(json_data, jsonFile, indent=4)
 
-                print("AuthTool: Tokens refreshed and saved successfully!", color='green')
+                print("AuthTool: Token refreshed and saved successfully!", color='green')
                 return True
 
             else:
@@ -376,11 +422,11 @@ def SelectDefaultAccount():
             print(f"AuthTool: Can't find account with ID {user_input} :(", color='red')
             print("AuthTool: Please check the ID you entered and try again.", color='yellow')
             timer(3)
-            SelectDefaultAccount()  # Recursively call the function to allow retry
+            SelectDefaultAccount()
     except ValueError:
         print("AuthTool: Invalid ID format. Please enter a valid integer.", color='red')
         timer(2)
-        SelectDefaultAccount()  # Recursively call the function to allow retry
+        SelectDefaultAccount()
 
 def DeleteAccount():
     print("AccountList:")
@@ -423,12 +469,78 @@ def DeleteAccount():
             print(f"AuthTool: Can't find account with ID {user_input} :(", color='red')
             print("AuthTool: Please check the ID you entered and try again.", color='yellow')
             timer(3)
-            SelectDefaultAccount()  # Recursively call the function to allow retry
+            SelectDefaultAccount()
     except ValueError:
         print("AuthTool: Invalid ID format. Please enter a valid integer.", color='red')
         timer(2)
-        SelectDefaultAccount()  # Recursively call the function to allow retry
+        SelectDefaultAccount()
 
+def initialize_account_data():
+    if not os.path.exists('data'):
+        os.makedirs('data')
+    json_data = []
+
+    default_data = {
+        "id": 1,
+        "Username": 'BakeLauncherLocalPlayer',
+        "UUID": "Unknown",
+        "RefreshToken": None,  # When auth_tool notice RefreshToken = None it will stop refresh
+        "AccessToken": "Unknown",
+        "tag": "LocalTESTPlayerDoNOTUSE"
+    }
+
+    json_data.append(default_data)
+
+    with open("data/AccountData.json", "w") as jsonFile:
+        json.dump(json_data, jsonFile, indent=4)
+
+
+
+def login_status():
+    """
+    Check login status.
+    Avoid Minecraft crash on auth... However, if the token expires, it will still crash on launch :)
+    """
+    username = "Player"  # Initialize username to avoid UnboundLocalError-
+    try:
+        with open("data/config.bakelh.cfg", 'r') as file:
+            for line in file:
+                if "DefaultAccountID" in line:
+                    id = line.split('=')[1].strip()  # Extract the value if found
+                    break  # Stop after finding the ID
+    except FileNotFoundError:
+        initialize_config()
+        id = 1
+
+
+    if os.path.exists('data/AccountData.json'):
+        account_data = get_account_data(int(id))
+        if account_data is None:
+            print("AuthTool: config.bakelh.cfg item DefaultAccountID are now available! Change to use local account...", color='yellow')
+            id = 1
+            account_data = get_account_data(int(id))
+        username = account_data['Username']  # Set username here
+        if account_data['Username'] == "None":
+            print("Login Status: Not logged in :(", color='red')
+            print("Please log in to your account first!", color='red')
+        elif account_data['Username'] == "BakeLauncherLocalPlayer":
+            print("Warning: You are currently using a local account!", color='red')
+            print("Login Status: Not logged in :(", color='red')
+            print("Please log in to your account or switch to a different account.", color='red')
+        else:
+            ErrorCheck = check_minecraft_token(id)
+            if ErrorCheck:
+                print("Login Status: Already logged in :)", color='green')
+                print("Hi,", username, color="blue")  # Now this should work correctly
+            else:
+                print("Login Status: Expired session :0", color='red')
+                print("Please login your account again!", color='red')
+                print("Hi,", username, color="blue")  # Now this should work correctly
+    else:
+        initialize_account_data()
+        username = "Player"
+        print("Login Status: Not logged in :(", color='red')
+        print("Please log in to your account first!", color='red')
 
 def AccountManager():
     PlatformName = GetPlatformName.check_platform_valid_and_return()
@@ -440,12 +552,15 @@ def AccountManager():
         print("3: Delete Account", color='red')
         user_input = int(input(':'))
         if user_input == 1:
+            # Login new account
             ClearOutput(PlatformName)
             login()
         elif user_input == 2:
+            # Select launcher default account(Save to config.bakelh.cfg)
             ClearOutput(PlatformName)
             SelectDefaultAccount()
         elif user_input == 3:
+            # Delete Account
             ClearOutput(PlatformName)
             DeleteAccount()
 
