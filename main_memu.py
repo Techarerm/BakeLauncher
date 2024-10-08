@@ -5,17 +5,14 @@ BakeLaunch Main Memu
 
 import os
 import time
-from auth_tool import AccountManager
-from auth_tool import login_status
+from auth_tool import AccountManager, initialize_account_data, login_status
+from __function__ import ChangeLog, launcher_version, ClearOutput, timer
 from launch_client import LaunchManager
 from Download import download_main
 from jvm_tool import java_finder
 from args_manager import argsman
 from print_color import print
-from __function__ import ChangeLog
-from __function__ import launcher_version
-from __function__ import ClearOutput
-from __function__ import timer
+
 
 
 def back_to_memu(platform):
