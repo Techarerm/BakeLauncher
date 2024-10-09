@@ -25,25 +25,24 @@ def SelectMainClass(version_id):
     main_class = version_data.get("mainClass")
     return main_class
 
+
 def macos_jvm_args_support(version_id):
     """
-    Some new version of Minecraft require this args(if Minecraft use LWJGL 3.x)
-    Makes the JVM starts with thread 0, required on OSX (From wiki.vg)
+    Check if the version data includes the -XstartOnFirstThread argument for macOS.
     """
     version_data = get_version_data(version_id)
-    jvm_args_items = version_data.get("jvm")
+    jvm_args_list = version_data.get("jvm", [])
 
-    for entry in jvm_args_items:
-        rules = entry.get("rules", [])
+    for jvm_entry in jvm_args_list:
+        rules = jvm_entry.get("rules", [])
         for rule in rules:
             os_data = rule.get("os", {})
             if os_data.get("name") == "osx":  # Check if the OS is macOS
-                value = entry.get("value", [])
+                value = jvm_entry.get("value", [])
                 if isinstance(value, list) and "-XstartOnFirstThread" in value:
                     return True, "-XstartOnFirstThread"
-                else:
-                    return False, None
 
+    return None, " "  # Return None if the argument is not found
 
 
 def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, assetsIndex, uuid):
