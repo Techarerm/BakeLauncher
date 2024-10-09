@@ -4,7 +4,7 @@ from print_color import print
 from Download import download_file
 from Download import download_natives
 from natives_tool import unzip_natives
-from __function__ import GetPlatformName
+from LauncherBase import GetPlatformName
 
 def legacy_version_file_structure_fix():
     if os.path.exists('versions'):

@@ -1,8 +1,8 @@
 import os
 import shutil
 import print_color
-import __function__
-from __function__ import GetPlatformName
+import LauncherBase
+from LauncherBase import GetPlatformName
 from print_color import print
 
 def generate_jar_paths(version_id):
