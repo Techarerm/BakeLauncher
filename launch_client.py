@@ -13,7 +13,7 @@ import subprocess
 import tempfile
 import time
 from print_color import print
-from __function__ import timer, GetPlatformName, launcher_version
+from LauncherBase import timer, GetPlatformName, launcher_version
 from assets_grabber import read_assets_index_version, get_assets_dir
 from jvm_tool import java_version_check, java_search
 from Download import get_version_data

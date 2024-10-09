@@ -36,7 +36,7 @@ import webbrowser
 import requests
 import json
 import os
-from __function__ import ClearOutput, GetPlatformName, timer, initialize_config
+from LauncherBase import ClearOutput, GetPlatformName, timer, initialize_config
 from print_color import print
 
 

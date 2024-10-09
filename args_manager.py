@@ -1,8 +1,8 @@
 import argparse
 from print_color import print
-from __function__ import GetPlatformName
-from __function__ import ClearOutput
-from __function__ import timer
+from LauncherBase import GetPlatformName
+from LauncherBase import ClearOutput
+from LauncherBase import timer
 from launch_client import launch_wit_args
 
 def argsman():

@@ -5,12 +5,12 @@ import argparse
 import main_memu
 import time
 import args_manager
-import __function__
+import LauncherBase
 import multiprocessing
 from args_manager import parse_arguments
 from print_color import print
 from main_memu import main_memu
-from __function__ import GetPlatformName, ClearOutput, BetaWarringMessage
+from LauncherBase import GetPlatformName, ClearOutput, BetaWarringMessage
 
 
 def args_check(platform, enable_args_check):
@@ -41,31 +41,45 @@ def args_check(platform, enable_args_check):
 
 
 def main():
-    enable_args_check = False
+    """
+    Main(Just main :D )
+    Check platform and arch support > check args > main_memu or parse_arguments > terminated
+    """
+    global CheckArchSupport
+    # Just check running platform name :) (Only support Windows, macOS, Linux and arch must be 64Bit!)
     print("BakeLauncher: Check running platform...", color="green")
     platformName = GetPlatformName.check_platform_valid_and_return()
-    ErrorCheck = GetPlatformName.check_platform_arch_and_return()
+
+    # Check launcher are running on 64Bit os(BakeLauncher not support to Download 32Bit necessary file)
+    CheckArchSupport = False
+    CheckArchSupport = GetPlatformName.check_platform_arch_and_return()
+
+    # Call args_check to see if --args was provided and handle appropriately(if is it will call parse_arguments from
+    # args_manager)
+    enable_args_check = False
     custom_args = args_check(platformName, enable_args_check)
     try:
+        # Running on without custom_args mode!
         if custom_args is None:
-            if ErrorCheck:
-                # Call args_check to see if --args was provided and handle appropriately
+            if CheckArchSupport == True:
                 print(f"BakeLauncher: Launcher are running on platform name: {platformName}", color="blue")
                 ClearOutput(GetPlatformName.check_platform_valid_and_return())
                 print(BetaWarringMessage, color="yellow")
-                time.sleep(1)
+                time.sleep(1.5)
                 ClearOutput(platformName)
                 main_memu(platformName)
             else:
                 print("BakeLauncher: Sorry :( BakeLauncher never plan for other arch system support :(",
                       color="red")
     except ValueError:
+        # ?
         print("It working on my machine :( why you can't...", color="red")
 
     print("BakeLauncher thread terminated!")
     input("Press any key to continue...")
 
+
 if __name__ == "__main__":
-    # Added multitasking(?) support(for LaunchClient)
+    # Added multitasking(?) support(for LaunchClient and pyinstaller...)
     multiprocessing.freeze_support()
     main()

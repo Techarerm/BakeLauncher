@@ -6,7 +6,7 @@ BakeLaunch Main Memu
 import os
 import time
 from auth_tool import AccountManager, initialize_account_data, login_status
-from __function__ import ChangeLog, launcher_version, ClearOutput, timer
+from LauncherBase import ChangeLog, launcher_version, ClearOutput, timer
 from launch_client import LaunchManager
 from Download import download_main
 from jvm_tool import java_finder
@@ -75,7 +75,7 @@ def main_memu(platform):
             print(" ")
         elif user_input == 7:
             print("Extra list:")
-            print("1: Custom JVM args 2: Reset AccountData.json")
+            print("1: Custom JVM args 2: Reset AccountData.json 3: Edit config.bakelh.json")
             user_input = int(input(":"))
             if user_input == 1:
                 argsman()
@@ -83,6 +83,10 @@ def main_memu(platform):
                 print("BakeLauncher: Resting AccountData.json...",color='purple')
                 initialize_account_data()
                 print("BakeLauncher: AccountData.json has been cleared.", color='blue')
+            elif user_input == 3:
+                print("BakeLauncher: Loading edit mode...", color='green')
+                print("BakeLauncher: This function is in dev :)", color='purple')
+                timer(10)
             back_to_memu(platform)
         else:
             print(f"BakeLauncher: Can't found option {user_input} :( ", color='red')
