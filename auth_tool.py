@@ -516,7 +516,7 @@ def login_status():
     if os.path.exists('data/AccountData.json'):
         account_data = get_account_data(int(id))
         if account_data is None:
-            print("AuthTool: config.bakelh.cfg item DefaultAccountID are now available! Change to use local account...", color='yellow')
+            print("AuthTool: config.bakelh.cfg item DefaultAccountID are not available! Change to use local account...", color='yellow')
             id = 1
             account_data = get_account_data(int(id))
         username = account_data['Username']  # Set username here

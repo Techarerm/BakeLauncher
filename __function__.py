@@ -8,14 +8,14 @@ import re
 from print_color import print
 
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = "Beta 0.8(Dev-JA081024)"
+launcher_version = "Beta 0.8(Dev-JC091024)"
 
 BetaWarringMessage = ("You are running beta version of BakeLauncher.\n"
                       "This is an 'Experimental' version with potential instability.\n"
                       "Please run it only if you know what you are doing.\n")
 
 ChangeLog = ("Changelog:\n"
-             "Multitask+ Update!\n"
+             "MultiTask+ Update!\n"
              ""
              "AccountManager(AutoTool): Added support for multiple accounts!\n"
              "LaunchClient: Added support for multiple client! Now you can launch several clients at same time!\n"
@@ -23,7 +23,8 @@ ChangeLog = ("Changelog:\n"
 
 def initialize_config():
     print("Can't find config! Creating...", color='yellow')
-    default_data = "[BakeLauncher Configuration]\n\n<Global>\nEnableConfig = true\nDefaultAccountID = 1"
+    default_data = ('[BakeLauncher Configuration]\n\n<Global>\nEnableConfig = true\nDefaultAccountID = 1\n<LaunchManager>'
+                    '\nEnableExperimentalMultitasking = true')
     if not os.path.exists('data'):
         os.makedirs('data')
     with open('data/config.bakelh.cfg', 'w') as file:

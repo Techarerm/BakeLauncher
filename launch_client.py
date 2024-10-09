@@ -25,6 +25,26 @@ def SelectMainClass(version_id):
     main_class = version_data.get("mainClass")
     return main_class
 
+def macos_jvm_args_support(version_id):
+    """
+    Some new version of Minecraft require this args(if Minecraft use LWJGL 3.x)
+    Makes the JVM starts with thread 0, required on OSX (From wiki.vg)
+    """
+    version_data = get_version_data(version_id)
+    jvm_args_items = version_data.get("jvm")
+
+    for entry in jvm_args_items:
+        rules = entry.get("rules", [])
+        for rule in rules:
+            os_data = rule.get("os", {})
+            if os_data.get("name") == "osx":  # Check if the OS is macOS
+                value = entry.get("value", [])
+                if isinstance(value, list) and "-XstartOnFirstThread" in value:
+                    return True, "-XstartOnFirstThread"
+                else:
+                    return False, None
+
+
 
 def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, assetsIndex, uuid):
     version_data = get_version_data(version_id)  # Fetch version data
@@ -84,8 +104,8 @@ def launch_wit_args(platform, version_id, librariesCFG, gameDir, assetsDir, asse
 def create_new_launch_thread(launch_command, title):
     FailedToLaunch = False
     PlatFormName = GetPlatformName.check_platform_valid_and_return()
-    print("LaunchManager: Please check the launcher already created a new terminal.", color='purple')
-    print("LaunchManager: If it didn't create it please check the output and report it to GitHub!", color='green')
+    print("LaunchClient: Please check the launcher already created a new terminal.", color='purple')
+    print("LaunchClient: If it didn't create it please check the output and report it to GitHub!", color='green')
     if PlatFormName == 'Windows':
         print("LaunchClient: Add command for windows support...", color='green')
         with tempfile.NamedTemporaryFile(delete=False, suffix='.bat') as command:
@@ -147,16 +167,24 @@ def create_new_launch_thread(launch_command, title):
         print("LaunchClient: Cause by unknown system or launch can't find shell :(", color='red')
 
 
-def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass, JVM_Args_macOSGLFW,
-                 JVM_Args, JVM_ArgsWindowsSize, JVM_ArgsRAM, GameArgs, custom_game_args, instances_id):
+def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
+                 JVM_Args, JVM_ArgsWindowsSize, JVM_ArgsRAM, GameArgs, custom_game_args, instances_id, EnableMultitasking):
+
     # Construct the Minecraft launch command with proper quoting
     minecraft_command = (
-        f'{JVMPath} {JVM_Args_macOSGLFW} {JVM_Args} {JVM_ArgsWindowsSize} {JVM_ArgsRAM} '
+        f'{JVMPath} {JVM_Args} {JVM_ArgsWindowsSize} {JVM_ArgsRAM} '
         f'-Djava.library.path="{NativesPath}" -cp "{libraries_paths_strings}" '
         f'{MainClass} {GameArgs} {custom_game_args}'
     )
 
-    print("OriginalLaunchCommand:", minecraft_command)
+    # Is for launch using one thread method
+    cleaned_jvm_path = JVMPath.replace(" ", "")
+    minecraft_command_one_thread = (
+        f'{cleaned_jvm_path} {JVM_Args} {JVM_ArgsWindowsSize} {JVM_ArgsRAM} '
+        f'-Djava.library.path="{NativesPath}" -cp "{libraries_paths_strings}" '
+        f'{MainClass} {GameArgs} {custom_game_args}'
+    )
+
     green = "\033[32m"
     blue = "\033[34m"
     light_yellow = "\033[93m"
@@ -194,23 +222,34 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass, JVM_A
 
     title = f"BakaLauncher: {instances_id}"
 
-    # Launch a new process using multiprocessing
-    client_process = multiprocessing.Process(
-        target=create_new_launch_thread,
-        args=(launch_command, title,)  # Pass the launch_command as an argument
-    )
+    if EnableMultitasking == True:
+        # Launch a new process using multiprocessing
+        print("LaunchClient: EnableExperimentalMultitasking is Enabled :)", color='purple')
+        client_process = multiprocessing.Process(
+            target=create_new_launch_thread,
+            args=(launch_command, title,)  # Pass the launch_command as an argument
+        )
 
-    # Start the process
-    client_process.start()
-
-    # Optional: Wait for the process to finish (if needed)
-    # client_process.join()
+        # Start the process
+        client_process.start()
+    else:
+        print("LaunchClient: EnableExperimentalMultitasking is Disabled!", color='green')
+        print('"BakeLauncher One Thread Launch Mode"', color='green')
+        if GetPlatformName.check_platform_valid_and_return() == "Windows":
+            subprocess.run(minecraft_command_one_thread, shell=True)
+            print("LaunchManager: Minecraft has stopped running! (Thread terminated)", color='green')
+            back_to_main_memu = input("Press any key to continue. . .")
+        else:
+            subprocess.run(minecraft_command, shell=True)
+            print("LaunchManager: Minecraft has stopped running! (Thread terminated)", color='green')
+            back_to_main_memu = input("Press any key to continue. . .")
 
 
 def LaunchManager():
     Main = "LaunchManager"
     root_directory = os.getcwd()
     global CustomGameArgs
+    global EnableMultitasking
 
     # Check folder "versions" are available in root (To avoid some user forgot to install)
     if not os.path.exists("instances"):
@@ -298,6 +337,21 @@ def LaunchManager():
     if username == "Unknown":
         print("LaunchManager: Warring! You are not logged ! Client will crash when you trying to launch it!!!", color='red')
     # Transfer the current path to launch instances path and set gameDir
+
+    # Check EnableMultitasking Support
+    EnableMultitasking = False
+    try:
+        with open("data/config.bakelh.cfg", 'r') as file:
+            for line in file:
+                if "EnableExperimentalMultitasking" in line:
+                    EnableExperimentalMultitasking = line.split('=')[1].strip()  # Extract the value if found
+                    if str(EnableExperimentalMultitasking) == "True":
+                        EnableMultitasking = True
+                    break
+    except FileNotFoundError:
+        print("LaunchClient: No config.bakelh.cfg found :0", color='yellow')
+
+
     os.chdir(r'instances/' + version_id)
     gameDir = ".minecraft"
 
@@ -310,9 +364,6 @@ def LaunchManager():
     # Set this to prevent the windows too small
     JVM_Args_WindowsSize = (r"-Dorg.lwjgl.opengl.Window.undecorated=false -Dorg.lwjgl.opengl.Display.width=1280 "
                             r"-Dorg.lwjgl.opengl.Display.height=720")
-
-    # Makes the JVM starts with thread 0, required on OSX (From wiki.vg)
-    JVM_Args_macOSGLFW = "-XstartOnFirstThread"
 
     # Check natives are available to use
     print("LaunchManager: Checking natives...", color='green')
@@ -356,24 +407,39 @@ def LaunchManager():
     CustomGameArgs = " "
 
     instances_id = f"Minecraft {version_id}"
-
     # Bake Minecraft :)
     if PlatformName == "Windows":
-        JVM_Args_macOSGLFW = " "
-        LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_macOSGLFW, JVM_Args_HeapDump,
+        print("LaunchMode:(Windows;WithHeapDump;SetWindowSize)", color='blue')
+        LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump,
                      JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
-                     CustomGameArgs, instances_id)
+                     CustomGameArgs, instances_id, EnableMultitasking)
     elif PlatformName == "Darwin":
         JVM_Args_HeapDump = " "
-        LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_macOSGLFW, JVM_Args_HeapDump,
+        CheckRequireXThread, XThreadArgs = macos_jvm_args_support(version_id)
+        if CheckRequireXThread:
+            print("LaunchMode:(Darwin;WithoutHeapDump;SetWindowSize;RequireXStartFirstThread)", color='blue')
+            JVM_Args_HeapDump = XThreadArgs
+            LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class,
+                         JVM_Args_HeapDump,
+                         JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
+                         CustomGameArgs, instances_id, EnableMultitasking)
+        else:
+            print("LaunchMode:(Darwin;WithoutHeapDump;SetWindowSize;WithoutRequireXStartFirstThread)", color='blue')
+            LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump,
+                         JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
+                         CustomGameArgs, instances_id, EnableMultitasking)
+    elif PlatformName == "Linux":
+        JVM_Args_HeapDump = " "
+        print("LaunchMode:(Linux;WithoutHeapDump;SetWindowSize;WithoutRequireXStartFirstThread)", color='blue')
+        LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump,
                      JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
-                     CustomGameArgs, instances_id)
+                     CustomGameArgs, instances_id, EnableMultitasking)
     else:
         JVM_Args_HeapDump = " "
-        JVM_Args_macOSGLFW = " "
-        LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_macOSGLFW, JVM_Args_HeapDump,
+        print("LaunchMode:(UnknownOS;WithoutHeapDump;SetWindowSize;WithoutRequireXStartFirstThread)", color='blue')
+        LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump,
                      JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
-                     CustomGameArgs, instances_id)
+                     CustomGameArgs, instances_id, EnableMultitasking)
 
     os.chdir(root_directory)
     timer(2)
