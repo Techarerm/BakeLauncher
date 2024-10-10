@@ -2,6 +2,5 @@
 
 print-color==0.4.6
 requests==2.32.3
-
-# Build tool
 pyinstaller==6.10.0
+psutil==5.9.8
