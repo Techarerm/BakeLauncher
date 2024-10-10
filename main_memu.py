@@ -75,7 +75,7 @@ def main_memu(platform):
             print(" ")
         elif user_input == 7:
             print("Extra list:")
-            print("1: Custom JVM args 2: Reset AccountData.json 3: Edit config.bakelh.json")
+            print("1: Custom Args 2: Reset AccountData.json 3: Edit config.bakelh.json")
             user_input = int(input(":"))
             if user_input == 1:
                 argsman()

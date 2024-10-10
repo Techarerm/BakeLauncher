@@ -4,10 +4,8 @@ In the file structure: launch_client.py
 
 Just a tool to prepare command for launching clients...
 """
-CustomArgs = "--quickPlayMultiplayer 2b2t.org"
 
 import os
-import json
 import multiprocessing
 import subprocess
 import tempfile
@@ -247,8 +245,7 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
 def LaunchManager():
     Main = "LaunchManager"
     root_directory = os.getcwd()
-    global CustomGameArgs
-    global EnableMultitasking
+    global CustomGameArgs, CustomJVMArgs, JVM_Args_HeapDump, JVM_Args_WindowsSize, JVM_ArgsRAM, EnableMultitasking
 
     # Check folder "versions" are available in root (To avoid some user forgot to install)
     if not os.path.exists("instances"):
@@ -278,6 +275,7 @@ def LaunchManager():
     else:
         print("LaunchManager: Preparing to launch.....", color='c')
 
+
     # Get required Java version path
     if os.path.isfile('Java_HOME.json'):
         print("LaunchManager: Found exits Java Path config!", color='blue')
@@ -289,6 +287,7 @@ def LaunchManager():
             print("LaunchManager: Calling java_search..")
             os.chdir(root_directory)
             java_search()
+
 
     print("LaunchManager: Getting JVM Path...", color='c')
     JavaPath = java_version_check(Main, version_id)
@@ -318,6 +317,7 @@ def LaunchManager():
               color='yellow')
         timer(8)
         return "JavaExecutableAreCorrupted"
+
 
     # Get access token and username, uuid to set game args
     print("LaunchManager: Reading account data...", color='green')
@@ -350,7 +350,7 @@ def LaunchManager():
     except FileNotFoundError:
         print("LaunchClient: No config.bakelh.cfg found :0", color='yellow')
 
-
+    # Sdt work path to instances
     os.chdir(r'instances/' + version_id)
     gameDir = ".minecraft"
 
@@ -402,8 +402,39 @@ def LaunchManager():
     # Get GameArgs
     GameArgs = GetGameArgs(version_id, username, access_token, gameDir, assets_dir, assetsIndex, uuid)
 
-    # Coming soon :)
-    CustomGameArgs = " "
+    # Now it available :)
+    if os.path.exists("instance.bakelh.cfg"):
+        print("LaunchManager: Found instance config :D", color='blue')
+        print('LauncherManager: Trying to add custom config to launch chain...', color='green')
+
+        with open("instance.bakelh.cfg", 'r') as file:
+            for line in file:
+                # Check for CustomGameArgs
+                if "CustomGameArgs" in line:
+                    # Extract everything after '=' and strip leading/trailing whitespace
+                    CustomGameArgs = line.split('=', 1)[1].strip()  # Use maxsplit to capture the whole value
+                    print(f"LaunchManager: Added custom game args to launch chain: '{CustomGameArgs}'", color='blue')
+                    continue  # Continue to look for other args
+
+                # Check for CustomJVMArgs
+                if "CustomJVMArgs" in line:
+                    # Extract everything after '=' and strip leading/trailing whitespace
+                    CustomJVMArgs = line.split('=', 1)[1].strip()  # Use maxsplit to capture the whole value
+                    print(f"LaunchManager: Replaced the default jvm_args to custom args: '{CustomJVMArgs}'",
+                          color='blue')
+                    continue  # Continue to look for other args
+
+        # Check if CustomJVMArgs is None or has a length of 0 (ignoring spaces)
+        if CustomJVMArgs is None or len(CustomJVMArgs.strip()) == 0:
+            print("LaunchManager: CustomJVMArgs is empty or not provided, ignoring...", color='yellow')
+            CustomJVMArgs = None  # Or handle as needed
+    else:
+        CustomGameArgs = " "
+        CustomJVMArgs = None
+
+    if not CustomJVMArgs == None:
+        JVM_Args_WindowsSize = " "
+        JVM_ArgsRAM = CustomJVMArgs
 
     instances_id = f"Minecraft {version_id}"
     # Bake Minecraft :)
