@@ -472,4 +472,4 @@ def LaunchManager():
                      CustomGameArgs, instances_id, EnableMultitasking)
 
     os.chdir(root_directory)
-    timer(2)
+    time.sleep(2)

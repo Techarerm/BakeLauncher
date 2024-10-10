@@ -19,6 +19,7 @@ ChangeLog = ("Changelog:\n"
              ""
              "AccountManager(AutoTool): Added support for multiple accounts!\n"
              "LaunchClient: Added support for multiple client! Now you can launch several clients at same time!\n"
+             "ArgsManager: Finally added support for custom args! Now you can go to Extra>1: Custom Args to set custom args :)\n"
              "\n")
 
 def initialize_config():

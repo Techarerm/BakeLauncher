@@ -47,6 +47,7 @@ def main_memu(platform):
             print("Launching Minecraft...", color='green')
             ClearOutput(platform)
             LaunchManager()
+            ClearOutput(platform)
             back_to_memu(platform)
         elif user_input == 2:
             AccountManager()
