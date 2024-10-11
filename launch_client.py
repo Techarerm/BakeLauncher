@@ -278,9 +278,9 @@ def LaunchManager():
 
     # Get required Java version path
     if os.path.isfile('Java_HOME.json'):
-        print("LaunchManager: Found exits Java Path config!", color='blue')
+        print("LaunchManager: Found exist Java Path config!", color='blue')
     else:
-        print("LaunchManager: Can't find exits Java Path config :(", color='red')
+        print("LaunchManager: Can't find exist Java Path config :(", color='red')
         print("Want create it now ? Y/N", color='green')
         user_input = input(":")
         if user_input.upper() == "Y":
@@ -344,7 +344,7 @@ def LaunchManager():
             for line in file:
                 if "EnableExperimentalMultitasking" in line:
                     EnableExperimentalMultitasking = line.split('=')[1].strip()  # Extract the value if found
-                    if str(EnableExperimentalMultitasking) == "True":
+                    if str(EnableExperimentalMultitasking).upper() == "TRUE":
                         EnableMultitasking = True
                     break
     except FileNotFoundError:
