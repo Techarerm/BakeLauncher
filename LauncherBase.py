@@ -8,7 +8,7 @@ import time
 from print_color import print
 
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = "Beta 0.8(Dev-JF101224)"
+launcher_version = "Beta 0.8(Dev-JB101524)"
 
 BetaWarringMessage = ("You are running beta version of BakeLauncher.\n"
                       "This is an 'Experimental' version with potential instability.\n"
@@ -19,7 +19,7 @@ ChangeLog = ("Changelog:\n"
              ""
              "AccountManager(AutoTool): Added support for multiple accounts!\n"
              "LaunchClient: Added support for multiple client! Now you can launch several clients at same time!\n"
-             "ArgsManager: Finally added support for custom args! Now you can go to Extra>1: Custom Args to set custom args :)\n"
+             "ArgsManager: Added support for custom args! Now you can go to Extra > 1: Custom Args to set custom args!\n"
              "\n")
 
 def initialize_config():
@@ -86,7 +86,7 @@ class PlatformCheck:
             return "Unsupported"
 
     def check_platform_arch_and_return(self):
-        if self.platformArch[0] == "64bit":  # Accessing the first element of the tuple
+        if self.platformArch[0] == "64bit":
             return True
         else:
             return False

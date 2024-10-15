@@ -1,16 +1,11 @@
-import argparse
 import os
 import time
-
 import requests
 import psutil
 import json
 from print_color import print
 from launch_client import GetGameArgs
-from LauncherBase import GetPlatformName
-from LauncherBase import ClearOutput
-from LauncherBase import timer
-from launch_client import launch_wit_args
+from LauncherBase import GetPlatformName, ClearOutput,timer
 from Download import get_version_data
 
 CustomGameArgsStatus = False
@@ -27,7 +22,7 @@ def write_config(path, mode, data):
                     print(f"ArgsManager: Args '{delete_item}' has been deleted!", color='blue')
                     break  # Stop after finding and deleting the first occurrence
         else:
-            return False  # Return False if no deletion was made
+            return False
         return updated
 
     def add_item(data, lines):
@@ -143,14 +138,14 @@ def write_config(path, mode, data):
 
 
 
-def load_old_config(config_path, item):
+def load_old_config(config_path, item, argsname):
     with open(config_path, 'r') as config_file:
         lines = config_file.readlines()
         for line in lines:
             if item in line:
                 item = line.split('=', 1)[1].strip()
                 if len(item) > 0:
-                    print(f"Found exist Game Args: {item}", color='purple')
+                    print(f"Found exist {argsname}: {item}", color='purple')
                     CustomGameArgsStatus = True
 
 def get_args(version_id):
@@ -290,7 +285,7 @@ def get_game_args_and_edit():
         return
 
     while True:
-        load_old_config(config_path, "CustomGameArgs")
+        load_old_config(config_path, "CustomGameArgs", 'Game Args')
         print("You can add these game args:", color='blue')
 
         for feature in feature_list:
@@ -322,14 +317,15 @@ def game_args_editor(mode):
     config_path = os.path.join(path, 'instance.bakelh.cfg')
     if mode == "Edit":
         while True:
-            load_old_config(config_path, "CustomGameArgs")
-            print("GameArgsEditor", color='magenta')
+            load_old_config(config_path, '"CustomGameArgs"', "Game Args")
+            print('"GameArgsEditor"', color='purple')
             print(
                 "This function is mainly for advanced users. If you are not, please use Generate Args adapted to your computer!",
                 color='yellow')
-            print("Type Delete>WantDeleteItem to delete args.", color='red')
-            print("Type Add>WantDeleteItem to add args.", color='blue')
-            print("Type exit to back to main memu!", color='green')
+            print("Check wiki to get more information! (https://wiki.vg/Launching_the_game#Game_Arguments)", color='green')
+            print("Type Delete>WantDeleteItem to delete args.")
+            print("Type Add>WantDeleteItem to add args.")
+            print("Enter exit to back to main memu!")
             user_input = input(":")
             if user_input.upper() == "EXIT":
                 return "exit"
@@ -357,11 +353,12 @@ def game_args_editor(mode):
 def modify_game_args():
     while True:
         try:
+            print("ModifyGameArgs", color='purple')
             print("Options:", color='green')
             print("1: List support args and enter you want", color='blue')
-            print("2: Edit Custom Game Args (Advanced)", color='purple')
+            print("2: Create new game args (Advanced)", color='purple')
             print("3: Clean all Game Args", color='red')
-            print("4: Exit", color='red')
+            print("4: Exit")
 
             user_input = int(input(":"))
 
@@ -371,7 +368,7 @@ def modify_game_args():
                 exit_signal = game_args_editor("Edit")
             elif user_input == 3:
                 exit_signal = game_args_editor("Clear")
-            elif user_input == 3:
+            elif user_input == 4:
                 return 'exit'
             else:
                 print("ArgsManager: Unknown option :0", color='red')
@@ -434,7 +431,7 @@ def get_best_jvm_args(path):
 def custom_jvm_args(path, mode):
     config_path = os.path.join(path, 'instance.bakelh.cfg')
     if mode == "EditRAMSize":
-        load_old_config(config_path, "CustomJVMArgs")
+        load_old_config(config_path, '"CustomJVMArgs"', 'JVM Args')
         print("JVM Ram Size Editor:")
         print("IMPORTANT: Backup your old JVM Args(without memory args)! Is really important if you want to restore your old args.", color='red')
         print("This function is mainly for advanced users. If you are not, please use Generate Args adapted to your computer!", color='yellow')
@@ -451,11 +448,14 @@ def custom_jvm_args(path, mode):
                 print("ArgsManager: Unknown input :0", color='red')
                 timer(2)
     elif mode == "CustomEdit":
-        load_old_config(config_path, "CustomJVMArgs")
-        print("This function is mainly for advanced users. If you are not, please use Generate Args adapted to your computer!",color='yellow')
-        print("Type Delete>WantDeleteItem to delete args.", color='red')
-        print("Type Add>WantDeleteItem to add args.", color='blue')
-        print("Type exit to back to main memu!", color='green')
+        load_old_config(config_path, "CustomJVMArgs", 'JVM Args')
+        print("This function is mainly for advanced users."
+              " If you are not, please use Generate Args adapted to your computer!",color='yellow')
+        print("Check GitHub 'BakeLauncher-Library' to get more information!"
+              " (https://github.com/Techarerm/BakeLauncher-Library/blob/main/JVM/JVM_Args_List.json)", color='green')
+        print("Type Delete>WantDeleteItem to delete args.")
+        print("Type Add>WantDeleteItem to add args.")
+        print("Enter exit to back to main memu!")
         user_input = input(":")
         if user_input.upper() == "EXIT":
             return
@@ -490,11 +490,11 @@ def modify_jvm_args():
     while True:
         ClearOutput(GetPlatformName.check_platform_valid_and_return())
         print("ModifyJVMArgs", color='purple')
-        print("1: Edit Minecraft Usage RAM Size", color='green')
-        print("2: Custom Args (need input)", color='red')
+        print("1: Edit Minecraft Usage RAM Size (Advanced)", color='green')
+        print("2: Custom Args (Advanced)", color='purple')
         print("3: Generate Args adapted to your computer", color='blue')
-        print("4: Clear JVM Config file", color='magenta')
-        print("5: Exit", color='yellow')  # Option to exit the loop
+        print("4: Clear JVM Config file", color='red')
+        print("5: Exit")  # Option to exit the loop
 
         try:
             user_input = int(input(":"))
@@ -523,7 +523,6 @@ def modify_jvm_args():
 def argsman():
     exit_program = False
     ClearOutput(GetPlatformName.check_platform_valid_and_return())
-    print("Modify Launch arguments are coming soon :)", color='g')
     print("[ArgsManager]", color='magenta')
     print("1: Modify Game Args 2: Modify JVM Args 3: Exit Modify Args")
 
@@ -539,7 +538,7 @@ def argsman():
                 if exit_signal == "exit":
                     return  # Exit the entire flow if the exit signal is received
             elif user_input == 3:
-                timer(2)
+                timer(1)
                 return  # Exit the program or menu
             else:
                 print("ArgsManager: Unknown option :0", color='red')
