@@ -10,9 +10,15 @@ from Download import get_version_data
 
 CustomGameArgsStatus = False
 CustomJVMArgsStatus = True
+GameArgsRequireValve = False
 
-def write_config(path, mode, data):
+def write_config(path, mode, data, OriginalArgs):
+    global updated
+    updated = False
+    config_file_path = os.path.join(path, 'instance.bakelh.cfg')
+
     def delete_item(data, lines):
+        # If user input args is in line, delete it and overwrite
         for i in range(len(lines)):
             if "Delete>" in data:
                 delete_item = data.split(">")[1].strip()  # Get the argument after 'Delete>' and strip any extra spaces
@@ -20,14 +26,13 @@ def write_config(path, mode, data):
                     lines[i] = lines[i].replace(delete_item, "").strip()  # Remove and clean up the line
                     updated = True
                     print(f"ArgsManager: Args '{delete_item}' has been deleted!", color='blue')
-                    break  # Stop after finding and deleting the first occurrence
+                    break
         else:
             return False
         return updated
 
-    def add_item(data, lines):
-        updated = False  # Initialize updated to track changes
-        add_item = ""  # Define add_item before the loop to avoid scope issues
+    def add_data(data, lines):
+        add_item = ""
         for i in range(len(lines)):
             if "Add>" in data:
                 add_item = data.split(">")[1].strip()  # Get the argument after 'Add>' and strip any extra spaces
@@ -35,6 +40,8 @@ def write_config(path, mode, data):
                 # Check if the item is already in the line
                 if add_item.lower() in lines[i].lower().strip():
                     print(f"ArgsManager: Args '{add_item}' already exists in line.", color='yellow')
+                    print("Failed to append new args to config file! Cause by args already exist in the config.", color='red')
+                    time.sleep(2)
                 else:
                     lines[i] = lines[i].strip() + " " + add_item  # Add the item to the line with a space
                     updated = True
@@ -46,8 +53,6 @@ def write_config(path, mode, data):
             return False
         return updated
 
-    # Ensure the correct path to the configuration file
-    config_file_path = os.path.join(path, 'instance.bakelh.cfg')
 
     # Check if the config file exists; if not, create it
     if not os.path.exists(config_file_path):
@@ -77,42 +82,71 @@ def write_config(path, mode, data):
                 return full_arg
         return None
 
-    # Update or append based on the mode
     if mode == "WriteGameArgs":
-        delete_item(data,lines)
-        add_item(data, lines)
+        # Write game args (also check if the args already exist)
+        delete_item(data, lines)  # For Create new game args (Advanced) (If Delete> is in data)
+        add_data(data, lines)  # For Create new game args (Advanced) (If Add> is in data)
         found = False  # Track if CustomGameArgs has been found and updated
+        updated = False  # Track if the update was successful
+
         for i in range(len(lines)):
             if 'CustomGameArgs' in lines[i]:
-                current_value = lines[i].split('=', 1)[1].strip()
+                current_value = lines[i].split('=', 1)[1].strip()  # Get the current args value
+                print("Debug:", OriginalArgs)
 
-                # Check if the argument already exists
-                if data in current_value:
-                    print(f"ArgsManager: Argument '{data}' already exists in CustomGameArgs.", color='yellow')
-                    return  # Early return if you don't want duplicates
+                # Check if the argument already exists in CustomGameArgs
+                if OriginalArgs in current_value:
+                    if GameArgsRequireValve:  # If the argument requires valve (overwrite logic)
+                        print(f"ArgsManager: Argument '{OriginalArgs}' already exists in CustomGameArgs.",
+                              color='yellow')
+                        print("Do you want to overwrite the existing argument? [Y/n]")
+                        user_input = str(input(":"))
+                        if user_input.lower() == "y":
+                            # Identify the part after `OriginalArgs` (the "valve" part)
+                            args_with_valve = current_value.split(OriginalArgs, 1)[1].strip()
 
-                # Update the CustomGameArgs
-                lines[i] = f'CustomGameArgs = {current_value} {data}\n'  # Append new data
-                updated = True
+                            # Remove the old argument and valve from the line
+                            # This will strip `OriginalArgs` and its associated valve from the line
+                            lines[i] = lines[i].replace(f"{OriginalArgs} {args_with_valve.split()[0]}", "").strip()
+
+                            # Append new data (with space management)
+                            lines[i] += f" {data.strip()}\n"
+                            updated = True
+                    else:
+                        print(f"ArgsManager: Argument '{OriginalArgs}' already exists in CustomGameArgs.",
+                              color='yellow')
+                else:
+                    # If argument doesn't exist, append it
+                    lines[i] = f'CustomGameArgs = {current_value} {data.strip()}\n'  # Append new data
+                    updated = True
+
                 found = True  # Mark as found
-                break  # Exit loop
+                break
 
-        # If no entry was found, append the new CustomGameArgs
+        # If no entry for CustomGameArgs was found, append the new CustomGameArgs
         if not found:
             lines.append(f'CustomGameArgs = {data.strip()}\n')  # Append new entry if no match was found
+            updated = True
+
+        if updated:
+            print("ArgsManager: CustomGameArgs successfully updated.")
+        else:
+            print("ArgsManager: No changes were made to CustomGameArgs.")
 
 
     elif mode == "WriteJVMArgs":
-        delete_item(data,lines)
-        add_item(data, lines)
+        delete_item(data,lines)  # For Custom Args (Advanced) (If Delete> is in data)
+        add_data(data, lines)  # For Custom Args (Advanced) (If Add> is in data)
         for i in range(len(lines)):
-            if 'CustomJVMArgs' in lines[i]:
+            if data in lines[i]:
+                print(f"ArgsManager: Argument '{data}' already exists in line.", color='yellow')
+                break
+            elif 'CustomJVMArgs' in lines[i]:
                 current_value = lines[i].split('=', 1)[1].strip()  # Get current value and strip whitespace
                 new_value = current_value + ' ' + data  # Append new data
                 lines[i] = f'CustomJVMArgs = {new_value.strip()}\n'  # Strip extra spaces
                 updated = True
-                break  # Exit loop once found
-
+                break
         if not updated:
             # If not updated, append the new data
             lines.append(f'CustomJVMArgs = {data.strip()}\n')
@@ -121,8 +155,7 @@ def write_config(path, mode, data):
         for i in range(len(lines)):
             if 'CustomJVMArgs' in lines[i]:
                 current_value = lines[i].split('=', 1)[1].strip()  # Get current value and strip whitespace
-                lines[i] = f'CustomJVMArgs = {data.strip()}\n'  # Strip extra spaces
-                lines.append(f'CustomJVMArgs = {data.strip()}\n')
+                lines[i] = f'CustomJVMArgs = {data.strip()}\n'  # Overwrite the line with new data
                 break  # Exit loop once found
 
 
@@ -188,6 +221,7 @@ def get_args(version_id):
 
 
 def get_args_by_feature_choice(user_input, feature_dict):
+    global GameArgsRequireValve
     try:
         index = int(user_input) - 1
         feature_name = list(feature_dict.keys())[index]  # Get the feature name based on the index
@@ -201,6 +235,7 @@ def get_args_by_feature_choice(user_input, feature_dict):
                 placeholder = arg
                 # Ask the user to provide the necessary text for the placeholder
                 user_input_text = input(f"Please provide input for {placeholder}: ")
+                GameArgsRequireValve = True
                 args[i] = user_input_text  # Replace placeholder with user-provided text
 
         return args
@@ -297,15 +332,17 @@ def get_game_args_and_edit():
         if str(user_input).lower() == "exit":
             return "exit"  # Some weird thing let while loop...
 
-        # Get the corresponding arguments for the chosen feature
+        # Get the corresponding arguments for the chosen feature(also return original args for write_config)
         args = get_args_by_feature_choice(user_input, feature_dict)
+        print(args)
+        OriginalArgs = args[0]
 
         if args is not None:
             formatted_args = ' '.join(args)
             print("New args:", formatted_args)
             print("Trying to add custom Game Arguments to config file...", color='green')
             mode = "WriteGameArgs"
-            write_config(path, mode, formatted_args)
+            write_config(path, mode, formatted_args, OriginalArgs)
         else:
             print("ArgsManager: No valid arguments to process :(", color='red')
 
@@ -323,14 +360,14 @@ def game_args_editor(mode):
                 "This function is mainly for advanced users. If you are not, please use Generate Args adapted to your computer!",
                 color='yellow')
             print("Check wiki to get more information! (https://wiki.vg/Launching_the_game#Game_Arguments)", color='green')
-            print("Type Delete>WantDeleteItem to delete args.")
-            print("Type Add>WantDeleteItem to add args.")
+            print("Type Delete>'DeleteArgs' to delete args.")
+            print("Type Add>'AddArgs' to add args.")
             print("Enter exit to back to main memu!")
             user_input = input(":")
             if user_input.upper() == "EXIT":
                 return "exit"
             else:
-                write_config(path, "WriteGameArgs", user_input)
+                write_config(path, "WriteGameArgs", user_input, "")
                 return "exit"
     if mode == "Clear":
         print("ArgsManager: Cleaning config file...", color='green')
@@ -418,8 +455,8 @@ def get_best_jvm_args(path):
             for arg in jvm_args['JVMArgs']:
                 full_args += arg + " "
             print(f"Full JVM Arguments: {full_args}]")
-            write_config(path, "WriteJVMArgs", full_args)
-            timer(5)
+            write_config(path, "OverWriteJVMArgs", full_args, "")
+            timer(2)
         else:
             print(f"No JVM arguments found for {selected_ram} configuration.")
 
@@ -442,7 +479,7 @@ def custom_jvm_args(path, mode):
                 Xmx = int(input("Sets the maximum RAM:"))
                 Xms = int(input("Sets the initial RAM:"))
                 RAMSize = f"-Xmx{str(Xmx)}G -Xms{str(Xms)}G"
-                write_config(path, "OverWriteJVMArgs", RAMSize)
+                write_config(path, "OverWriteJVMArgs", RAMSize, '')
                 return
             except ValueError:
                 print("ArgsManager: Unknown input :0", color='red')
@@ -453,14 +490,14 @@ def custom_jvm_args(path, mode):
               " If you are not, please use Generate Args adapted to your computer!",color='yellow')
         print("Check GitHub 'BakeLauncher-Library' to get more information!"
               " (https://github.com/Techarerm/BakeLauncher-Library/blob/main/JVM/JVM_Args_List.json)", color='green')
-        print("Type Delete>WantDeleteItem to delete args.")
-        print("Type Add>WantDeleteItem to add args.")
+        print("Type Delete>'DeleteArgs' to delete args.")
+        print("Type Add>'AddArgs' to add args.")
         print("Enter exit to back to main memu!")
         user_input = input(":")
         if user_input.upper() == "EXIT":
             return
         else:
-            write_config(path, "WriteJVMArgs", user_input)
+            write_config(path, "WriteJVMArgs", user_input, '')
     if mode == "Clear":
         print("ArgsManager: Cleaning config file...", color='green')
         with open(config_path, 'r') as config_file:
