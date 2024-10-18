@@ -198,6 +198,7 @@ def find_jvm_path_unix_like(path):
 
 
 def java_search():
+    global path
     print("Trying to find JAVA_HOME...")
     CantSetJavaPath = 0
     if platform.system() == "Windows":
@@ -205,7 +206,11 @@ def java_search():
     elif platform.system() == "Darwin":
         path =r"/Library/Java/JavaVirtualMachines/"
     elif platform.system() == "Linux":
-        path =r"/usr/lib/jvm/"
+        if os.path.exists("/usr/lib/jvm/"):
+            path = r"/usr/lib/jvm/"
+        else:
+            path = None
+
     else:
         print("Unsupported Operating System :(",color='red')
         CantSetJavaPath = 1
@@ -216,9 +221,24 @@ def java_search():
             for jvm_version in Java_VERSION:
                 jvm_version = str(jvm_version)
                 find_jvm_path_windows(jvm_version, path)
-        else:
+                using_downloaded_jvm()
+        elif platform.system() == "Darwin":
             find_jvm_path_unix_like(path)
-        using_downloaded_jvm()
+            using_downloaded_jvm()
+        elif platform.system() == "Linux":
+            if not path is None:
+                find_jvm_path_unix_like(path)
+                using_downloaded_jvm()
+            else:
+                print("Warring: Your platform is not supported search local JVM!", color='yellow')
+                print("Launcher will use recommended JVM instead local JVM when you launch Minecraft!",color='yellow')
+                using_downloaded_jvm()
+        else:
+            print("Warring: Your platform is not supported search local JVM!", color='yellow')
+            print("Launcher will use recommended JVM(If launcher failed to download jvm you may get crash when you launch)", color='yellow')
+            using_downloaded_jvm()
+
+        # Check config file is exist
         if os.path.exists("Java_HOME.json"):
             print("Java runtime config successful!!!", color='green')
             print("Press any key to back to the main menu...")
