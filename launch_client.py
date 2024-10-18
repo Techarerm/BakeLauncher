@@ -29,7 +29,7 @@ def macos_jvm_args_support(version_id):
     Check if the version data includes the -XstartOnFirstThread argument for macOS.
     """
     version_data = get_version_data(version_id)
-    jvm_args_list = version_data.get("jvm", [])
+    jvm_args_list = version_data.get("arguments", {}).get("jvm", [])
 
     for jvm_entry in jvm_args_list:
         if isinstance(jvm_entry, dict):  # Only process if it's a dictionary
