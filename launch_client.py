@@ -142,7 +142,7 @@ def create_new_launch_thread(launch_command, title):
         end tell
         '''
         try:
-            print("LaunchClient: Creating launch thread...", 'green')
+            print("LaunchClient: Creating launch thread...", color='green')
             os.system("chmod 755 LaunchLoadCommandTemp.sh")
             subprocess.run(['osascript', '-e', script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except Exception as e:
@@ -446,6 +446,7 @@ def LaunchManager():
     elif PlatformName == "Darwin":
         JVM_Args_HeapDump = " "
         CheckRequireXThread, XThreadArgs = macos_jvm_args_support(version_id)
+        print(f"Debug: {CheckRequireXThread}")
         if CheckRequireXThread:
             print("LaunchMode:(Darwin;WithoutHeapDump;SetWindowSize;RequireXStartFirstThread)", color='blue')
             JVM_Args_HeapDump = XThreadArgs
