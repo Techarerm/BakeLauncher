@@ -143,7 +143,7 @@ def create_new_launch_thread(launch_command, title):
         end tell
         '''
         try:
-            print("LaunchClient: Creating launch thread...", color='green')
+            print("LaunchClient: Creating launch thread...", 'green')
             os.system("chmod 755 LaunchLoadCommandTemp.sh")
             subprocess.run(['osascript', '-e', script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except Exception as e:
