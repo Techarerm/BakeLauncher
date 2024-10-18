@@ -32,13 +32,14 @@ def macos_jvm_args_support(version_id):
     jvm_args_list = version_data.get("jvm", [])
 
     for jvm_entry in jvm_args_list:
-        rules = jvm_entry.get("rules", [])
-        for rule in rules:
-            os_data = rule.get("os", {})
-            if os_data.get("name") == "osx":  # Check if the OS is macOS
-                value = jvm_entry.get("value", [])
-                if isinstance(value, list) and "-XstartOnFirstThread" in value:
-                    return True, "-XstartOnFirstThread"
+        if isinstance(jvm_entry, dict):  # Only process if it's a dictionary
+            rules = jvm_entry.get("rules", [])
+            for rule in rules:
+                os_data = rule.get("os", {})
+                if os_data.get("name") == "osx":  # Check if the OS is macOS
+                    value = jvm_entry.get("value", [])
+                    if isinstance(value, list) and "-XstartOnFirstThread" in value:
+                        return True, "-XstartOnFirstThread"
 
     return None, " "  # Return None if the argument is not found
 
