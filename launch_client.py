@@ -127,14 +127,16 @@ def create_new_launch_thread(launch_command, title):
     elif PlatFormName == 'Linux':
         # Open a new terminal in Linux (gnome-terminal or xterm)
         try:
-            os.system("chmod 755 LaunchLoadCommandTemp.sh")
             print("LaunchClient: Creating launch thread...", color='green')
-            subprocess.run(['gnome-terminal', '--', 'bash', '-c', "'./LaunchLoadCommandTemp.sh; exec bash'"])
+            # Linux don't need subprocess to create new terminal...bruh
+            os.system("gnome-terminal -- bash -c '{launch_command}; exec bash'")
         except FileNotFoundError:
             # Fallback to xterm if gnome-terminal is not available
-            os.system("chmod 755 LaunchLoadCommandTemp.sh")
             print("LaunchClient: Creating launch thread...", 'green')
             subprocess.run(['xterm', '-hold', '-e', './LaunchLoadCommandTemp.sh'])
+            # Linux don't need subprocess to create new terminal...bruh
+            # This method is UNTESTED!
+            os.system("xterm -hold -e {launch_command}")
     elif PlatFormName == 'Darwin':  # macOS
         now_directory = os.getcwd()
         script = f'''
@@ -142,10 +144,14 @@ def create_new_launch_thread(launch_command, title):
             do script "cd {now_directory} && bash -c './LaunchLoadCommandTemp.sh; read -p \\"Press any key to continue . . .\\"; exit'"
         end tell
         '''
+
         try:
+            """
             print("LaunchClient: Creating launch thread...", 'green')
             os.system("chmod 755 LaunchLoadCommandTemp.sh")
             subprocess.run(['osascript', '-e', script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            """
+            os.system(f'open -a Terminal "{launch_command}')
         except Exception as e:
             FailedToLaunch = True
             print(f"Error in macOS process: {e}")
