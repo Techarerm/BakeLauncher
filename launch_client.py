@@ -237,15 +237,22 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
             f'printf "{green}LaunchManager: Minecraft has stopped running! (Thread terminated){reset}\\n"',
             f'exit\n'
         ]
-    else:
+    elif GetPlatformName.check_platform_valid_and_return() == "Linux":
         launch_command = [
             f'echo -ne "\033]0;{title}\007"',
             f'echo -e {light_yellow}"BakeLauncher Version: {launcher_version}"{reset}',
             f'echo -e {light_blue}"Minecraft Log Start Here :)"{reset}',
             'echo "==============================================="',
             f'{minecraft_command}',
-            f'echo -e {green}"LaunchManager: Minecraft has stopped running! (Thread terminated)"{reset}'
-            f'exit'
+            f'echo -e {green}"LaunchManager: Minecraft has stopped running! (Thread terminated)"{reset}]\n'
+        ]
+    else:
+        launch_command = [
+            f'echo -e "BakeLauncher Version: {launcher_version}"',
+            f'echo -e "Minecraft Log Start Here :)"',
+            'echo "==============================================="',
+            f'{minecraft_command}',
+            f'echo -e "LaunchManager: Minecraft has stopped running! (Thread terminated)"\n'
         ]
 
     # Join the commands with newline characters for the batch file
