@@ -100,6 +100,7 @@ def launch_wit_args(platform, version_id, librariesCFG, gameDir, assetsDir, asse
 
 
 def create_new_launch_thread(launch_command, title):
+    print(launch_command)
     FailedToLaunch = False
     PlatFormName = GetPlatformName.check_platform_valid_and_return()
     print("LaunchClient: Please check the launcher already created a new terminal.", color='purple')
@@ -151,7 +152,11 @@ def create_new_launch_thread(launch_command, title):
             os.system("chmod 755 LaunchLoadCommandTemp.sh")
             subprocess.run(['osascript', '-e', script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             """
-            os.system(f'open -a Terminal "{launch_command}')
+            # Escape any double quotes inside the command and replace newlines with semicolons
+            launch_command = launch_command.replace('"', '\\"').replace('\n', '; ')
+
+            # Properly quote the entire command and pass it to bash -c
+            os.system(f'open -a Terminal "bash -c \'{launch_command}; exec bash\'"')
         except Exception as e:
             FailedToLaunch = True
             print(f"Error in macOS process: {e}")
