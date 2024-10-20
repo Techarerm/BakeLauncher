@@ -160,7 +160,7 @@ def create_new_launch_thread(launch_command, title):
             os.system(f'chmod +x {script_path}')
 
             # Step 3: Open the script in a new terminal window on macOS and keep the terminal open
-            os.system(f'open -a Terminal "bash -c \'{script_path}; exec bash\'"')
+            os.system(f'open -a Terminal "/bin/bash -c \'{script_path}; exec bash\'"')
         except Exception as e:
             FailedToLaunch = True
             print(f"Error in macOS process: {e}")
