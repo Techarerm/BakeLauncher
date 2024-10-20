@@ -293,7 +293,8 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
 def LaunchManager():
     Main = "LaunchManager"
     root_directory = os.getcwd()
-    global CustomGameArgs, CustomJVMArgs, JVM_Args_HeapDump, JVM_Args_WindowsSize, JVM_ArgsRAM, EnableMultitasking
+    global CustomGameArgs, CustomJVMArgs, JVM_Args_HeapDump, JVM_Args_WindowsSize, JVM_ArgsRAM, EnableMultitasking, CustomLaunchStatus
+    CustomLaunchStatus = ""
 
     # Check folder "versions" are available in root (To avoid some user forgot to install)
     if not os.path.exists("instances"):
@@ -476,10 +477,13 @@ def LaunchManager():
         if CustomJVMArgs is None or len(CustomJVMArgs.strip()) == 0:
             print("LaunchManager: CustomJVMArgs is empty or not provided, ignoring...", color='yellow')
             CustomJVMArgs = None  # Or handle as needed
-
+        else:
+            CustomLaunchStatus += ";WithCustomJVMArg"
         if CustomGameArgs is None or len(CustomGameArgs.strip()) == 0:
             print("LaunchManager: CustomGameArgs is empty or not provided, ignoring...", color='yellow')
             CustomGameArgs = " "  # Or handle as needed
+        else:
+            CustomLaunchStatus += ";WithCustomGameArg"
     else:
         CustomGameArgs = " "
         CustomJVMArgs = None
@@ -491,35 +495,34 @@ def LaunchManager():
     instances_id = f"Minecraft {version_id}"
     # Bake Minecraft :)
     if PlatformName == "Windows":
-        print("LaunchMode:(Windows;WithHeapDump;SetWindowSize)", color='blue')
+        print(f"LaunchMode:(Windows;WithHeapDump;SetWindowSize{CustomLaunchStatus})", color='green')
         LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump,
                      JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
                      CustomGameArgs, instances_id, EnableMultitasking)
     elif PlatformName == "Darwin":
         JVM_Args_HeapDump = " "
         CheckRequireXThread, XThreadArgs = macos_jvm_args_support(version_id)
-        print(f"Debug: {CheckRequireXThread}")
         if CheckRequireXThread:
-            print("LaunchMode:(Darwin;WithoutHeapDump;SetWindowSize;RequireXStartFirstThread)", color='blue')
+            print(f"LaunchMode:(Darwin;WithoutHeapDump;SetWindowSize;RequiresXStartFirstThread{CustomLaunchStatus})", color='green')
             JVM_Args_HeapDump = XThreadArgs
             LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class,
                          JVM_Args_HeapDump,
                          JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
                          CustomGameArgs, instances_id, EnableMultitasking)
         else:
-            print("LaunchMode:(Darwin;WithoutHeapDump;SetWindowSize;WithoutRequireXStartFirstThread)", color='blue')
+            print(f"LaunchMode:(Darwin;WithoutHeapDump;SetWindowSize;WithoutRequiresXStartFirstThread{CustomLaunchStatus})", color='green')
             LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump,
                          JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
                          CustomGameArgs, instances_id, EnableMultitasking)
     elif PlatformName == "Linux":
         JVM_Args_HeapDump = " "
-        print("LaunchMode:(Linux;WithoutHeapDump;SetWindowSize;WithoutRequireXStartFirstThread)", color='blue')
+        print(f"LaunchMode:(Linux;WithoutHeapDump;SetWindowSize{CustomLaunchStatus})", color='green')
         LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump,
                      JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
                      CustomGameArgs, instances_id, EnableMultitasking)
     else:
         JVM_Args_HeapDump = " "
-        print("LaunchMode:(UnknownOS;WithoutHeapDump;SetWindowSize;WithoutRequireXStartFirstThread)", color='blue')
+        print(f"LaunchMode:(UnknownOS;WithoutHeapDump;SetWindowSize{CustomLaunchStatus})", color='green')
         LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump,
                      JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
                      CustomGameArgs, instances_id, EnableMultitasking)
