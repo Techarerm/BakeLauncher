@@ -223,7 +223,7 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
         # THANKS　Apple making this process become complicated...
         launch_command = [
             f'cd {WorkPath}\n'
-            f'clear'
+            f'clear\n'
             f'printf "{light_yellow}BakeLauncher Version: {launcher_version}{reset}\\n"',
             f'printf "{light_blue}Minecraft Log Start Here :) {reset}\\n"',
             'echo "==============================================="',
