@@ -33,7 +33,7 @@ jobs:
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
-          name: BakeLauncher-Dev-JC101624.Windows
+          name: BakeLauncher-JG102024-Final.Windows
           path: dist/
 
   macos-build:
@@ -60,5 +60,5 @@ jobs:
       - name: Upload APP
         uses: actions/upload-artifact@v4
         with:
-          name: BakeLauncher-Dev-JC101624.macOS
+          name: BakeLauncher-JG102024-Final.macOS
           path: dist/
