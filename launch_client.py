@@ -152,11 +152,16 @@ def create_new_launch_thread(launch_command, title):
             os.system("chmod 755 LaunchLoadCommandTemp.sh")
             subprocess.run(['osascript', '-e', script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             """
-            # Escape any double quotes inside the command and replace newlines with semicolons
-            launch_command = launch_command.replace('"', '\\"').replace('\n', '; ')
+            # Step 1: Create a temporary shell script
+            with tempfile.NamedTemporaryFile('w', delete=False, suffix='.sh') as script_file:
+                script_file.write(launch_command)
+                script_path = script_file.name
 
-            # Properly quote the entire command and pass it to bash -c
-            os.system(f'open -a Terminal "bash -c \'{launch_command}; exec bash\'"')
+            # Step 2: Ensure the script is executable
+            os.system(f'chmod +x {script_path}')
+
+            # Step 3: Open the script in a new terminal window on macOS and keep the terminal open
+            os.system(f'open -a Terminal {script_path}')
         except Exception as e:
             FailedToLaunch = True
             print(f"Error in macOS process: {e}")
