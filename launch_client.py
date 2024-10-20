@@ -159,6 +159,11 @@ def create_new_launch_thread(launch_command, title):
             # Step 2: Ensure the script is executable
             os.system(f'chmod +x {script_path}')
 
+            print("Temporary script contents:")
+            with open(script_path, 'r') as file:
+                print(file.read())  # Print the contents of the script
+
+
             # Step 3: Use osascript to open a new terminal and run the script
             apple_script = f"""
             tell application "Terminal"
