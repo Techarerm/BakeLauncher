@@ -151,20 +151,13 @@ def create_new_launch_thread(launch_command, title):
             os.system("chmod 755 LaunchLoadCommandTemp.sh")
             subprocess.run(['osascript', '-e', script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             """
-            # Step 1: Create a temporary shell script
             with tempfile.NamedTemporaryFile('w', delete=False, suffix='.sh') as script_file:
                 script_file.write(launch_command + '\nexec bash')  # Keep terminal open after execution
                 script_path = script_file.name
 
-            # Step 2: Ensure the script is executable
             os.system(f'chmod +x {script_path}')
 
-            print("Temporary script contents:")
-            with open(script_path, 'r') as file:
-                print(file.read())  # Print the contents of the script
 
-
-            # Step 3: Use osascript to open a new terminal and run the script
             apple_script = f"""
             tell application "Terminal"
                 do script "{script_path}"
@@ -195,6 +188,7 @@ def create_new_launch_thread(launch_command, title):
 def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
                  JVM_Args, JVM_ArgsWindowsSize, JVM_ArgsRAM, GameArgs, custom_game_args, instances_id, EnableMultitasking):
 
+    WorkPath = os.getcwd()
     # Construct the Minecraft launch command with proper quoting
     minecraft_command = (
         f'{JVMPath} {JVM_Args} {JVM_ArgsWindowsSize} {JVM_ArgsRAM} '
@@ -228,6 +222,7 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
     elif GetPlatformName.check_platform_valid_and_return() == 'Darwin':
         # THANKS　Apple making this process become complicated...
         launch_command = [
+            f'cd {WorkPath}'
             f'printf "{light_yellow}BakeLauncher Version: {launcher_version}{reset}\\n"',
             f'printf "{light_blue}Minecraft Log Start Here :) {reset}\\n"',
             'echo "==============================================="',
