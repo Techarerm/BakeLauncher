@@ -65,7 +65,6 @@ def main_memu(platform):
             print("BakeLauncher " + launcher_version, color='yellow')
             print("Contact Me :) TedKai/@Techarerm", color="blue")
             print("Source code: https://github.com/Techarerm/BakeLauncher", color='yellow')
-            print("Also check my website :) https://techarerm.com", color="blue")
             print(" ")
             print(ChangeLog, color='cyan')
             timer(10)
@@ -76,19 +75,23 @@ def main_memu(platform):
             print(" ")
         elif user_input == 7:
             print("Extra list:")
-            print("1: Custom Args 2: Reset AccountData.json 3: Edit config.bakelh.json")
+            print("1: Custom Args 2: Reset AccountData.json")
             user_input = int(input(":"))
-            if user_input == 1:
-                argsman()
-            elif user_input == 2:
-                print("BakeLauncher: Resting AccountData.json...",color='purple')
-                initialize_account_data()
-                print("BakeLauncher: AccountData.json has been cleared.", color='blue')
-            elif user_input == 3:
-                print("BakeLauncher: Loading edit mode...", color='green')
-                print("BakeLauncher: This function is in dev :)", color='purple')
-                timer(10)
-            back_to_memu(platform)
+            try:
+                if user_input == 1:
+                    argsman()
+                    back_to_memu(platform)
+                    return
+                elif user_input == 2:
+                    print("BakeLauncher: Resting AccountData.json...", color='purple')
+                    initialize_account_data()
+                    print("BakeLauncher: AccountData.json has been cleared.", color='blue')
+                    back_to_memu(platform)
+                else:
+                    print("Unknown options :O", color='red')
+                    back_to_memu(platform)
+            except ValueError:
+                print("Invalid type :(", color='red')
         else:
             print(f"BakeLauncher: Can't found option {user_input} :( ", color='red')
             print("Please check you type option's number and try again!", color='yellow')

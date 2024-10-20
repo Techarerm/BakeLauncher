@@ -8,7 +8,7 @@ import time
 from print_color import print
 
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = "Beta 0.8(Dev-JG102024)"
+launcher_version = "Beta 0.8(JG102024-Final)"
 
 BetaWarringMessage = ("You are running beta version of BakeLauncher.\n"
                       "This is an 'Experimental' version with potential instability.\n"
@@ -20,6 +20,7 @@ ChangeLog = ("Changelog:\n"
              "AccountManager(AutoTool): Added support for multiple accounts!\n"
              "LaunchClient: Added support for multiple client! Now you can launch several clients at same time!\n"
              "ArgsManager: Added support for custom args! Now you can go to Extra > 1: Custom Args to set custom args!\n"
+             "macOS Support: Support for macOS is nearly complete."
              "\n")
 
 def initialize_config():
