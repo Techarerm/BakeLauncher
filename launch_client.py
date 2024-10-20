@@ -225,9 +225,9 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
     elif GetPlatformName.check_platform_valid_and_return() == 'Darwin':
         # THANKS　Apple making this process become complicated...
         launch_command = [
-            f'echo -ne "\033]0;{title}\007"'
-            f'cd {WorkPath}\n'
-            f'clear\n'
+            f'echo -ne "\033]0;{title}\007\n"',
+            f'cd {WorkPath}\n',
+            f'clear\n',
             f'printf "{light_yellow}BakeLauncher Version: {launcher_version}{reset}\\n"',
             f'printf "{light_blue}Minecraft Log Start Here :) {reset}\\n"',
             'echo "==============================================="',
