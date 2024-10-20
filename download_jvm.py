@@ -150,7 +150,9 @@ def download_jvm(version_data):
         else:
             download_java_files(manifest, JVM_Path)
 
-
+        # Fix permissions(for unix like)
+        if not GetPlatformName.check_platform_valid_and_return() == "Windows":
+            os.system(f"chmod 755 {JVM_Path}/bin/*")
 
 
     except Exception as e:
