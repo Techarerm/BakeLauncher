@@ -129,7 +129,7 @@ def create_new_launch_thread(launch_command, title):
         try:
             print("LaunchClient: Creating launch thread...", color='green')
             # Linux don't need subprocess to create new terminal...bruh
-            os.system("gnome-terminal -- bash -c '{launch_command}; exec bash'")
+            os.system(f"gnome-terminal -- bash -c '{launch_command}; exec bash'")
         except FileNotFoundError:
             # Fallback to xterm if gnome-terminal is not available
             print("LaunchClient: Creating launch thread...", 'green')
@@ -232,11 +232,12 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
             f'printf "{light_blue}Minecraft Log Start Here :) {reset}\\n"',
             'echo "==============================================="',
             f'{minecraft_command}',
-            f'printf "{green}LaunchManager: Minecraft has stopped running! (Thread terminated){reset}\\n"'
+            f'printf "{green}LaunchManager: Minecraft has stopped running! (Thread terminated){reset}\\n"',
+            f'exit\n'
         ]
     else:
         launch_command = [
-            f'echo -ne "\033]0;{title}\007\n"',
+            f'echo -ne "\033]0;{title}\007"',
             f'echo -e {light_yellow}"BakeLauncher Version: {launcher_version}"{reset}',
             f'echo -e {light_blue}"Minecraft Log Start Here :)"{reset}',
             'echo "==============================================="',
