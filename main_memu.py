@@ -5,18 +5,14 @@ BakeLaunch Main Memu
 
 import os
 import time
-import json
-from auth_tool import login
-from auth_tool import check_minecraft_token
-from launch_client import launch
+from auth_tool import AccountManager, initialize_account_data, login_status
+from LauncherBase import ChangeLog, launcher_version, ClearOutput, timer
+from launch_client import LaunchManager
 from Download import download_main
 from jvm_tool import java_finder
 from args_manager import argsman
 from print_color import print
-from __function__ import ChangeLog
-from __function__ import launcher_version
-from __function__ import ClearOutput
-from __function__ import timer
+
 
 
 def back_to_memu(platform):
@@ -30,48 +26,6 @@ def back_to_memu(platform):
         main_memu(platform)
 
 
-def initialize_account_data():
-    default_data = {
-        "AccountName": "None",
-        "UUID": "None",
-        "Token": "None"
-    }
-    if not os.path.exists('data'):
-        os.makedirs('data')
-    with open('data/AccountData.json', 'w') as file:
-        json.dump(default_data, file)
-
-
-def login_status():
-    """
-    Check login status.
-    Avoid Minecraft crash on auth... However, if the token expires, it will still crash on launch :)
-    """
-    username = "Player"  # Initialize username to avoid UnboundLocalError-
-    try:
-        with open('data/AccountData.json', 'r') as file:
-            data = json.load(file)
-            username = data['AccountName']  # Set username here
-    except (FileNotFoundError, json.JSONDecodeError):
-        initialize_account_data()
-        with open('data/AccountData.json', 'r') as file:
-            data = json.load(file)
-            username = data['AccountName']
-
-    if data['AccountName'] == "None":
-        print("Login Status: Not logged in :(", color='red')
-        print("Please log in to your account first!", color='red')
-    else:
-        ErrorCheck = check_minecraft_token()
-        if ErrorCheck:
-            print("Login Status: Already logged in :)", color='green')
-            print("Hi,", username, color="blue")  # Now this should work correctly
-        else:
-            print("Login Status: Expired session :0", color='red')
-            print("Please login your account again!", color='red')
-            print("Hi,", username, color="blue")  # Now this should work correctly
-
-
 def main_memu(platform):
     print('"BakeLauncher Main Menu"', color='blue')
     print("Version: " + launcher_version, color='green')
@@ -80,8 +34,8 @@ def main_memu(platform):
     login_status()
 
     print("What would you like to do?")
-    print("1. Launch Minecraft 2. Log in 3. Clear login data (for expired session)")
-    print("4: DownloadTool 5: Configure Java 6: Extra 7: About 8: Exit launcher")
+    print("1. Launch Minecraft 2. AccountManager 3: DownloadTool")
+    print("4: Configure Java 5: About 6: Exit launcher 7: Extra")
 
     try:
         user_input = int(input(":"))
@@ -92,45 +46,52 @@ def main_memu(platform):
         if user_input == 1:
             print("Launching Minecraft...", color='green')
             ClearOutput(platform)
-            launch(platform)
+            LaunchManager()
+            ClearOutput(platform)
             back_to_memu(platform)
         elif user_input == 2:
-            login()
+            AccountManager()
             back_to_memu(platform)
         elif user_input == 3:
-            print("Cleaning login data...", color='purple')
-            initialize_account_data()
-            print("Login data cleared.", color='blue')
-            back_to_memu(platform)
-        elif user_input == 4:
             root = os.getcwd()
             download_main()
             os.chdir(root)
             back_to_memu(platform)
-        elif user_input == 5:
+        elif user_input == 4:
             java_finder()
             back_to_memu(platform)
-        elif user_input == 6:
-            print("Extra list:")
-            print("1: Custom JVM args")
-            user_input = int(input(":"))
-            if user_input == 1:
-                argsman()
-            back_to_memu(platform)
-        elif user_input == 7:
+        elif user_input == 5:
             print("POWERED BY BAKE!", color="yellow")
             print("BakeLauncher " + launcher_version, color='yellow')
             print("Contact Me :) TedKai/@Techarerm", color="blue")
             print("Source code: https://github.com/Techarerm/BakeLauncher", color='yellow')
-            print("Also check my website :) https://techarerm.com", color="blue")
             print(" ")
             print(ChangeLog, color='cyan')
             timer(10)
             back_to_memu(platform)
-        elif user_input == 8:
+        elif user_input == 6:
             print("Exiting launcher...", color='green')
             print("Bye :)", color='blue')
             print(" ")
+        elif user_input == 7:
+            print("Extra list:")
+            print("1: Custom Args 2: Reset AccountData.json")
+            user_input = int(input(":"))
+            try:
+                if user_input == 1:
+                    argsman()
+                    back_to_memu(platform)
+                    return
+                elif user_input == 2:
+                    print("BakeLauncher: Resting AccountData.json...", color='purple')
+                    initialize_account_data()
+                    print("BakeLauncher: AccountData.json has been cleared.", color='blue')
+                    back_to_memu(platform)
+                else:
+                    print("Unknown options :O", color='red')
+                    back_to_memu(platform)
+            except ValueError:
+                print("Invalid type :(", color='red')
         else:
             print(f"BakeLauncher: Can't found option {user_input} :( ", color='red')
             print("Please check you type option's number and try again!", color='yellow')
