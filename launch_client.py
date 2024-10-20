@@ -153,14 +153,21 @@ def create_new_launch_thread(launch_command, title):
             """
             # Step 1: Create a temporary shell script
             with tempfile.NamedTemporaryFile('w', delete=False, suffix='.sh') as script_file:
-                script_file.write(launch_command)
+                script_file.write(launch_command + '\nexec bash')  # Keep terminal open after execution
                 script_path = script_file.name
 
             # Step 2: Ensure the script is executable
             os.system(f'chmod +x {script_path}')
 
-            # Step 3: Open the script in a new terminal window on macOS and keep the terminal open
-            os.system(f'open -a Terminal "/bin/bash -c \'{script_path}; exec bash\'"')
+            # Step 3: Use osascript to open a new terminal and run the script
+            apple_script = f"""
+            tell application "Terminal"
+                do script "{script_path}"
+                activate
+            end tell
+            """
+
+            os.system(f'osascript -e \'{apple_script}\'')
         except Exception as e:
             FailedToLaunch = True
             print(f"Error in macOS process: {e}")
