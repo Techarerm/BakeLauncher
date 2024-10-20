@@ -210,6 +210,9 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
     light_blue = "\033[94m"
     reset = "\033[0m"
 
+    # Set title
+    title = f"BakaLauncher: {instances_id}"
+
     # Create the full launch command with version logging and Minecraft command
     if GetPlatformName.check_platform_valid_and_return() == 'Windows':
         launch_command = [
@@ -222,6 +225,7 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
     elif GetPlatformName.check_platform_valid_and_return() == 'Darwin':
         # THANKS　Apple making this process become complicated...
         launch_command = [
+            f'echo -ne "\033]0;{title}\007"'
             f'cd {WorkPath}\n'
             f'clear\n'
             f'printf "{light_yellow}BakeLauncher Version: {launcher_version}{reset}\\n"',
@@ -250,7 +254,6 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
         with open("LaunchLoadCommandTemp.sh", "w+") as f:
             f.write(launch_command)
 
-    title = f"BakaLauncher: {instances_id}"
 
     if EnableMultitasking == True:
         # Launch a new process using multiprocessing
