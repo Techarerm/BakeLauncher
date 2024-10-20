@@ -293,7 +293,7 @@ def download_with_version_id(version_list, release_versions, formatted_versions)
             print("DownloadTool: You are NOT typing VersionID!")
             print("VersionID: MinecraftVersion", "\n")
             print(
-                "Please type VersionID not MinecraftVersion or exit launcher and using '2:Type Minecraft version' "
+                "Please type VersionID not MinecraftVersion or back memu and using '2:Type Minecraft version' "
                 "method !")
             print("Example: 15: 1.12.2 , 15 is version 1.12's ID", color='green')
             time.sleep(2)

@@ -178,7 +178,8 @@ def load_old_config(config_path, item, argsname):
             if item in line:
                 item = line.split('=', 1)[1].strip()
                 if len(item) > 0:
-                    print(f"Found exist {argsname}: {item}", color='purple')
+                    print(f"Found exist {argsname}:\n"
+                          f" {item}", color='purple')
                     CustomGameArgsStatus = True
 
 def get_args(version_id):
@@ -393,7 +394,7 @@ def modify_game_args():
             print("ModifyGameArgs", color='purple')
             print("Options:", color='green')
             print("1: List support args and enter you want", color='blue')
-            print("2: Create new game args (Advanced)", color='purple')
+            print("2: Custom Args (Advanced)", color='purple')
             print("3: Clean all Game Args", color='red')
             print("4: Exit")
 
@@ -470,10 +471,10 @@ def custom_jvm_args(path, mode):
     if mode == "EditRAMSize":
         load_old_config(config_path, '"CustomJVMArgs"', 'JVM Args')
         print("JVM Ram Size Editor:")
-        print("IMPORTANT: Backup your old JVM Args(without memory args)! Is really important if you want to restore your old args.", color='red')
+        print("IMPORTANT: Backup your old JVM Args(without memory args)! Is really important if you want to restore your old args.\n"
+              "If you enter exceeds the size of your computer's memory, you may get crash when you launch Minecraft!", color='red')
         print("This function is mainly for advanced users. If you are not, please use Generate Args adapted to your computer!", color='yellow')
-        print("This function will overwrite your old config. After doing this, you may need to go CustomEdit to paste your old args and restore.", color='yellow')
-        print("Warring: If you enter exceeds the size of your computer's memory, you may get crash when you launch Minecraft!", color='red')
+        print("Also use this method will overwrite your old config. After doing this, you may need to go CustomEdit to paste your old args and restore.", color='yellow')
         while True:
             try:
                 Xmx = int(input("Sets the maximum RAM:"))
@@ -527,7 +528,7 @@ def modify_jvm_args():
     while True:
         ClearOutput(GetPlatformName.check_platform_valid_and_return())
         print("ModifyJVMArgs", color='purple')
-        print("1: Edit Minecraft Usage RAM Size (Advanced)", color='green')
+        print("1: Edit JVM Allocation RAM Size (Advanced)", color='green')
         print("2: Custom Args (Advanced)", color='purple')
         print("3: Generate Args adapted to your computer", color='blue')
         print("4: Clear JVM Config file", color='red')

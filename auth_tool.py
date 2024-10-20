@@ -62,8 +62,7 @@ def login():
     
     print('"AutoTool"', color='c')
     print("AuthTool: You must manually use a web browser to login to your account!!!", color='red')
-    print("AuthTool: Remember to paste the URL after you login!", color='green')
-    print("AuthTool: Press enter to jump into login...", color='purple')
+    print("AuthTool: After logging in, please copy the URL and paste it into the launcher.", color='green')
     print("Or you can type 'Exit' to go back to the main menu.", color='cyan')
     
     webbrowser.open(

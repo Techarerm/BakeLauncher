@@ -8,7 +8,7 @@ import time
 from print_color import print
 
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = "Beta 0.8(Dev-JC101624)"
+launcher_version = "Beta 0.8(Dev-JG102024)"
 
 BetaWarringMessage = ("You are running beta version of BakeLauncher.\n"
                       "This is an 'Experimental' version with potential instability.\n"
@@ -66,6 +66,7 @@ def timer(seconds):
 
 class PlatformCheck:
     def __init__(self):
+        self.platformArch = "None"
         self.platformName = "None"
         self.set_platform()
 
@@ -93,3 +94,48 @@ class PlatformCheck:
 
 
 GetPlatformName = PlatformCheck()
+
+
+cfg_text = """[BakeLauncher Configuration]
+
+<Global>
+EnableConfig = true
+DefaultAccountID = 1
+
+<MainMemu>
+# Automatic open you want option when launcher load MainMemu
+AutomaticOpenOptions = false
+Option = None
+
+# ?
+DontPrintList = false
+
+<LaunchManager>
+# New feature! :)  (Create a new terminal when launching Minecraft. The new terminal won't be killed when the main stop working!
+EnableExperimentalMultitasking = true
+
+%Ehh...under this line items have not been implemented yet.
+# Automatic launch you want to launch instances
+AutomaticLaunch = false
+InstancesName = None
+
+# Use old libraries.cfg
+UseCustomLibrariesCFG = false
+CustomLibrariesCFGPath = None
+
+<AutoTool>
+# Get token(Minecraft) from refresh token(or name "Microsoft Token")
+RefreshCustomToken = false
+RefreshToken = None
+
+# Save the token given by the user
+SaveCustomToken = false
+Token = None
+Username = None
+UUID = None
+
+<DownloadTool>
+# Automatic download you want Minecraft version
+AutomaticDownVersion = true
+Version = None
+"""

@@ -429,6 +429,10 @@ def LaunchManager():
         if CustomJVMArgs is None or len(CustomJVMArgs.strip()) == 0:
             print("LaunchManager: CustomJVMArgs is empty or not provided, ignoring...", color='yellow')
             CustomJVMArgs = None  # Or handle as needed
+
+        if CustomGameArgs is None or len(CustomGameArgs.strip()) == 0:
+            print("LaunchManager: CustomGameArgs is empty or not provided, ignoring...", color='yellow')
+            CustomGameArgs = " "  # Or handle as needed
     else:
         CustomGameArgs = " "
         CustomJVMArgs = None
