@@ -177,6 +177,7 @@ def create_new_launch_thread(launch_command, title):
             print("LaunchClient: Successfully created launch thread!", color='blue')
         elif PlatFormName == 'Darwin':
             print("LaunchClient: Successfully created launch thread!", color='blue')
+            time.sleep(3)
             os.remove(script_path)
         else:
             print("LaunchClient: Successfully created launch thread!", color='blue')
@@ -244,6 +245,7 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
             'echo "==============================================="',
             f'{minecraft_command}',
             f'echo -e {green}"LaunchManager: Minecraft has stopped running! (Thread terminated)"{reset}'
+            f'exit'
         ]
 
     # Join the commands with newline characters for the batch file
