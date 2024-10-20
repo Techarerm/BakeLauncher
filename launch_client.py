@@ -100,7 +100,6 @@ def launch_wit_args(platform, version_id, librariesCFG, gameDir, assetsDir, asse
 
 
 def create_new_launch_thread(launch_command, title):
-    print(launch_command)
     FailedToLaunch = False
     PlatFormName = GetPlatformName.check_platform_valid_and_return()
     print("LaunchClient: Please check the launcher already created a new terminal.", color='purple')
