@@ -161,7 +161,7 @@ def create_new_launch_thread(launch_command, title):
             os.system(f'chmod +x {script_path}')
 
             # Step 3: Open the script in a new terminal window on macOS and keep the terminal open
-            os.system(f'open -a Terminal {script_path}')
+            os.system(f'open -a Terminal "bash -c \'{script_path}; exec bash\'"')
         except Exception as e:
             FailedToLaunch = True
             print(f"Error in macOS process: {e}")
@@ -213,6 +213,15 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
             'echo ================================================',
             f'{minecraft_command}',
             f'echo {green}LaunchManager: Minecraft has stopped running! (Thread terminated){reset}'
+        ]
+    elif GetPlatformName.check_platform_valid_and_return() == 'Darwin':
+        # THANKS　Apple making this process become complicated...
+        launch_command = [
+            f'printf "{light_yellow}BakeLauncher Version: {launcher_version}{reset}\\n"',
+            f'printf "{light_blue}Minecraft Log Start Here :) {reset}\\n"',
+            'echo "==============================================="',
+            f'{minecraft_command}',
+            f'printf "{green}LaunchManager: Minecraft has stopped running! (Thread terminated){reset}\\n"'
         ]
     else:
         launch_command = [
