@@ -175,11 +175,12 @@ def create_new_launch_thread(launch_command, title):
     if not FailedToLaunch:
         if PlatFormName == 'Windows':
             print("LaunchClient: Successfully created launch thread!", color='blue')
+        elif PlatFormName == 'Darwin':
+            print("LaunchClient: Successfully created launch thread!", color='blue')
+            os.remove(script_path)
         else:
             print("LaunchClient: Successfully created launch thread!", color='blue')
             time.sleep(2)
-            print(f"LaunchClient: Cleaning up launch files...", color='green')
-            os.remove("LaunchLoadCommandTemp.sh")
     else:
         print("LaunchClient: Creating launch thread failed !", 'red')
         print("LaunchClient: Cause by unknown system or launch can't find shell :(", color='red')
