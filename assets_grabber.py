@@ -94,24 +94,29 @@ def download_assets(asset_index, objects_dir):
 def get_assets_index_version(version_data, version_id):
     """
     Get the assets index version from the version_data and save it to a JSON file
-    LaunchManager need this when launching Minecraft(To set assetsIndex)
+    LaunchManager needs this when launching Minecraft (To set assetsIndex)
     """
     print("Trying to get assetsIndex version....", color='green')
     asset_index = version_data.get("assetIndex", {})
     asset_index_id = asset_index.get("id")
+
     if os.getcwd().endswith(version_id):
         assets_index_file = os.path.join('.minecraft', "assets_index.json")
     else:
-        assets_index_file = os.path.join("instances", version_id, ".minecraft", "assets_index.json")
+        assets_index_dir = os.path.join("instances", version_id, ".minecraft")
+        # Ensure the directory exists
+        os.makedirs(assets_index_dir, exist_ok=True)  # This will create the directory if it doesn't exist
+        assets_index_file = os.path.join(assets_index_dir, "assets_index.json")
+
     if asset_index_id:
         with open(assets_index_file, 'w') as f:
             json.dump(asset_index, f, indent=4)
         print(f"AssetsIndex config has been saved :)", color='blue')
     else:
         print("Failed to config AssetsIndex :(", color='red')
-        print("Maybe is the server issue let DownloadTool can't getting AssetsIndex?", color='yellow')
-        print("Please try again later(If still can't get assetsIndex please report this bug to GitHib!", color='yellow')
-        print("IMPORTANT:'Do not launch it if failed to get assetsIndex. You might get a broken version of Minecraft :D", color='yellow')
+        print("Maybe the server issue is preventing DownloadTool from getting AssetsIndex?", color='yellow')
+        print("Please try again later (If still can't get assetsIndex please report this bug to GitHub!", color='yellow')
+        print("IMPORTANT: 'Do not launch it if failed to get assetsIndex. You might get a broken version of Minecraft :D", color='yellow')
         print("Asset index not found.", color='red')
 
 def get_asset(version_id):
