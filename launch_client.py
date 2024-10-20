@@ -236,6 +236,7 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
         ]
     else:
         launch_command = [
+            f'echo -ne "\033]0;{title}\007\n"',
             f'echo -e {light_yellow}"BakeLauncher Version: {launcher_version}"{reset}',
             f'echo -e {light_blue}"Minecraft Log Start Here :)"{reset}',
             'echo "==============================================="',
