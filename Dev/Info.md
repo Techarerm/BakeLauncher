@@ -2,9 +2,22 @@
 
 ## Useful Stuff
 
-### BakeLauncherLoad
+### BakeLoader
 
-> Easily open the non-built version of BakeLauncher.
+> Easily open the non-build version of BakeLauncher.
+
+**Command List:**
+
+Load Launcher
+```bash
+./BakeLoader
+```
+
+Running ```git pull``` and load Launcher(main)
+```bash
+./BakeLoader -u
+```
+
 
 ### Build Tutorial
 
