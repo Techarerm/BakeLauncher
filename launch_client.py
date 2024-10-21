@@ -15,7 +15,6 @@ from LauncherBase import timer, GetPlatformName, launcher_version
 from assets_grabber import read_assets_index_version, get_assets_dir
 from jvm_tool import java_version_check, java_search
 from Download import get_version_data
-from libraries_path import generate_libraries_paths
 from auth_tool import get_account_data
 
 def SelectMainClass(version_id):
@@ -43,6 +42,32 @@ def macos_jvm_args_support(version_id):
 
     return None, " "  # Return None if the argument is not found
 
+def generate_libraries_paths(version, libraries_dir):
+    global client_jar_path
+    jar_paths_string = ""
+    client_jar_path = f"libraries/net/minecraft/{version}/client.jar"
+    PlatformName = GetPlatformName.check_platform_valid_and_return()
+
+    # Traverse the libraries directory
+    print("LaunchPatcher: Generating dependent libraries path for " + version + " of Minecraft...", color="green")
+    for root, dirs, files in os.walk(libraries_dir):
+        for file in files:
+            if file.endswith('.jar') and not file.startswith("client.jar"):
+                # Skip adding client.jar to jar_paths_string
+                relative_path = os.path.relpath(os.path.join(root, file), start=libraries_dir)
+                full_path = os.path.join("libraries", relative_path)
+
+                # Append the path to the jar_paths_string with the correct separator
+                if PlatformName == "Windows":
+                    jar_paths_string += full_path + ";"
+                else:
+                    jar_paths_string += full_path + ":"
+
+    # Finally, append the client.jar path to the end of the jar paths string if it exists
+    if client_jar_path:
+        jar_paths_string += client_jar_path
+
+    return jar_paths_string
 
 def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, assetsIndex, uuid):
     version_data = get_version_data(version_id)  # Fetch version data
