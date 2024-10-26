@@ -221,7 +221,7 @@ def java_search():
             for jvm_version in Java_VERSION:
                 jvm_version = str(jvm_version)
                 find_jvm_path_windows(jvm_version, path)
-                using_downloaded_jvm()
+            using_downloaded_jvm()
         elif platform.system() == "Darwin":
             find_jvm_path_unix_like(path)
             using_downloaded_jvm()

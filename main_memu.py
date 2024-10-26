@@ -100,6 +100,6 @@ def main_memu(platform):
 
     except ValueError:
         # Back to main avoid crash(when user type illegal thing)
-        print("BakeLaunch: Oops! Invalid option :O  Please enter a number.", color='red')
+        print("BakeLauncher: Oops! Invalid option :O  Please enter a number.", color='red')
         time.sleep(1.2)
         back_to_memu(platform)

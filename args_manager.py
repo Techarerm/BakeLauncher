@@ -576,7 +576,6 @@ def argsman():
                 if exit_signal == "exit":
                     return  # Exit the entire flow if the exit signal is received
             elif user_input == 3:
-                timer(1)
                 return  # Exit the program or menu
             else:
                 print("ArgsManager: Unknown option :0", color='red')
