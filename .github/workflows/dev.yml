@@ -95,4 +95,3 @@ jobs:
         with:
           name: BakeLauncher-0.8.Linux
           path: dist/
-          path: dist/
