@@ -361,9 +361,9 @@ def game_args_editor(mode):
                 "This function is mainly for advanced users. If you are not, please use Generate Args adapted to your computer!",
                 color='yellow')
             print("Check wiki to get more information! (https://wiki.vg/Launching_the_game#Game_Arguments)", color='green')
-            print("Type Delete>'DeleteArgs' to delete args.")
-            print("Type Add>'AddArgs' to add args.")
-            print("Enter exit to back to main memu!")
+            print("Use Delete>'DeleteArgs' to delete args.")
+            print("Use Add>'AddArgs' to add args.")
+            print("Type exit to back to main memu!")
             user_input = input(":")
             if user_input.upper() == "EXIT":
                 return "exit"
@@ -491,14 +491,15 @@ def custom_jvm_args(path, mode):
               " If you are not, please use Generate Args adapted to your computer!",color='yellow')
         print("Check GitHub 'BakeLauncher-Library' to get more information!"
               " (https://github.com/Techarerm/BakeLauncher-Library/blob/main/JVM/JVM_Args_List.json)", color='green')
-        print("Type Delete>'DeleteArgs' to delete args.")
-        print("Type Add>'AddArgs' to add args.")
-        print("Enter exit to back to main memu!")
+        print("Use Delete>'DeleteArgs' to delete args.")
+        print("Use Add>'AddArgs' to add args.")
+        print("Type exit to back to main memu!")
         user_input = input(":")
         if user_input.upper() == "EXIT":
             return
         else:
             write_config(path, "WriteJVMArgs", user_input, '')
+
     if mode == "Clear":
         print("ArgsManager: Cleaning config file...", color='green')
         with open(config_path, 'r') as config_file:
@@ -576,7 +577,6 @@ def argsman():
                 if exit_signal == "exit":
                     return  # Exit the entire flow if the exit signal is received
             elif user_input == 3:
-                timer(1)
                 return  # Exit the program or menu
             else:
                 print("ArgsManager: Unknown option :0", color='red')

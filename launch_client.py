@@ -15,7 +15,6 @@ from LauncherBase import timer, GetPlatformName, launcher_version
 from assets_grabber import read_assets_index_version, get_assets_dir
 from jvm_tool import java_version_check, java_search
 from Download import get_version_data
-from libraries_path import generate_libraries_paths
 from auth_tool import get_account_data
 
 def SelectMainClass(version_id):
@@ -43,6 +42,34 @@ def macos_jvm_args_support(version_id):
 
     return None, " "  # Return None if the argument is not found
 
+
+
+def generate_libraries_paths(version, libraries_dir):
+    global client_jar_path
+    jar_paths_string = ""
+    client_jar_path = f"libraries/net/minecraft/{version}/client.jar"
+    PlatformName = GetPlatformName.check_platform_valid_and_return()
+
+    # Traverse the libraries directory
+    print("LaunchManager: Generating dependent libraries path for " + version + " of Minecraft...", color="green")
+    for root, dirs, files in os.walk(libraries_dir):
+        for file in files:
+            if file.endswith('.jar') and not file.startswith("client.jar"):
+                # Skip adding client.jar to jar_paths_string
+                relative_path = os.path.relpath(os.path.join(root, file), start=libraries_dir)
+                full_path = os.path.join("libraries", relative_path)
+
+                # Append the path to the jar_paths_string with the correct separator
+                if PlatformName == "Windows":
+                    jar_paths_string += full_path + ";"
+                else:
+                    jar_paths_string += full_path + ":"
+
+    # Finally, append the client.jar path to the end of the jar paths string if it exists
+    if client_jar_path:
+        jar_paths_string += client_jar_path
+
+    return jar_paths_string
 
 def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, assetsIndex, uuid):
     version_data = get_version_data(version_id)  # Fetch version data
@@ -454,7 +481,7 @@ def LaunchManager():
     # Now it available :)
     if os.path.exists("instance.bakelh.cfg"):
         print("LaunchManager: Found instance config :D", color='blue')
-        print('LauncherManager: Trying to add custom config to launch chain...', color='green')
+        print('LaunchManager: Loading custom config...', color='green')
 
         with open("instance.bakelh.cfg", 'r') as file:
             for line in file:
@@ -469,20 +496,22 @@ def LaunchManager():
                 if "CustomJVMArgs" in line:
                     # Extract everything after '=' and strip leading/trailing whitespace
                     CustomJVMArgs = line.split('=', 1)[1].strip()  # Use maxsplit to capture the whole value
-                    print(f"LaunchManager: Replaced the default jvm_args to custom args: '{CustomJVMArgs}'",
+                    print(f"LaunchManager: Added custom args to launch chain: '{CustomJVMArgs}'",
                           color='blue')
                     continue  # Continue to look for other args
 
-        # Check if CustomJVMArgs is None or has a length of 0 (ignoring spaces)
+        # Check if CustomJVMArgs(or CustomGameArgs) is None or has a length of 0 (ignoring spaces)
         if CustomJVMArgs is None or len(CustomJVMArgs.strip()) == 0:
             print("LaunchManager: CustomJVMArgs is empty or not provided, ignoring...", color='yellow')
-            CustomJVMArgs = None  # Or handle as needed
+            CustomJVMArgs = None
         else:
+            # Check point for debug
             CustomLaunchStatus += ";WithCustomJVMArg"
         if CustomGameArgs is None or len(CustomGameArgs.strip()) == 0:
             print("LaunchManager: CustomGameArgs is empty or not provided, ignoring...", color='yellow')
-            CustomGameArgs = " "  # Or handle as needed
+            CustomGameArgs = " "   # Replace Custom Args to a spaces(if is empty)
         else:
+            # Check point for debug
             CustomLaunchStatus += ";WithCustomGameArg"
     else:
         CustomGameArgs = " "
@@ -492,37 +521,40 @@ def LaunchManager():
         JVM_Args_WindowsSize = " "
         JVM_ArgsRAM = CustomJVMArgs
 
+    # Set instances_id(for multitasking process title)
     instances_id = f"Minecraft {version_id}"
+
     # Bake Minecraft :)
     if PlatformName == "Windows":
-        print(f"LaunchMode:(Windows;WithHeapDump;SetWindowSize{CustomLaunchStatus})", color='green')
+        print(f"Mode:(Windows;WithHeapDump;SetWindowSize{CustomLaunchStatus})", color='green', tag='Debug')
         LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump,
                      JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
                      CustomGameArgs, instances_id, EnableMultitasking)
     elif PlatformName == "Darwin":
         JVM_Args_HeapDump = " "
+        # In LWJGL 3.x, macOS requires this args to make lwjgl running on the JVM starts with thread 0) (from wiki.vg)
         CheckRequireXThread, XThreadArgs = macos_jvm_args_support(version_id)
         if CheckRequireXThread:
-            print(f"LaunchMode:(Darwin;WithoutHeapDump;SetWindowSize;RequiresXStartFirstThread{CustomLaunchStatus})", color='green')
+            print(f"Mode:(Darwin;WithoutHeapDump;SetWindowSize;RequiresXStartFirstThread{CustomLaunchStatus})", color='green', tag='Debug')
             JVM_Args_HeapDump = XThreadArgs
             LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class,
                          JVM_Args_HeapDump,
                          JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
                          CustomGameArgs, instances_id, EnableMultitasking)
         else:
-            print(f"LaunchMode:(Darwin;WithoutHeapDump;SetWindowSize;WithoutRequiresXStartFirstThread{CustomLaunchStatus})", color='green')
+            print(f"Mode:(Darwin;WithoutHeapDump;SetWindowSize;WithoutRequiresXStartFirstThread{CustomLaunchStatus})", color='green', tag='Debug')
             LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump,
                          JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
                          CustomGameArgs, instances_id, EnableMultitasking)
     elif PlatformName == "Linux":
         JVM_Args_HeapDump = " "
-        print(f"LaunchMode:(Linux;WithoutHeapDump;SetWindowSize{CustomLaunchStatus})", color='green')
+        print(f"Mode:(Linux;WithoutHeapDump;SetWindowSize{CustomLaunchStatus})", color='green', tag='Debug')
         LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump,
                      JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
                      CustomGameArgs, instances_id, EnableMultitasking)
     else:
         JVM_Args_HeapDump = " "
-        print(f"LaunchMode:(UnknownOS;WithoutHeapDump;SetWindowSize{CustomLaunchStatus})", color='green')
+        print(f"Mode:(UnknownOS;WithoutHeapDump;SetWindowSize{CustomLaunchStatus})", color='green', tag='Debug')
         LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump,
                      JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
                      CustomGameArgs, instances_id, EnableMultitasking)

@@ -391,7 +391,13 @@ def SelectDefaultAccount():
 
     # Get user input
     print("AuthTool: Please enter the account ID you want to use.", color='blue')
+    print("Type 'exit' to go back to the main menu.")
     user_input = input(":")
+
+    if str(user_input).lower() == "exit":
+        print("AuthTool: Exiting...", color='green')
+        return
+
 
     try:
         user_input = int(user_input)
@@ -438,9 +444,9 @@ def DeleteAccount():
 
     # Get user input
     print("AuthTool: Please enter the ID of you want to delete account.", color='purple')
-    print("Or you can type 'Exit' to go back to the main menu.", color='blue')
+    print("Or you can type 'exit' to go back to the main menu.", color='blue')
     user_input = input(":")
-    if user_input == "Exit":
+    if str(user_input).lower() == "exit":
         print("AuthTool: Exiting...", color='green')
         return
 

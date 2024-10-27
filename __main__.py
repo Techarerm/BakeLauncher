@@ -59,10 +59,11 @@ class main:
         ClearOutput(platformName)
 
         # Check config.bakelh.cfg file status
-        if not os.path.exists("data/config.bakelh.cfg"):
+        if not os.path.exists("data"):
             os.makedirs("data")
-            with open("data/config.bakelh.cfg", "w") as config:
-                config.write(cfg_text)
+            if not os.path.exists("data/config.bakelh.cfg"):
+                with open("data/config.bakelh.cfg", "w") as config:
+                    config.write(cfg_text)
 
         # Load main menu
         main_memu(platformName)

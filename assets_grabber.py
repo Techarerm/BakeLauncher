@@ -2,7 +2,6 @@ import requests
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
-import concurrent.futures
 from print_color import print
 
 def get_version_json(version):
@@ -14,7 +13,7 @@ def get_version_json(version):
     # Find the specific version JSON URL
     version_info = next((v for v in manifest['versions'] if v['id'] == version), None)
     if not version_info:
-        raise ValueError(f"AssetsGrabber: Version {version} not found.", tag='Failed', tag_color='red')
+        raise ValueError(f"AssetsGrabber: Version {version} not found.")
 
     # Download the version JSON
     version_json_url = version_info['url']
@@ -61,20 +60,6 @@ def download_asset_normal(asset_name, asset_info, objects_dir):
         print(f"Downloaded: {asset_name} -> {asset_hash}")
     except Exception as e:
         print(f"Failed to download: {asset_name}. Error: {e}")
-
-
-def download_assets(assets, objects_dir, max_workers=8):
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = []
-        for asset_name, asset_info in assets.items():
-            futures.append(executor.submit(download_asset_normal, asset_name, asset_info, objects_dir))
-
-        # Wait for all downloads to complete
-        for future in concurrent.futures.as_completed(futures):
-            try:
-                future.result()  # This will raise an exception if the download failed
-            except Exception as e:
-                print(f"Error during download: {e}")
 
 
 def download_assets(asset_index, objects_dir):

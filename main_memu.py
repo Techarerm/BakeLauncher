@@ -35,7 +35,7 @@ def main_memu(platform):
 
     print("What would you like to do?")
     print("1. Launch Minecraft 2. AccountManager 3: DownloadTool")
-    print("4: Configure Java 5: About 6: Exit launcher 7: Extra")
+    print("4: Configure Java 5: About 6: Extra 7: Exit Launcher")
 
     try:
         user_input = int(input(":"))
@@ -70,10 +70,6 @@ def main_memu(platform):
             timer(10)
             back_to_memu(platform)
         elif user_input == 6:
-            print("Exiting launcher...", color='green')
-            print("Bye :)", color='blue')
-            print(" ")
-        elif user_input == 7:
             print("Extra list:")
             print("1: Custom Args 2: Reset AccountData.json")
             user_input = int(input(":"))
@@ -92,6 +88,10 @@ def main_memu(platform):
                     back_to_memu(platform)
             except ValueError:
                 print("Invalid type :(", color='red')
+        elif user_input == 7:
+            print("Exiting launcher...", color='green')
+            print("Bye :)", color='blue')
+            print(" ")
         else:
             print(f"BakeLauncher: Can't found option {user_input} :( ", color='red')
             print("Please check you type option's number and try again!", color='yellow')
@@ -100,6 +100,6 @@ def main_memu(platform):
 
     except ValueError:
         # Back to main avoid crash(when user type illegal thing)
-        print("BakeLaunch: Oops! Invalid option :O  Please enter a number.", color='red')
+        print("BakeLauncher: Oops! Invalid option :O  Please enter a number.", color='red')
         time.sleep(1.2)
         back_to_memu(platform)
