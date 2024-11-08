@@ -218,19 +218,19 @@ class assets_grabber:
 
     def assets_file_grabber(self, version_id):
         WorkDir = os.getcwd()
-
+        print(f"WorkDir {WorkDir}")
         # Get version data
         version_data = self.get_version_data(version_id)
 
         # Set select instance, game_folder(.minecraft), assets_index_json, save_dir path
-        instances_path = os.path.join("instances", str(version_id))
-        game_folder = os.path.join(".minecraft")
+        instances_path = os.path.join(WorkDir, "instances")
+        instance_path = os.path.join(instances_path, str(version_id))
+        game_folder = os.path.join(instance_path, ".minecraft")
         assets_index_json = os.path.join(game_folder, "assets_index.json")
         save_dir = os.path.join(game_folder, "assets", "indexes")  # Assets file save path
 
         # Change work directory to instance(instances/{version_id})
-        os.chdir(instances_path)
-
+        os.chdir(instance_path)
         # If .minecraft does not exist, create it.
         if os.path.exists(".minecraft"):
             print(".minecraft already created!", color='green')
@@ -240,7 +240,6 @@ class assets_grabber:
 
         # Change work directory to instance(instances/{version_id}/.minecraft)
         os.chdir(game_folder)
-
         # If assets does not exist, create it.
         if os.path.exists("assets"):
             print("Assets already created!", color='green')
@@ -250,7 +249,6 @@ class assets_grabber:
 
         # Change work directory to instance(instances/{version_id}/.minecraft/assets) (preparing to download assets)
         os.chdir("assets")
-
         # If indexes does not exist, create it...
         if os.path.exists("indexes"):
             print("Indexes already created!", color='green')
@@ -262,14 +260,14 @@ class assets_grabber:
             asset_index = self.grab_asset_index_file(version_data, "indexes")
 
             # Now download the actual asset files into the objects directory
+            print("Point objects ", game_folder)
             objects_dir = os.path.join(game_folder, "assets", "objects")
             self.download_assets_plus(asset_index, objects_dir, "ModernAssets")
         else:
             print("Failed to get version_data! Cause by unknown Minecraft version.", color='red')
 
         # Change work directory back to instance path
-        os.chdir(WorkDir)
-        os.chdir(instances_path)
+        os.chdir(instance_path)
 
         # Is for LaunchManager to get assets index version
         if not os.path.exists(assets_index_json):

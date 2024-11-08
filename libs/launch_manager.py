@@ -350,7 +350,6 @@ def LaunchManager():
     # Bake Minecraft :)
     if PlatformName == "Windows":
         print(f"Mode:(Windows;WithHeapDump;SetWindowSize{CustomLaunchStatus})", color='green', tag='Debug')
-        print(GameArgs)
         LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump,
                      JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
                      CustomGameArgs, instances_id, EnableMultitasking)
