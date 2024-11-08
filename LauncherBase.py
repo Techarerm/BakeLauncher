@@ -9,7 +9,7 @@ from print_color import print as print_color
 
 
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = 'Beta 0.9(Dev-JG102724)'
+launcher_version = 'Beta 0.9(Dev-KF110924)'
 
 BetaWarningMessage = ("You are running beta version of BakeLauncher.\n"
                       "This is an 'Experimental' version with potential instability.\n"
