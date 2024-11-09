@@ -14,34 +14,48 @@ from libs.args_manager import argsman
 from LauncherBase import print_custom as print
 
 
-def error_return(ErrorMessage):
-    if not len(ErrorMessage.strip()) == 0:
-        print("Latest Error Message: ", ErrorMessage)
+ErrorMessageList = []
+
+def error_return(ErrorMessage, mode):
+    global ErrorMessageList
+    if mode == "Write":
+        ErrorMessageList.append(ErrorMessage)
+    elif mode == "Read":
+        if ErrorMessageList and len(ErrorMessageList[0].strip()) > 0:
+            print("Latest Error Message:", ErrorMessageList[-1], color='red')
 
 
 def back_to_memu(platform, workdir):
     ClearOutput(platform)
     main_memu(workdir, platform)
 
+
 def extra_memu():
     print("Extra list:")
-    print("1: Custom Args 2: Reset AccountData.json 3: Clear JVM config file")
+    print("1: Custom Args 2: Reset AccountData.json 3: Clear JVM config file 4: Exit")
     user_input = int(input(":"))
-    try:
-        if user_input == 1:
-            argsman()
-            return
-        elif user_input == 2:
-            print("BakeLauncher: Resting AccountData.json...", color='purple')
-            initialize_account_data()
-            print("BakeLauncher: AccountData.json has been cleared.", color='blue')
-            return
-        else:
-            print("Unknown options :O", color='red')
-            extra_memu()
-    except ValueError:
-        print("Invalid type :(", color='red')
-
+    while True:
+        try:
+            if user_input == 1:
+                argsman()
+                return
+            elif user_input == 2:
+                print("BakeLauncher: Resting AccountData.json...", color='purple')
+                initialize_account_data()
+                print("BakeLauncher: AccountData.json has been cleared.", color='blue')
+                return
+            elif user_input == 3:
+                print("BakeLauncher: Clear JVM config...", color='purple')
+                initialize_jvm_config()
+                print("BakeLauncher: JVM config has been cleared.", color='blue')
+                return
+            elif user_input == 4:
+                return
+            else:
+                print("Unknown options :O", color='red')
+                time.sleep(1.2)
+        except ValueError:
+            print("Invalid type :(", color='red')
 
 
 
@@ -51,9 +65,8 @@ def main_memu(workdir, platform):
 
     # Check login status
     login_status()
-
     # Return error message
-
+    error_return("", "Read")
     print("What would you like to do?")
     print("1. Launch Minecraft 2. AccountManager 3: Create Instance")
     print("4: Configure Java 5: About 6: Extra 7: Exit Launcher")
@@ -66,10 +79,12 @@ def main_memu(workdir, platform):
             back_to_memu(platform, workdir)
         if user_input == 1:
             print("Launching Minecraft...", color='green')
-            LaunchManager()
+            LaunchMessage = LaunchManager()
+            error_return(LaunchMessage, "Write")
             back_to_memu(platform, workdir)
         elif user_input == 2:
-            AccountManager()
+            AccountMSCMessage = AccountManager()
+            error_return(AccountMSCMessage, "Write")
             back_to_memu(platform, workdir)
         elif user_input == 3:
             root = os.getcwd()
@@ -95,6 +110,7 @@ def main_memu(workdir, platform):
             print("Exiting launcher...", color='green')
             print("Bye :)", color='blue')
             print(" ")
+            return
         else:
             print(f"BakeLauncher: Can't found option {user_input} :( ", color='red')
             print("Please check you type option's number and try again!", color='yellow')

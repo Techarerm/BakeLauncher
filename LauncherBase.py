@@ -9,7 +9,7 @@ from print_color import print as print_color
 
 
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = 'Beta 0.9(Dev-KF110924)'
+launcher_version = 'Beta 0.9(Dev-KG111024)'
 
 BetaWarningMessage = ("You are running beta version of BakeLauncher.\n"
                       "This is an 'Experimental' version with potential instability.\n"
@@ -61,13 +61,10 @@ def initialize_config():
 def ClearOutput(platform):
     if not DisableClearOutput:
         if platform == "Windows":
-            print("Clearing output...")
             os.system("cls")
         elif platform == "Darwin":
-            print("Clearing output...")
             os.system("clear")
         elif platform == "Linux":
-            print("Clearing output...")
             os.system("clear")
         else:
             print("Unsupported platform! Bypassing ClearOutput...")

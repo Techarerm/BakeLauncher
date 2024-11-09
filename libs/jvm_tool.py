@@ -22,8 +22,8 @@ def write_json(path, JVM_VERSION):
     # Define how data should be written into the JSON file
     try:
         # Read existing data, or create an empty structure
-        if os.path.isfile("Java_HOME.json"):
-            with open("Java_HOME.json", "r") as file:
+        if os.path.isfile("data/Java_HOME.json"):
+            with open("data/Java_HOME.json", "r") as file:
                 try:
                     data = json.load(file)
                 except json.JSONDecodeError:
@@ -37,7 +37,7 @@ def write_json(path, JVM_VERSION):
         data[JVM_VERSION] = path
 
         # Write the updated data back to the file
-        with open("Java_HOME.json", "w") as file:
+        with open("data/Java_HOME.json", "w") as file:
             json.dump(data, file, indent=4)
             print(f"Successfully saved JVM path for {JVM_VERSION}.", color='green')
 
@@ -73,9 +73,9 @@ def using_downloaded_jvm():
                         os.system(jvm_path + "/java -version")
                     print("Saving path to Java_HOME.json...", color='green')
                     # Ensure Java_HOME.json exists or handle its creation
-                    if os.path.isfile("Java_HOME.json"):
+                    if os.path.isfile("data/Java_HOME.json"):
                         try:
-                            with open("Java_HOME.json", "r") as file:
+                            with open("data/Java_HOME.json", "r") as file:
                                 data = json.load(file)
                         except json.JSONDecodeError:
                             print("Error: Java_HOME.json contains invalid JSON, recreating file.", color='red')
@@ -242,7 +242,7 @@ def java_search():
             using_downloaded_jvm()
 
         # Check config file is exist
-        if os.path.exists("Java_HOME.json"):
+        if os.path.exists("data/Java_HOME.json"):
             print("Java runtime config successful!!!", color='green')
             print("Press any key to back to the main menu...")
         else:
@@ -303,7 +303,7 @@ def java_version_check(Main, version_id):
         Java_VERSION = "Java_1.8"
 
     try:
-        with open("Java_HOME.json", "r") as file:
+        with open("data/Java_HOME.json", "r") as file:
             data = json.load(file)
 
         Java_path = data.get(Java_VERSION)
@@ -336,11 +336,11 @@ def initialize_jvm_config():
 
 def java_finder():
     system = platform.system()
-    if os.path.isfile('Java_HOME.json'):
+    if os.path.isfile('data/Java_HOME.json'):
         print("Found old jvm path config! Do you want to reconfigure this file? (Yes=1, No=0)", color='purple')
         user_input = int(input(":"))
         if user_input == 1:
-            os.remove('Java_HOME.json')
+            os.remove('data/Java_HOME.json')
             java_search()
         else:
             print("Bypass reconfiguration...", color='green')

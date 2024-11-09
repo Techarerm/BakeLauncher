@@ -76,7 +76,7 @@ def login():
         code = blank_page_url.split("code=")[1].split("&")[0]
     except IndexError:
         print("AuthTool: Invalid URL. Please try again.", color='red')
-        return
+        return "CheckURLValidFailed"
 
     try:
         # Microsoft token + Microsoft refresh token

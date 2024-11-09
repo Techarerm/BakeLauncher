@@ -154,14 +154,16 @@ def LaunchManager():
     # Check user type instances are available
     if version_id not in instances_list:
         print("Can't found instances " + version_id + " of Minecraft :(", color='red')
-        print("Please check you type instances version and try again or download it on DownloadTool!")
-        timer(3)
-        return
+        print("Please check you type instances version are available on the list.")
+        print("If you think game files are corrupted."
+              " Just re-download it(Your world won't be delete when re-download Minecraft).")
+        time.sleep(2.2)
+        return "TypeInstanceAreNotFound"
     else:
         print("Preparing to launch.....", color='c')
 
     # Get required Java version path
-    if os.path.isfile('Java_HOME.json'):
+    if os.path.isfile('data/Java_HOME.json'):
         print("Found exist Java Path config!", color='blue')
     else:
         print("LaunchManager: Can't find exist Java Path config :(", color='red')
@@ -171,7 +173,8 @@ def LaunchManager():
             print("LaunchManager: Calling java_search..")
             os.chdir(root_directory)
             java_search()
-
+        else:
+            return "JVMConfigAreNotFound"
     print("LaunchManager: Getting JVM Path...", color='c')
     JavaPath = java_version_check(Main, version_id)
 
