@@ -7,8 +7,23 @@ import LauncherBase
 from LauncherBase import GetPlatformName, launcher_version
 from LauncherBase import print_custom as print
 
+terminals = [
+    "gnome-terminal",
+    "xterm",
+    "konsole",
+    "alacritty",
+    "termite",
+    "xfce4-terminal",
+    "lxterminal",
+    "deepin-terminal",
+    "tilix",
+    "st",
+    "kitty"
+]
+
 
 def create_new_launch_thread(launch_command, title, DontPrintColor):
+    global FailedToLaunch, PlatFormName
     FailedToLaunch = False
     PlatFormName = GetPlatformName.check_platform_valid_and_return()
     if not DontPrintColor:
@@ -18,7 +33,6 @@ def create_new_launch_thread(launch_command, title, DontPrintColor):
         print("Please check the launcher already created a new terminal.")
         print("If it didn't create it please check the output and report it to GitHub!")
     if PlatFormName == 'Windows':
-        print("Add command for windows support...")
         with tempfile.NamedTemporaryFile(delete=False, suffix='.bat') as command:
             command.write(f"@echo off\n".encode())
             command.write(f'title {title}\n'.encode())
@@ -38,18 +52,23 @@ def create_new_launch_thread(launch_command, title, DontPrintColor):
             print(f"Error in Windows process: {e}")
 
     elif PlatFormName == 'Linux':
-        # Open a new terminal in Linux (gnome-terminal or xterm)
-        try:
-            print("Creating launch thread...")
-            # Linux don't need subprocess to create new terminal...bruh
-            os.system(f"gnome-terminal -- bash -c '{launch_command}; exec bash'")
-        except FileNotFoundError:
-            # Fallback to xterm if gnome-terminal is not available
-            print("Creating launch thread...", 'green')
-            subprocess.run(['xterm', '-hold', '-e', './LaunchLoadCommandTemp.sh'])
-            # Linux don't need subprocess to create new terminal...bruh
-            # This method is UNTESTED!
-            os.system("xterm -hold -e {launch_command}")
+        for terminal in terminals:
+            try:
+                print(f"Trying {terminal}...")
+                if terminal == "xterm" or terminal == "st":
+                    # xterm and st need different syntax
+                    subprocess.run([terminal, "-hold", "-e", launch_command])
+                else:
+                    # All other terminals
+                    os.system(f"{terminal} -e bash -c '{launch_command}; exec bash'")
+                break
+            except FileNotFoundError:
+                print(f"{terminal} not found, trying next terminal...")
+        else:
+            FailedToLaunch = True
+            print("No suitable recommended terminal found.")
+
+
     elif PlatFormName == 'Darwin':  # macOS
         now_directory = os.getcwd()
         try:
@@ -58,7 +77,6 @@ def create_new_launch_thread(launch_command, title, DontPrintColor):
                 script_path = script_file.name
 
             os.system(f'chmod +x {script_path}')
-
 
             apple_script = f"""
             tell application "Terminal"
@@ -90,8 +108,8 @@ def create_new_launch_thread(launch_command, title, DontPrintColor):
 
 
 def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
-                 JVM_Args, JVM_ArgsWindowsSize, JVM_ArgsRAM, GameArgs, custom_game_args, instances_id, EnableMultitasking):
-
+                 JVM_Args, JVM_ArgsWindowsSize, JVM_ArgsRAM, GameArgs, custom_game_args, instances_id,
+                 EnableMultitasking):
     WorkPath = os.getcwd()
     # Construct the Minecraft launch command with proper quoting
     minecraft_command = (
@@ -167,7 +185,6 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
 
         with open("LaunchLoadCommandTemp.sh", "w+") as f:
             f.write(launch_command)
-
 
     if EnableMultitasking == True:
         global DontPrintColor

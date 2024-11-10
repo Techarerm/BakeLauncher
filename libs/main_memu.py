@@ -13,11 +13,13 @@ from libs.jvm_tool import java_finder, initialize_jvm_config
 from libs.args_manager import argsman
 from LauncherBase import print_custom as print
 
-
 ErrorMessageList = []
+
 
 def error_return(ErrorMessage, mode):
     global ErrorMessageList
+    if ErrorMessage is None:
+        return
     if mode == "Write":
         ErrorMessageList.append(ErrorMessage)
     elif mode == "Read":
@@ -56,7 +58,6 @@ def extra_memu():
                 time.sleep(1.2)
         except ValueError:
             print("Invalid type :(", color='red')
-
 
 
 def main_memu(workdir, platform):

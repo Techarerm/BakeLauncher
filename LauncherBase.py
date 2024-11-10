@@ -22,6 +22,8 @@ ChangeLog = ("Changelog:\n"
 # Default value for some settings
 DontPrintColor = False
 DisableClearOutput = False
+
+
 # Load config file if it exists
 def load_setting():
     global DontPrintColor
