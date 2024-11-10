@@ -22,7 +22,7 @@ ChangeLog = ("Changelog:\n"
 # Default value for some settings
 DontPrintColor = False
 DisableClearOutput = False
-
+global_config_path = os.path.join("data/config.bakelh.cfg")
 
 # Load config file if it exists
 def load_setting():
@@ -55,9 +55,9 @@ def initialize_config():
     print_custom("Can't find config! Creating...", color='yellow')
     if not os.path.exists("data"):
         os.makedirs("data")
-        if not os.path.exists("data/config.bakelh.cfg"):
-            with open("data/config.bakelh.cfg", "w") as config:
-                config.write(cfg_text)
+    if not os.path.exists(global_config_path):
+        with open(global_config_path, "w") as config:
+            config.write(cfg_text)
 
 
 def ClearOutput(platform):

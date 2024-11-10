@@ -52,21 +52,26 @@ def create_new_launch_thread(launch_command, title, DontPrintColor):
             print(f"Error in Windows process: {e}")
 
     elif PlatFormName == 'Linux':
-        for terminal in terminals:
-            try:
-                print(f"Trying {terminal}...")
-                if terminal == "xterm" or terminal == "st":
-                    # xterm and st need different syntax
-                    subprocess.run([terminal, "-hold", "-e", launch_command])
-                else:
-                    # All other terminals
-                    os.system(f"{terminal} -e bash -c '{launch_command}; exec bash'")
-                break
-            except FileNotFoundError:
-                print(f"{terminal} not found, trying next terminal...")
-        else:
-            FailedToLaunch = True
-            print("No suitable recommended terminal found.")
+        try:
+            print("Creating launch thread...")
+            # Linux don't need subprocess to create new terminal...bruh
+            os.system(f"gnome-terminal -- bash -c '{launch_command}; exec bash'")
+        except FileNotFoundError:
+            for terminal in terminals:
+                try:
+                    print(f"Trying {terminal}...")
+                    if terminal == "xterm" or terminal == "st":
+                        # xterm and st need different syntax
+                        subprocess.run([terminal, "-hold", "-e", launch_command])
+                    else:
+                        # All other terminals
+                        os.system(f"{terminal} -e bash -c '{launch_command}; exec bash'")
+                    break
+                except FileNotFoundError:
+                    print(f"{terminal} not found, trying next terminal...")
+            else:
+                FailedToLaunch = True
+                print("No suitable recommended terminal found.")
 
 
     elif PlatFormName == 'Darwin':  # macOS
