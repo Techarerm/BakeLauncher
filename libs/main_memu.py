@@ -5,10 +5,10 @@ BakeLaunch Main Memu
 
 import os
 import time
-from libs.auth_tool import AccountManager, initialize_account_data, login_status
+from libs.__account_manager import account_manager
 from LauncherBase import ChangeLog, launcher_version, ClearOutput, timer
 from libs.launch_manager import LaunchManager
-from libs.__create_instance import game_files_grabber
+from libs.__create_instance import create_instance
 from libs.jvm_tool import java_finder, initialize_jvm_config
 from libs.args_manager import argsman
 from LauncherBase import print_custom as print
@@ -43,7 +43,7 @@ def extra_memu():
                 return
             elif user_input == 2:
                 print("BakeLauncher: Resting AccountData.json...", color='purple')
-                initialize_account_data()
+                account_manager.initialize_account_data()
                 print("BakeLauncher: AccountData.json has been cleared.", color='blue')
                 return
             elif user_input == 3:
@@ -65,7 +65,7 @@ def main_memu(workdir, platform):
     print("Version: " + launcher_version, color='green')
 
     # Check login status
-    login_status()
+    account_manager.login_status()
     # Return error message
     error_return("", "Read")
     print("What would you like to do?")
@@ -84,12 +84,12 @@ def main_memu(workdir, platform):
             error_return(LaunchMessage, "Write")
             back_to_memu(platform, workdir)
         elif user_input == 2:
-            AccountMSCMessage = AccountManager()
+            AccountMSCMessage = account_manager.AccountManager()
             error_return(AccountMSCMessage, "Write")
             back_to_memu(platform, workdir)
         elif user_input == 3:
             root = os.getcwd()
-            game_files_grabber.create_instance()
+            create_instance.create_instance()
             os.chdir(root)
             back_to_memu(platform, workdir)
         elif user_input == 4:

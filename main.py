@@ -5,11 +5,11 @@ CheckArch(Call LauncherBase)>GetPlatformName>Load Main_Memu>Ended
 """
 import os
 import multiprocessing
-
 import LauncherBase
 from LauncherBase import GetPlatformName, ClearOutput, BetaWarningMessage
 from LauncherBase import print_custom as print
 from libs.main_memu import main_memu
+
 
 class BakeLauncher:
     """
@@ -26,7 +26,6 @@ class BakeLauncher:
 
         # Load LauncherBase
         LauncherBase.initialize_base()
-
 
         # Check platform support
         print("BakeLauncher: Check running platform...", color='green')
@@ -62,9 +61,9 @@ class BakeLauncher:
         print(BetaWarningMessage, color='yellow')
         ClearOutput(platformName)
 
-
         # Load main menu
         main_memu(self.LauncherMainDir, platformName)
+
 
 if __name__ == "__main__":
     # Added multitasking(?) support(for LaunchClient and pyinstaller...)

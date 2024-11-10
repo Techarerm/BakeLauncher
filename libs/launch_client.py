@@ -22,7 +22,7 @@ terminals = [
 ]
 
 
-def create_new_launch_thread(launch_command, title, DontPrintColor):
+def create_new_launch_thread(launch_command, title, DontPrintColor, *args):
     global FailedToLaunch, PlatFormName
     FailedToLaunch = False
     PlatFormName = GetPlatformName.check_platform_valid_and_return()
@@ -73,9 +73,7 @@ def create_new_launch_thread(launch_command, title, DontPrintColor):
                 FailedToLaunch = True
                 print("No suitable recommended terminal found.")
 
-
     elif PlatFormName == 'Darwin':  # macOS
-        now_directory = os.getcwd()
         try:
             with tempfile.NamedTemporaryFile('w', delete=False, suffix='.sh') as script_file:
                 script_file.write(launch_command + '\nexec bash')  # Keep terminal open after execution
@@ -112,19 +110,20 @@ def create_new_launch_thread(launch_command, title, DontPrintColor):
         print("LaunchClient: Cause by unknown system or launch can't find shell :(")
 
 
-def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
+def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
                  JVM_Args, JVM_ArgsWindowsSize, JVM_ArgsRAM, GameArgs, custom_game_args, instances_id,
                  EnableMultitasking):
+    global DefaultTerminal
     WorkPath = os.getcwd()
     # Construct the Minecraft launch command with proper quoting
     minecraft_command = (
-        f'{JVMPath} {JVM_Args} {JVM_ArgsWindowsSize} {JVM_ArgsRAM} '
+        f'{JVMExecutable} {JVM_Args} {JVM_ArgsWindowsSize} {JVM_ArgsRAM} '
         f'-Djava.library.path="{NativesPath}" -cp "{libraries_paths_strings}" '
         f'{MainClass} {GameArgs} {custom_game_args}'
     )
 
     # Is for launch using one thread method
-    cleaned_jvm_path = JVMPath.replace(" ", "")
+    cleaned_jvm_path = JVMExecutable.replace(" ", "")
     minecraft_command_one_thread = (
         f'{cleaned_jvm_path} {JVM_Args} {JVM_ArgsWindowsSize} {JVM_ArgsRAM} '
         f'-Djava.library.path="{NativesPath}" -cp "{libraries_paths_strings}" '
@@ -200,10 +199,16 @@ def LaunchClient(JVMPath, libraries_paths_strings, NativesPath, MainClass,
         else:
             DontPrintColor = False
 
+        # Set default terminal(linux)
+        if GetPlatformName.check_platform_valid_and_return() == "Linux":
+            DefaultTerminal = os.getenv("TERM")
+        else:
+            DefaultTerminal = ""
+
         print("EnableExperimentalMultitasking is Enabled!", color='purple')
         client_process = multiprocessing.Process(
             target=create_new_launch_thread,
-            args=(launch_command, title, DontPrintColor)
+            args=(launch_command, title, DontPrintColor, DefaultTerminal)
         )
 
         # Start the process

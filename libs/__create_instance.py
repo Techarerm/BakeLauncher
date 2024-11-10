@@ -6,10 +6,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from LauncherBase import ClearOutput
 from LauncherBase import GetPlatformName
 from LauncherBase import print_custom as print
-from libs.assets_grabber import assets_grabber_manager
-from libs.natives_tool import unzip_natives
+from libs.__assets_grabber import assets_grabber_manager
 from libs.download_jvm import download_jvm
-
 
 
 def extract_zip(zip_path, extract_to):
@@ -107,7 +105,7 @@ def multi_thread_download(urls_and_paths, max_workers=5, retries=1):
     return downloaded_files, failed_files
 
 
-class Game_Files_Grabber:
+class Create_Instance:
     def __init__(self):
         self.VersionManifestURl = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
         self.version_id = None
@@ -323,34 +321,96 @@ class Game_Files_Grabber:
         print("DownloadTool: Now downloading natives...")
         self.download_natives(libraries, libraries_dir)
 
+    def unzip_natives(self, version):
+        global unzip_status
+        PlatformName = GetPlatformName.check_platform_valid_and_return().lower()
+
+        # Handle platform naming for macOS
+        if PlatformName == 'darwin':
+            PlatformName = 'macos'
+
+        if not os.path.exists(f"instances/{version}/.minecraft/natives"):
+            os.mkdir(f"instances/{version}/.minecraft/natives")
+
+        os.chdir(f"instances/{version}")
+        # Find all natives and unzip
+        print("Unzipping Natives...", color='green')
+        jar_files = []
+
+        for root, dirs, files in os.walk('libraries'):
+            for file in files:
+                if file.endswith(f"natives-{PlatformName}.jar"):
+                    jar_files.append(os.path.join(root, file))
+                elif PlatformName == 'macos' and file.endswith("natives-osx.jar"):
+                    # Fallback to natives-osx.jar if natives-macos.jar is not found
+                    jar_files.append(os.path.join(root, file))
+
+        if jar_files:
+            unzip_status = True
+            for jar_file in jar_files:
+                print(f"Found: {jar_file}", color='blue')
+
+                # Create "natives" folder in libraries
+                base_dir_name = os.path.basename(os.path.dirname(jar_file))
+                natives_dir = os.path.join(os.path.dirname(jar_file), f"natives_{base_dir_name}")
+                os.makedirs(natives_dir, exist_ok=True)
+
+                # Extract only files from the JAR to the unique 'natives' directory
+                with zipfile.ZipFile(jar_file, 'r') as jar:
+                    for member in jar.namelist():
+                        if not member.endswith('/'):
+                            jar.extract(member, ".minecraft/natives")
+
+        else:
+            unzip_status = False
+            print("No natives file found.", color='yellow')
+        if unzip_status:
+            print("Unzip Natives successfully!", color='blue')
+        else:
+            print("Warring: You may get some error you download libraries. Please re-download this version of"
+                  " Minecraft again.", color='yellow')
+        os.chdir(self.WorkDir)
+
+    def mac_os_libraries_bug_fix(self, minecraft_version):
+        # Patch for some idiot version bug
+        if GetPlatformName.check_platform_valid_and_return() == "Darwin":
+            directory = f"instances/{minecraft_version}/libraries/ca/weblite/1.0.0"
+            if not os.path.exists(directory):
+                os.makedirs(directory)  # Create intermediate directories if needed
+                url = "https://libraries.minecraft.net/ca/weblite/java-objc-bridge/1.0.0/java-objc-bridge-1.0.0.jar"
+                try:
+                    download_file(url, f"{directory}java-objc-bridge-1.0.0.jar")
+                except Exception as e:
+                    print(f"An error occurred: {e}")
+
     def download_games_files(self, version_id):
         version_data = self.get_version_data(version_id)
         # Download game file( libraries, .jar files...., and lwjgl!)
         ClearOutput(GetPlatformName.check_platform_valid_and_return())
         print("DownloadTool: Loading version info...")
         self.download_libraries(version_data, version_id)
+        self.mac_os_libraries_bug_fix(version_id)
         print("DownloadTool: The required dependent libraries should have been downloaded :)", color='blue')
 
         # Download assets(Also it will check this version are use legacy assets or don't use)
         ClearOutput(GetPlatformName.check_platform_valid_and_return())
-        print("DownloadTool: Now create assets...", color='green')
+        print("Now create assets...", color='green')
         assets_grabber_manager.assets_file_grabber(version_id)
         os.chdir(self.WorkDir)
 
-        # Finally....
         ClearOutput(GetPlatformName.check_platform_valid_and_return())
-        print("DownloadTool: Now unzip natives...", color='green')
-        unzip_natives(version_id)
+        print("Now unzip natives...", color='green')
+        self.unzip_natives(version_id)
 
         ClearOutput(GetPlatformName.check_platform_valid_and_return())
-        print("DownloadTool: Finally...download JVM!", color='green')
+        print("Finally...download JVM!", color='green')
         download_jvm(version_data)
 
-        print("DownloadTool: When you install a Java version that has never been installed before,"
+        print("When you install a Java version that has never been installed before,"
               " you need to reconfig Java Path!",
               color='blue')
-        print("DownloadTool: Now all files are download success :)", color='blue')
-        print("DownloadTool: Exiting download tool....", color='green')
+        print("Now all files are download success :)", color='blue')
+        print("Exiting....", color='green')
 
         # Add waiting time(If assets download failed it will print it?)
         time.sleep(1.2)
@@ -422,7 +482,6 @@ class Game_Files_Grabber:
                 print("DownloadTool: Oops! Invalid input :( Please enter Minecraft version.")
                 download_with_regular_minecraft_version()
 
-
         print("Which method you wanna use?", color='green')
         print("1:List all available versions and download 2:Type regular Minecraft version and download(include "
               "snapshot)")
@@ -443,4 +502,4 @@ class Game_Files_Grabber:
             self.create_instance()
 
 
-game_files_grabber = Game_Files_Grabber()
+create_instance = Create_Instance()

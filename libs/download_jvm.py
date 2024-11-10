@@ -1,6 +1,8 @@
 import os
 import requests
 import hashlib
+import time
+from tqdm import tqdm
 from LauncherBase import GetPlatformName
 from LauncherBase import print_custom as print
 
@@ -94,22 +96,20 @@ def download_file(file_info, file_path, destination_folder):
 
     # Check if the file already exists and verify checksum
     if os.path.exists(full_file_path) and verify_checksum(full_file_path, expected_sha1):
-        print(f"{file_name} already exists and checksum matches. Skipping download.", color='green')
         return
 
     # Download file
-    print(f"Downloading {file_name} from {file_url}", color='green')
     response = requests.get(file_url)
     if response.status_code == 200:
         with open(full_file_path, "wb") as f:
             f.write(response.content)
-        if verify_checksum(full_file_path, expected_sha1):
-            print(f"Downloaded and verified {file_name} to {full_file_path}", color='green')
-        else:
+        if not verify_checksum(full_file_path, expected_sha1):
             print(f"Checksum mismatch for {file_name}.", color='yellow')
             os.remove(full_file_path)
     else:
         print(f"Failed to download {file_name}. Status code: {response.status_code}")
+
+
 
 # Function to download all files with the proper directory structure
 def download_java_files(manifest, destination_folder):
@@ -117,10 +117,22 @@ def download_java_files(manifest, destination_folder):
         os.makedirs(destination_folder)
 
     files = manifest.get("files", {})
-    for file_path, file_info in files.items():
-        if "downloads" in file_info:
-            download_file(file_info, file_path, destination_folder)
+    total_files = len(files)  # Total number of files to download
 
+    description_color = "\033[32m"  # Green text color for description
+    reset_color = "\033[39m"  # Reset color back to default
+
+    # Create a progress bar with a custom color
+    with tqdm(total=total_files, unit="file", desc="Downloading files") as progress_bar:
+        for file_path, file_info in files.items():
+            if "downloads" in file_info:
+                # Call download_file and update progress if download or verification succeeds
+                download_file(file_info, file_path, destination_folder)
+                progress_bar.update(1)  # Increment progress bar for each completed file
+
+        # Ensure the progress bar completes at 100%(??? Why it stuck in 92%???)
+        progress_bar.n = total_files
+        progress_bar.refresh()
 def download_jvm(version_data):
     try:
         # Step 2: Extract the Java version information
@@ -133,7 +145,6 @@ def download_jvm(version_data):
 
         # Step 4: Find the correct manifest URL for the required Java version
         manifest_url = find_manifest_url(java_manifest_data, component, major_version)
-        print(f"Java manifest URL found: {manifest_url}")
 
         # Step 5: Download the Java manifest
         manifest = requests.get(manifest_url).json()
@@ -147,8 +158,12 @@ def download_jvm(version_data):
                 os.rmdir(f'runtimes' + f'Java_{major_version}')
                 os.mkdir("runtimes/" + f'Java_{major_version}')
                 download_java_files(manifest, JVM_Path)
+                print("Download JVM finished.", color='blue')
         else:
             download_java_files(manifest, JVM_Path)
+            print("Download JVM finished.", color='blue')
+
+
 
         # Fix permissions(for unix like)
         if not GetPlatformName.check_platform_valid_and_return() == "Windows":

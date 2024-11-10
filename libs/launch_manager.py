@@ -10,15 +10,15 @@ import time
 from json import JSONDecodeError
 from LauncherBase import print_custom as print
 from LauncherBase import timer, GetPlatformName, launcher_version
-from libs.assets_grabber import assets_grabber
+from libs.__assets_grabber import assets_grabber
 from libs.jvm_tool import java_version_check, java_search
-from libs.__create_instance import game_files_grabber
-from libs.auth_tool import get_account_data
+from libs.__create_instance import create_instance
+from libs.__account_manager import account_manager
 from libs.launch_client import LaunchClient
 
 
 def SelectMainClass(version_id):
-    version_data = game_files_grabber.get_version_data(version_id)
+    version_data = create_instance.get_version_data(version_id)
     main_class = version_data.get("mainClass")
     return main_class
 
@@ -27,7 +27,7 @@ def macos_jvm_args_support(version_id):
     """
     Check if the version data includes the -XstartOnFirstThread argument for macOS.
     """
-    version_data = game_files_grabber.get_version_data(version_id)
+    version_data = create_instance.get_version_data(version_id)
     jvm_args_list = version_data.get("arguments", {}).get("jvm", [])
 
     for jvm_entry in jvm_args_list:
@@ -72,7 +72,7 @@ def generate_libraries_paths(version, libraries_dir):
 
 
 def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, assetsIndex, uuid):
-    version_data = game_files_grabber.get_version_data(version_id)  # Fetch version data
+    version_data = create_instance.get_version_data(version_id)  # Fetch version data
     minecraftArguments = version_data.get("minecraftArguments", "")  # Get the arguments or an empty string
     userCustomArgs = 0
     user_properties = "{}"
@@ -212,7 +212,7 @@ def LaunchManager():
                 break  # Stop after finding the ID
 
     try:
-        account_data = get_account_data(int(id))
+        Status, account_data = account_manager.get_account_data_use_accountid(int(id))
         username = account_data['Username']
         uuid = account_data['UUID']
         access_token = account_data['AccessToken']

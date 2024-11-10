@@ -3,7 +3,7 @@ import time
 import requests
 import psutil
 import json
-from libs.__create_instance import game_files_grabber
+from libs.__create_instance import create_instance
 from LauncherBase import print_custom as print
 from libs.launch_manager import GetGameArgs
 from LauncherBase import GetPlatformName, ClearOutput,timer
@@ -187,7 +187,7 @@ def get_args(version_id):
     Check if the version data includes the -XstartOnFirstThread argument for macOS.
     """
 
-    version_data = game_files_grabber.get_version_data(version_id)
+    version_data = create_instance.get_version_data(version_id)
     if GetPlatformName.check_platform_valid_and_return() == 'Darwin':
         platform = "osx"
     else:
