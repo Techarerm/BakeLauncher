@@ -34,26 +34,37 @@ import webbrowser
 import requests
 import json
 import os
-from LauncherBase import ClearOutput, GetPlatformName, timer, initialize_config
+from LauncherBase import ClearOutput, GetPlatformName, timer, initialize_config, Base
 from LauncherBase import print_custom as print
 
 
 class AuthManager:
     def __init__(self):
+        self.grant_type = None
         self.oauth20_token = "https://login.live.com/oauth20_token.srf"
-    def get_microsoft_account_token(self, code):
+
+    def get_microsoft_account_token(self, code, mode):
         """
         Code example M.C559_SN1.2.U.09fd18c9-f260-0000-test-221f3eb387b4
         """
         try:
-            # Microsoft token + Microsoft refresh token
-            r = requests.post(self.oauth20_token, data={
-                "client_id": "00000000402B5328",
-                "scope": "service::user.auth.xboxlive.com::MBI_SSL",
-                "code": code,
-                "redirect_uri": "https://login.live.com/oauth20_desktop.srf",
-                "grant_type": "authorization_code"
-            })
+            if mode == "AuthToken":
+                # Microsoft token + Microsoft refresh token
+                r = requests.post(self.oauth20_token, data={
+                    "client_id": "00000000402B5328",
+                    "scope": "service::user.auth.xboxlive.com::MBI_SSL",
+                    "code": code,
+                    "redirect_uri": "https://login.live.com/oauth20_desktop.srf",
+                    "grant_type": "authorization_code"
+                })
+            elif mode == "RefreshToken":
+                r = requests.post("https://login.live.com/oauth20_token.srf", data={
+                    "client_id": "00000000402B5328",
+                    "scope": "service::user.auth.xboxlive.com::MBI_SSL",
+                    "refresh_token": code,
+                    "redirect_uri": "https://login.live.com/oauth20_desktop.srf",
+                    "grant_type": "refresh_token"
+                })
             r.raise_for_status()
             microsoft_token = r.json()["access_token"]
             microsoft_refresh_token = r.json()["refresh_token"]
@@ -174,7 +185,7 @@ class AuthManager:
 
     def update_account_data(self, account_id, access_token, username, refresh_token):
         # Fetch account data
-        status, selected_account_data = self.get_account_data(account_id)
+        status, selected_account_data = self.get_account_data_use_accountid(account_id)
         if not status:
             return False, f"UpdateAccountData>{selected_account_data}"
 
@@ -201,14 +212,25 @@ class AuthManager:
                 with open("data/AccountData.json", "w") as jsonFile:
                     json.dump(account_data, jsonFile, indent=4)
                 print("Token refreshed and saved successfully!")
-                return True
+                return True, "Token refreshed and saved successfully!"
             except IOError as e:
                 return False, f"Error saving AccountData.json: {e}"
 
         print(f"No account found with ID {account_id}.", color='yellow')
         return False, "Account not found"
 
-
+    def set_default_account_id(self, id):
+        AccountData = os.path.join("data", "AccountData.json")
+        if not os.path.exists(AccountData):
+            initialize_config()
+        with open("data/config.bakelh.cfg", 'r') as file:
+            lines = file.readlines()
+            for i in range(len(lines)):
+                if 'DefaultAccountID' in lines[i]:
+                    # Use the new or existing account ID
+                    lines[i] = f'DefaultAccountID = {id}\n'
+        with open("data/config.bakelh.cfg", 'w') as file:
+            file.writelines(lines)
 
     def login_process(self):
         print("Please login your account in your web browser.", color='c')
@@ -231,7 +253,7 @@ class AuthManager:
             return "CheckURLValidFailed"
 
         # Start get token process...
-        Status, microsoft_token, microsoft_refresh_token = self.get_microsoft_account_token(code)
+        Status, microsoft_token, microsoft_refresh_token = self.get_microsoft_account_token(code, "AuthToken")
         if not Status:
             return microsoft_token + microsoft_refresh_token
 
@@ -250,7 +272,6 @@ class AuthManager:
         Status, username, uuid = self.get_account_data(access_token)
         if not Status:
             return username
-
 
         try:
             # Save the token to AccountData.json
@@ -278,6 +299,7 @@ class AuthManager:
             # Check if the UUID already exists in the AccountData
             existing_entry = next((entry for entry in json_data if entry["UUID"] == uuid), None)
 
+            # Huh...maybe I don't need to modify and use update_account_data...?
             if existing_entry:
                 # Update existing entry without changing ID
                 existing_entry["RefreshToken"] = microsoft_refresh_token
@@ -309,14 +331,8 @@ class AuthManager:
             user_input = input(":")
             if user_input.upper() == "Y":
                 print("AuthTool: Change using account...", color='green')
-                with open("data/config.bakelh.cfg", 'r') as file:
-                    lines = file.readlines()
-                    for i in range(len(lines)):
-                        if 'DefaultAccountID' in lines[i]:
-                            # Use the new or existing account ID
-                            lines[i] = f'DefaultAccountID = {new_id}\n'
-                with open("data/config.bakelh.cfg", 'w') as file:
-                    file.writelines(lines)
+                self.set_default_account_id(new_id)
+
 
         except Exception as e:
             print(f"AuthTool: Failed to save account data. Error: {e}", color='red')
@@ -363,7 +379,7 @@ class AuthManager:
             print("AuthTool: Your Minecraft token has expired. Refreshing...", color='yellow')
 
             # Refresh Microsoft token using the refresh token
-            Status, new_microsoft_token, new_refresh_token = self.get_microsoft_account_token(RefreshToken)
+            Status, new_microsoft_token, new_refresh_token = self.get_microsoft_account_token(RefreshToken, "RefreshToken")
             if not Status:
                 print("AuthTool: Failed to refresh Microsoft token.", color='red')
                 print("AuthTool: Maybe your refresh token are expired! please re-login your account.",
@@ -388,10 +404,12 @@ class AuthManager:
                 return False, f"GettingAccountData>{username}"
 
             # Update the account data with the new "select" account data
-            status, message = self.update_account_data(id, access_token, username, new_refresh_token)
-            if not status:
+            Status, message = self.update_account_data(id, access_token, username, new_refresh_token)
+            if not Status:
                 return False, f"UpdateAccountData>{message}"
 
+            # Set flag after refresh token finished
+            Base.MainMemuResetFlag = True
             return True, "AccountDataRefreshSuccessfully"
 
     def login_status(self):
@@ -429,6 +447,10 @@ class AuthManager:
                 print("Please log in to your account or switch to a different account.", color='red')
             else:
                 Status, message = self.check_account_data_are_valid(id)
+                # When MainMemuResetFlag = True(After refreshing the token it will be set to True) stop print login
+                # message(until main_memu set MainMemuResetFlag = False)
+                if Base.MainMemuResetFlag:
+                    return
                 if Status:
                     print("Login Status: Already logged in :)", color='green')
                     print("Hi,", username, color="blue")  # Now this should work correctly
@@ -437,6 +459,8 @@ class AuthManager:
                     print("Login Status: Expired session :0", color='red')
                     print("Please login your account again!", color='red')
                     print("Hi,", username, color="blue")  # Now this should work correctly
+            if "tag" in account_data:
+                print(f"Account Tag: {account_data['tag']}", color='green')
         else:
             self.initialize_account_data()
             username = "Player"
@@ -469,18 +493,7 @@ class AuthManager:
                     found = True
                     print("AuthTool: Changing to account...", color='green')
 
-                    # Read the configuration file
-                    with open("data/config.bakelh.cfg", 'r') as file:
-                        lines = file.readlines()
-
-                    # Update the DefaultAccountID
-                    for i in range(len(lines)):
-                        if 'DefaultAccountID' in lines[i]:
-                            lines[i] = f'DefaultAccountID = {user_input}\n'
-
-                    # Write the updated lines back to the file
-                    with open("data/config.bakelh.cfg", 'w') as file:
-                        file.writelines(lines)
+                    self.set_default_account_id(user_input)
 
                     print("AuthTool: Changing default account successfully!", color='blue')
                     time.sleep(1.5)
@@ -497,50 +510,65 @@ class AuthManager:
 
     def DeleteAccount(self):
         print("AccountList:")
-        with open("data/AccountData.json", "r") as file:
-            data = json.load(file)
-
-        # Display available accounts
-        for item in data:
-            print(f'{item["id"]}: {item["Username"]}')
-
-        # Get user input
-        print("AuthTool: Please enter the ID of you want to delete account.", color='purple')
-        print("Or you can type 'exit' to go back to the main menu.", color='blue')
-        user_input = input(":")
-        if str(user_input).lower() == "exit":
-            print("AuthTool: Exiting...", color='green')
-            return
-
         try:
-            user_input = int(user_input)
+            with open("data/AccountData.json", "r") as file:
+                data = json.load(file)
+
+            # Display available accounts
+            for item in data:
+                print(f'{item["id"]}: {item["Username"]}')
+
+            # Get user input
+            print("AuthTool: Please enter the ID of the account you want to delete.")
+            print("Or you can type 'exit' to go back to the main menu.")
+            user_input = input(": ")
+            if str(user_input).lower() == "exit":
+                print("AuthTool: Exiting...")
+                return
+
+            # Validate user input as integer
+            try:
+                user_input = int(user_input)
+            except ValueError:
+                print("AuthTool: Invalid ID format. Please enter a valid integer.")
+                time.sleep(2)
+                self.SelectDefaultAccount()
+                return
+
+            # Find the account and delete it
             found = False
             for item in data:
                 if user_input == item["id"]:
                     found = True
-                    print("AuthTool: Deleting account...", color='green')
+                    if user_input == 1:
+                        print("AuthTool: You can't delete the launcher local account!")
+                        time.sleep(3)
+                        return
+                    data = [entry for entry in data if entry["id"] != user_input]
+                    print(f"AuthTool: Deleting account ID {user_input}...")
 
-                # Delete user input account
-                if user_input == 1:
-                    print("AuthTool: You can't deleted launcher local account!", color='red')
-                    timer(3)
-                    return
-                data = [entry for entry in data if entry["id"] != user_input]
+                    # Reassign IDs sequentially
+                    for index, account in enumerate(data):
+                        account["id"] = index + 1
 
-                with open(f"data/AccountData.json", "w") as file:
-                    json.dump(data, file, indent=4)
+                    # Write updated data to file
+                    with open("data/AccountData.json", "w") as file:
+                        json.dump(data, file, indent=4)
 
-                print(f"AuthTool: Deleted account ID {user_input} successfully!", color='blue')
-                timer(3)
+                    print(f"AuthTool: Deleted account ID {user_input} successfully!")
+                    time.sleep(3)
+                    break
+
             if not found:
-                print(f"AuthTool: Can't find account with ID {user_input} :(", color='red')
-                print("AuthTool: Please check the ID you entered and try again.", color='yellow')
-                timer(3)
+                print(f"AuthTool: Can't find account with ID {user_input}.")
+                print("AuthTool: Please check the ID and try again.")
+                time.sleep(3)
                 self.SelectDefaultAccount()
-        except ValueError:
-            print("AuthTool: Invalid ID format. Please enter a valid integer.", color='red')
-            timer(2)
-            self.SelectDefaultAccount()
+
+        except FileNotFoundError:
+            print("AuthTool: Account data file not found.")
+        except json.JSONDecodeError:
+            print("AuthTool: Error decoding account data.")
 
     def initialize_account_data(self):
         if not os.path.exists('data'):
@@ -572,15 +600,15 @@ class AuthManager:
             user_input = int(input(':'))
             if user_input == 1:
                 # Login new account
-                ClearOutput(PlatformName)
+                ClearOutput()
                 self.login_process()
             elif user_input == 2:
                 # Select launcher default account(Save to config.bakelh.cfg)
-                ClearOutput(PlatformName)
+                ClearOutput()
                 self.SelectDefaultAccount()
             elif user_input == 3:
                 # Delete Account
-                ClearOutput(PlatformName)
+                ClearOutput()
                 self.DeleteAccount()
 
         except ValueError:
@@ -589,7 +617,3 @@ class AuthManager:
 
 
 account_manager = AuthManager()
-
-
-
-

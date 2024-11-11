@@ -34,7 +34,7 @@ def download_file(url, dest_path):
 
         # Write the file to dest_path
         with open(dest_path, 'wb') as file:
-            for chunk in response.iter_content(chunk_size=8192):
+            for chunk in response.iter_content(chunk_size = 32 * 1024):
                 file.write(chunk)
         print(f"Download successful: {dest_path}")
         return True  # Indicate success
@@ -386,23 +386,23 @@ class Create_Instance:
     def download_games_files(self, version_id):
         version_data = self.get_version_data(version_id)
         # Download game file( libraries, .jar files...., and lwjgl!)
-        ClearOutput(GetPlatformName.check_platform_valid_and_return())
+        ClearOutput()
         print("DownloadTool: Loading version info...")
         self.download_libraries(version_data, version_id)
         self.mac_os_libraries_bug_fix(version_id)
         print("DownloadTool: The required dependent libraries should have been downloaded :)", color='blue')
 
         # Download assets(Also it will check this version are use legacy assets or don't use)
-        ClearOutput(GetPlatformName.check_platform_valid_and_return())
+        ClearOutput()
         print("Now create assets...", color='green')
         assets_grabber_manager.assets_file_grabber(version_id)
         os.chdir(self.WorkDir)
 
-        ClearOutput(GetPlatformName.check_platform_valid_and_return())
+        ClearOutput()
         print("Now unzip natives...", color='green')
         self.unzip_natives(version_id)
 
-        ClearOutput(GetPlatformName.check_platform_valid_and_return())
+        ClearOutput()
         print("Finally...download JVM!", color='green')
         download_jvm(version_data)
 

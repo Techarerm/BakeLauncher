@@ -347,7 +347,7 @@ def get_game_args_and_edit():
         else:
             print("ArgsManager: No valid arguments to process :(", color='red')
 
-        ClearOutput(GetPlatformName.check_platform_valid_and_return())
+        ClearOutput()
 
 
 def game_args_editor(mode):
@@ -527,7 +527,7 @@ def modify_jvm_args():
 
     # Start the second while loop for continuous input
     while True:
-        ClearOutput(GetPlatformName.check_platform_valid_and_return())
+        ClearOutput()
         print("ModifyJVMArgs", color='purple')
         print("1: Edit JVM Allocation RAM Size (Advanced)", color='green')
         print("2: Custom Args (Advanced)", color='purple')
@@ -561,7 +561,7 @@ def modify_jvm_args():
 
 def argsman():
     exit_program = False
-    ClearOutput(GetPlatformName.check_platform_valid_and_return())
+    ClearOutput()
     print("[ArgsManager]", color='magenta')
     print("1: Modify Game Args 2: Modify JVM Args 3: Exit Modify Args")
 
