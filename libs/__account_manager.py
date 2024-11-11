@@ -208,7 +208,18 @@ class AuthManager:
         print(f"No account found with ID {account_id}.", color='yellow')
         return False, "Account not found"
 
-
+    def set_default_account_id(self, id):
+        AccountData = os.path.join("data", "AccountData.json")
+        if not os.path.exists(AccountData):
+            initialize_config()
+        with open("data/config.bakelh.cfg", 'r') as file:
+            lines = file.readlines()
+            for i in range(len(lines)):
+                if 'DefaultAccountID' in lines[i]:
+                    # Use the new or existing account ID
+                    lines[i] = f'DefaultAccountID = {id}\n'
+        with open("data/config.bakelh.cfg", 'w') as file:
+            file.writelines(lines)
 
     def login_process(self):
         print("Please login your account in your web browser.", color='c')
@@ -278,6 +289,7 @@ class AuthManager:
             # Check if the UUID already exists in the AccountData
             existing_entry = next((entry for entry in json_data if entry["UUID"] == uuid), None)
 
+            # Huh...maybe I don't need to modify and use update_account_data...?
             if existing_entry:
                 # Update existing entry without changing ID
                 existing_entry["RefreshToken"] = microsoft_refresh_token
@@ -309,14 +321,8 @@ class AuthManager:
             user_input = input(":")
             if user_input.upper() == "Y":
                 print("AuthTool: Change using account...", color='green')
-                with open("data/config.bakelh.cfg", 'r') as file:
-                    lines = file.readlines()
-                    for i in range(len(lines)):
-                        if 'DefaultAccountID' in lines[i]:
-                            # Use the new or existing account ID
-                            lines[i] = f'DefaultAccountID = {new_id}\n'
-                with open("data/config.bakelh.cfg", 'w') as file:
-                    file.writelines(lines)
+                self.set_default_account_id(new_id)
+
 
         except Exception as e:
             print(f"AuthTool: Failed to save account data. Error: {e}", color='red')
@@ -437,6 +443,8 @@ class AuthManager:
                     print("Login Status: Expired session :0", color='red')
                     print("Please login your account again!", color='red')
                     print("Hi,", username, color="blue")  # Now this should work correctly
+            if "tag" in account_data:
+                print(f"Account Tag: {account_data['tag']}", color='green')
         else:
             self.initialize_account_data()
             username = "Player"
@@ -522,7 +530,7 @@ class AuthManager:
 
                 # Delete user input account
                 if user_input == 1:
-                    print("AuthTool: You can't deleted launcher local account!", color='red')
+                    print("AuthTool: You can't delete launcher local account!", color='red')
                     timer(3)
                     return
                 data = [entry for entry in data if entry["id"] != user_input]
@@ -530,13 +538,14 @@ class AuthManager:
                 with open(f"data/AccountData.json", "w") as file:
                     json.dump(data, file, indent=4)
 
-                print(f"AuthTool: Deleted account ID {user_input} successfully!", color='blue')
+
                 timer(3)
             if not found:
                 print(f"AuthTool: Can't find account with ID {user_input} :(", color='red')
                 print("AuthTool: Please check the ID you entered and try again.", color='yellow')
                 timer(3)
                 self.SelectDefaultAccount()
+            print(f"AuthTool: Deleted account ID {user_input} successfully!", color='blue')
         except ValueError:
             print("AuthTool: Invalid ID format. Please enter a valid integer.", color='red')
             timer(2)

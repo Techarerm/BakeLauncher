@@ -34,7 +34,7 @@ def download_file(url, dest_path):
 
         # Write the file to dest_path
         with open(dest_path, 'wb') as file:
-            for chunk in response.iter_content(chunk_size=8192):
+            for chunk in response.iter_content(chunk_size = 32 * 1024):
                 file.write(chunk)
         print(f"Download successful: {dest_path}")
         return True  # Indicate success
