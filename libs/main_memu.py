@@ -6,7 +6,7 @@ BakeLaunch Main Memu
 import os
 import time
 from libs.__account_manager import account_manager
-from LauncherBase import ChangeLog, launcher_version, ClearOutput, timer
+from LauncherBase import ChangeLog, launcher_version, ClearOutput, timer, Base
 from libs.launch_manager import LaunchManager
 from libs.__create_instance import create_instance
 from libs.jvm_tool import java_finder, initialize_jvm_config
@@ -27,9 +27,9 @@ def error_return(ErrorMessage, mode):
             print("Latest Error Message:", ErrorMessageList[-1], color='red')
 
 
-def back_to_memu(platform, workdir):
-    ClearOutput(platform)
-    main_memu(workdir, platform)
+def back_to_memu():
+    ClearOutput()
+    main_memu()
 
 
 def extra_memu():
@@ -60,12 +60,18 @@ def extra_memu():
             print("Invalid type :(", color='red')
 
 
-def main_memu(workdir, platform):
+def main_memu():
     print('"BakeLauncher Main Menu"', color='blue')
     print("Version: " + launcher_version, color='green')
 
     # Check login status
     account_manager.login_status()
+    if Base.MainMemuResetFlag:
+        ClearOutput()
+        Base.MainMemuResetFlag = False
+        main_memu()
+        return
+
     # Return error message
     error_return("", "Read")
     print("What would you like to do?")
@@ -77,24 +83,24 @@ def main_memu(workdir, platform):
         if user_input == int:
             print("BakeLauncher: Invalid type :(", color='red')
             print("Please check you type option is number and try again!", color='yellow')
-            back_to_memu(platform, workdir)
+            back_to_memu()
         if user_input == 1:
             print("Launching Minecraft...", color='green')
             LaunchMessage = LaunchManager()
             error_return(LaunchMessage, "Write")
-            back_to_memu(platform, workdir)
+            back_to_memu()
         elif user_input == 2:
             AccountMSCMessage = account_manager.AccountManager()
             error_return(AccountMSCMessage, "Write")
-            back_to_memu(platform, workdir)
+            back_to_memu()
         elif user_input == 3:
             root = os.getcwd()
             create_instance.create_instance()
             os.chdir(root)
-            back_to_memu(platform, workdir)
+            back_to_memu()
         elif user_input == 4:
             java_finder()
-            back_to_memu(platform, workdir)
+            back_to_memu()
         elif user_input == 5:
             print("POWERED BY BAKE!", color="yellow")
             print("BakeLauncher " + launcher_version, color='yellow')
@@ -103,10 +109,10 @@ def main_memu(workdir, platform):
             print(" ")
             print(ChangeLog, color='cyan')
             timer(10)
-            back_to_memu(platform, workdir)
+            back_to_memu()
         elif user_input == 6:
             extra_memu()
-            back_to_memu(platform, workdir)
+            back_to_memu()
         elif user_input == 7:
             print("Exiting launcher...", color='green')
             print("Bye :)", color='blue')
@@ -116,10 +122,10 @@ def main_memu(workdir, platform):
             print(f"BakeLauncher: Can't found option {user_input} :( ", color='red')
             print("Please check you type option's number and try again!", color='yellow')
             time.sleep(1.2)
-            back_to_memu(platform, workdir)
+            back_to_memu()
 
     except ValueError:
         # Back to main avoid crash(when user type illegal thing)
         print("BakeLauncher: Oops! Invalid option :O  Please enter a number.", color='red')
         time.sleep(1.2)
-        back_to_memu(platform, workdir)
+        back_to_memu()
