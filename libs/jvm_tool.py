@@ -8,7 +8,6 @@ import os
 import subprocess
 import platform
 import time
-
 import requests
 import json
 from libs.download_jvm import get_java_version_info
@@ -125,6 +124,7 @@ def find_jvm_path_windows(java_version, path):
 
 
 def find_jvm_path_unix_like(path):
+    global java_path
     if platform.system() == "Darwin":  # macOS
         try:
             # Run the command to list all Java versions and their paths

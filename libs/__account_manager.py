@@ -34,13 +34,13 @@ import webbrowser
 import requests
 import json
 import os
-from LauncherBase import ClearOutput, GetPlatformName, timer, initialize_config, Base
-from LauncherBase import print_custom as print
+from LauncherBase import Base,ClearOutput, initialize_config, timer,print_custom as print
 
 
 class AuthManager:
     def __init__(self):
         self.grant_type = None
+        self.request_data = None
         self.oauth20_token = "https://login.live.com/oauth20_token.srf"
 
     def get_microsoft_account_token(self, code, mode):
@@ -50,7 +50,7 @@ class AuthManager:
         try:
             if mode == "AuthToken":
                 # Microsoft token + Microsoft refresh token
-                r = requests.post(self.oauth20_token, data={
+                self.request_data = requests.post(self.oauth20_token, data={
                     "client_id": "00000000402B5328",
                     "scope": "service::user.auth.xboxlive.com::MBI_SSL",
                     "code": code,
@@ -58,16 +58,16 @@ class AuthManager:
                     "grant_type": "authorization_code"
                 })
             elif mode == "RefreshToken":
-                r = requests.post("https://login.live.com/oauth20_token.srf", data={
+                self.request_data = requests.post("https://login.live.com/oauth20_token.srf", data={
                     "client_id": "00000000402B5328",
                     "scope": "service::user.auth.xboxlive.com::MBI_SSL",
                     "refresh_token": code,
                     "redirect_uri": "https://login.live.com/oauth20_desktop.srf",
                     "grant_type": "refresh_token"
                 })
-            r.raise_for_status()
-            microsoft_token = r.json()["access_token"]
-            microsoft_refresh_token = r.json()["refresh_token"]
+            self.request_data.raise_for_status()
+            microsoft_token = self.request_data.json()["access_token"]
+            microsoft_refresh_token = self.request_data.json()["refresh_token"]
             print("Get Microsoft account token and refresh Token successfully!", color='blue')
             return True, microsoft_token, microsoft_refresh_token
         except requests.RequestException:
@@ -590,26 +590,28 @@ class AuthManager:
             json.dump(json_data, jsonFile, indent=4)
 
     def AccountManager(self):
-        PlatformName = GetPlatformName.check_platform_valid_and_return()
         try:
             print("[AccountManager]", color='blue')
             print('Options:', color='green')
             print("1: Login New Account", color='blue')
             print("2: Select Use Account", color='purple')
             print("3: Delete Account", color='red')
-            user_input = int(input(':'))
-            if user_input == 1:
+            print("4: Exit", color='green')
+            user_input = str(input(':'))
+            if user_input == "1":
                 # Login new account
                 ClearOutput()
                 self.login_process()
-            elif user_input == 2:
+            elif user_input == "2":
                 # Select launcher default account(Save to config.bakelh.cfg)
                 ClearOutput()
                 self.SelectDefaultAccount()
-            elif user_input == 3:
+            elif user_input == "3":
                 # Delete Account
                 ClearOutput()
                 self.DeleteAccount()
+            elif user_input == "4":
+                return
 
         except ValueError:
             print("AuthTool: Invalid Option :0", color='red')

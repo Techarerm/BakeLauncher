@@ -6,12 +6,11 @@ BakeLaunch Main Memu
 import os
 import time
 from libs.__account_manager import account_manager
-from LauncherBase import ChangeLog, launcher_version, ClearOutput, timer, Base
+from LauncherBase import Base, ChangeLog, ClearOutput, launcher_version, bake_game, print_custom as print
 from libs.launch_manager import LaunchManager
 from libs.__create_instance import create_instance
 from libs.jvm_tool import java_finder, initialize_jvm_config
 from libs.args_manager import argsman
-from LauncherBase import print_custom as print
 
 ErrorMessageList = []
 
@@ -31,10 +30,46 @@ def back_to_memu():
     ClearOutput()
     main_memu()
 
+def bake_bake():
+    print("POWERED BY BAKE!", color="yellow")
+    print("BakeLauncher " + launcher_version, color='yellow')
+    print("Contact Me :) TedKai/@Techarerm", color="blue")
+    print("Source code: https://github.com/Techarerm/BakeLauncher", color='yellow')
+    if "Dev" in launcher_version:
+        print("This bread isn't baked yet?", color='blue')
+    elif "Beta" in launcher_version:
+        print("Almost done? (Just wait...like 1 years?)", color='blue')
+    print(" ")
+    print(ChangeLog, color='cyan')
+    print("Type 'exit' to back to main memu.", color='green')
+    type_time = 1
+    while True:
+        user_input = str(input("BakeLauncher> "))
+
+        if user_input.upper() == "EXIT":
+            return True
+
+        if "BAKE" in user_input.upper():
+            bake_game()
+            return True
+
+        if type_time == 1:
+            print(f"?{user_input}")
+            type_time += 1
+        elif type_time == 2:
+            print(f"!{user_input}")
+            type_time += 1
+        elif type_time == 3:
+            print(f"???{user_input}")
+            type_time = 1
+
+
+
+
 
 def extra_memu():
     print("Extra list:")
-    print("1: Custom Args 2: Reset AccountData.json 3: Clear JVM config file 4: Exit")
+    print("1: Custom Args 2: Reset AccountData.json 3: Clear JVM config file 4:Clear ErrorMessage 5: Exit")
     user_input = int(input(":"))
     while True:
         try:
@@ -42,16 +77,19 @@ def extra_memu():
                 argsman()
                 return
             elif user_input == 2:
-                print("BakeLauncher: Resting AccountData.json...", color='purple')
+                print("Resting AccountData.json...", color='purple')
                 account_manager.initialize_account_data()
-                print("BakeLauncher: AccountData.json has been cleared.", color='blue')
+                print("AccountData.json has been cleared.", color='blue')
                 return
             elif user_input == 3:
-                print("BakeLauncher: Clear JVM config...", color='purple')
+                print("Clear JVM config...", color='purple')
                 initialize_jvm_config()
-                print("BakeLauncher: JVM config has been cleared.", color='blue')
+                print("JVM config has been cleared.", color='blue')
                 return
             elif user_input == 4:
+                print("Clearing ErrorMessage...", color='green')
+                ErrorMessageList.clear()
+                print("ErrorMessage has been cleared.", color='green')
                 return
             else:
                 print("Unknown options :O", color='red')
@@ -102,13 +140,7 @@ def main_memu():
             java_finder()
             back_to_memu()
         elif user_input == 5:
-            print("POWERED BY BAKE!", color="yellow")
-            print("BakeLauncher " + launcher_version, color='yellow')
-            print("Contact Me :) TedKai/@Techarerm", color="blue")
-            print("Source code: https://github.com/Techarerm/BakeLauncher", color='yellow')
-            print(" ")
-            print(ChangeLog, color='cyan')
-            timer(10)
+            bake_bake()
             back_to_memu()
         elif user_input == 6:
             extra_memu()

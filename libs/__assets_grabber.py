@@ -134,7 +134,7 @@ class assets_grabber:
             response.raise_for_status()
 
             with open(asset_save_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size = 32 * 1024):
+                for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         f.write(chunk)
             print(f"Downloaded: {asset_name} -> {asset_hash}")
@@ -279,8 +279,8 @@ class assets_grabber:
             assetsIndex = data["id"]
 
         if assetsIndex == "pre-1.6" or assetsIndex == "legacy":
-            print("Your want to download version's type are 'Legacy'!", color='green')
-            print("Downloading Legacy assets now...", color='green')
+            print("This version require legacy assets.", color='green', tag="DEBUG")
+            print("Downloading legacy assets...", color='green')
             assets_dir = os.path.join(game_folder, "assets")
             if assetsIndex == "pre-1.6":
                 self.download_assets_plus("pre-1.6", assets_dir, "LegacyAssets")

@@ -3,9 +3,7 @@ import os
 import zipfile
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from LauncherBase import ClearOutput
-from LauncherBase import GetPlatformName
-from LauncherBase import print_custom as print
+from LauncherBase import Base, ClearOutput, print_custom as print
 from libs.__assets_grabber import assets_grabber_manager
 from libs.download_jvm import download_jvm
 
@@ -34,7 +32,7 @@ def download_file(url, dest_path):
 
         # Write the file to dest_path
         with open(dest_path, 'wb') as file:
-            for chunk in response.iter_content(chunk_size = 32 * 1024):
+            for chunk in response.iter_content(chunk_size=8192):
                 file.write(chunk)
         print(f"Download successful: {dest_path}")
         return True  # Indicate success
@@ -111,16 +109,6 @@ class Create_Instance:
         self.version_id = None
         self.minecraft_version = ""
 
-        # For libraries...
-        self.PlatformName = GetPlatformName.check_platform_valid_and_return()
-        self.PlatformNameLower = self.PlatformName.lower()
-
-        # name(Windows) = windows, name(Linux) = linux, name(macOS) = osx
-        if self.PlatformNameLower == 'darwin':
-            self.PlatformNameLibraryName = 'osx'
-        else:
-            self.PlatformNameLibraryName = self.PlatformNameLower
-
         # Working directory
         self.WorkDir = os.getcwd()
 
@@ -160,14 +148,22 @@ class Create_Instance:
         response = requests.get(self.VersionManifestURl)
         data = response.json()
         version_list = data['versions']
+
         all_available_version = [version['id'] for version in data['versions']]
         release_versions = [version['id'] for version in version_list if version['type'] == 'release']
 
-        # Calculate the number of rows needed (up to ten items in each column)
-        rows = (len(release_versions) + 9) // 10  # Round up division to determine rows
+        # Legacy
+        formatted_versions = '\n'.join([f"{index + 1}: {version}"
+                                        for index, version in enumerate(release_versions)])
 
+        formatted_versions_all = '\n'.join([f"{index + 1}: {version}"
+                                        for index, version in enumerate(all_available_version)])
+
+        # New methods
+        rows = (len(release_versions) + 9) // 10  # Round up division to determine rows
+        rows_all = (len(all_available_version) + 50) // 40  # Round up division to determine rows
+        print("DownloadTool: Available version list:", color='purple')
         if mode == "release":
-            print("DownloadTool: Available version list:", color='purple')
             for row in range(rows):
                 line = ""
                 for col in range(10):
@@ -176,11 +172,27 @@ class Create_Instance:
                         line += f"{index + 1}: {release_versions[index]:<10}\t"
                 print(line.strip())  # Print each row after building the line
             return release_versions
+        elif mode == "all_version":
+            for row in range(rows_all):
+                line = ""
+                for col in range(50):
+                    index = col * rows_all + row
+                    if index < len(all_available_version):
+                        line += f"{index + 1}: {all_available_version[index]:<20}\t"
+                print(line.strip())  # Print each row after building the line
+            print("This list may look really broken :)", color='blue')
+            return all_available_version
+        elif mode == "legacy":
+            print(formatted_versions)
+            return release_versions
+        elif mode == "legacy_all":
+            print(formatted_versions_all)
+            return all_available_version
         else:
             return all_available_version
 
     def download_natives(self, libraries, libraries_dir):
-        print(f"DownloadTool: {self.PlatformNameLower}", tag='Debug', color='green')
+        print(f"DownloadTool: {Base.LibrariesPlatform}", tag='Debug', color='green')
         native_keys = {
             'windows': 'natives-windows',
             'linux': 'natives-linux',
@@ -188,10 +200,10 @@ class Create_Instance:
             'windows-arm64': 'natives-windows-arm64',
             'macos-arm64': 'natives-macos-arm64',
         }
-        native_key = native_keys.get(self.PlatformNameLower)
+        native_key = native_keys.get(Base.LibrariesPlatform)
 
         if not native_key:
-            print(f"Warning: No native key found for {self.PlatformNameLower}", color='yellow')
+            print(f"Warning: No native key found for {Base.LibrariesPlatform}", color='yellow')
             return "NativeKeyCheckFailed"
 
         found_any_native = False
@@ -207,9 +219,9 @@ class Create_Instance:
                 for rule in rules:
                     action = rule.get('action')
                     os_info = rule.get('os')
-                    if action == 'allow' and (not os_info or os_info.get('name') == self.PlatformNameLibraryName):
+                    if action == 'allow' and (not os_info or os_info.get('name') == Base.LibrariesPlatform2ndOld):
                         allowed = True
-                    elif action == 'disallow' and os_info and os_info.get('name') == self.PlatformNameLibraryName:
+                    elif action == 'disallow' and os_info and os_info.get('name') == Base.LibrariesPlatform2ndOld:
                         allowed = False
                         break
                 if not allowed:
@@ -243,7 +255,7 @@ class Create_Instance:
                 found_any_native = True
 
         # Check for natives-osx fallback if natives-macos is not found
-        if not found_any_native and self.PlatformNameLower == 'darwin':
+        if not found_any_native and Base.LibrariesPlatform == 'darwin':
             native_key_osx = 'natives-osx'  # Fallback key
             for lib in libraries:
                 lib_downloads = lib.get('downloads', {})
@@ -298,9 +310,9 @@ class Create_Instance:
                 for rule in rules:
                     action = rule.get('action')
                     os_info = rule.get('os')
-                    if action == 'allow' and (not os_info or os_info.get('name') == self.PlatformNameLower):
+                    if action == 'allow' and (not os_info or os_info.get('name') == Base.Platform):
                         allowed = True
-                    elif action == 'disallow' and os_info and os_info.get('name') == self.PlatformNameLower:
+                    elif action == 'disallow' and os_info and os_info.get('name') == Base.Platform:
                         allowed = False
                         break
                 if not allowed:
@@ -323,10 +335,9 @@ class Create_Instance:
 
     def unzip_natives(self, version):
         global unzip_status
-        PlatformName = GetPlatformName.check_platform_valid_and_return().lower()
 
         # Handle platform naming for macOS
-        if PlatformName == 'darwin':
+        if Base.LibrariesPlatform == 'darwin':
             PlatformName = 'macos'
 
         if not os.path.exists(f"instances/{version}/.minecraft/natives"):
@@ -339,9 +350,9 @@ class Create_Instance:
 
         for root, dirs, files in os.walk('libraries'):
             for file in files:
-                if file.endswith(f"natives-{PlatformName}.jar"):
+                if file.endswith(f"natives-{Base.LibrariesPlatform2nd}.jar"):
                     jar_files.append(os.path.join(root, file))
-                elif PlatformName == 'macos' and file.endswith("natives-osx.jar"):
+                elif Base.LibrariesPlatform2nd == 'macos' and file.endswith("natives-osx.jar"):
                     # Fallback to natives-osx.jar if natives-macos.jar is not found
                     jar_files.append(os.path.join(root, file))
 
@@ -373,7 +384,7 @@ class Create_Instance:
 
     def mac_os_libraries_bug_fix(self, minecraft_version):
         # Patch for some idiot version bug
-        if GetPlatformName.check_platform_valid_and_return() == "Darwin":
+        if Base.Platform == "Darwin":
             directory = f"instances/{minecraft_version}/libraries/ca/weblite/1.0.0"
             if not os.path.exists(directory):
                 os.makedirs(directory)  # Create intermediate directories if needed
@@ -416,15 +427,54 @@ class Create_Instance:
         time.sleep(1.2)
 
     def create_instance(self):
-        def download_minecraft_with_version_id():
-            print("Grabbing version list...")
-            version_list = self.get_version_list("release")
-            print("DownloadTool: Available version list:", color='purple')
-            print("VersionID: MinecraftVersion", "\n", color='purple')
-            print("Example: 15: 1.12.2 , 15 is version 1.12's ID", color='green')
+        def download_minecraft_with_version_id(**kwargs):
+            global list_type
+            if not kwargs:
+                print("Grabbing version list...")
+                version_list = self.get_version_list("release")
+                print("VersionID: MinecraftVersion", "\n", color='purple')
+                print("Example: 15: 1.12.2 , 15 is version 1.12's ID", color='green')
+                list_type = ""
+            else:
+                list_type = kwargs.get('list_type', None)  # Default to None if 'list_type' is not provided
+                print("Grabbing version list...")
+                version_list = self.get_version_list(list_type)
+                print("VersionID: MinecraftVersion", "\n", color='purple')
+                print("Example: 15: 1.12.2 , 15 is version 1.12's ID", color='green')
+
+            if list_type == "legacy_all":
+                print(
+                    "Warning: Version list has been set to LEGACY_ALL. That mean launcher will search version_id in LEGACY_ALL.",
+                    color='yellow')
+                print("To reset the list back to original. You can enter 'legacy_list' or just 'list' to back.",
+                      color='green')
+            print("Some cool stuff:'")
+            print("Type 'list' to print list again. 'legacy_list' for legacy list(support more system than normal list)", color='blue')
+            print("'legacy_all' for legacy list(but it wll print all available versions. The list will be long)", color='blue')
+            print("'list_all' can print all available versions(Not recommended. Poor support for most of system)", color='purple')
             version_id = str(input("Please enter the version ID:"))
 
             if version_id.upper() == "EXIT":
+                return
+
+            if version_id.upper() == "LIST":
+                download_minecraft_with_version_id(NO_LIST=True,list_type="release")
+                return
+
+            if version_id.upper() == "LIST_ALL":
+                print("Warning: Version list has been set to 'LIST_ALL'. That mean launcher will search version_id in 'LIST_ALL'.", color='yellow')
+                print("To reset the list back to original. You can enter 'legacy_list' or just 'list' to back.", color='green')
+                download_minecraft_with_version_id(NO_LIST=True,list_type="all_version")
+                return
+
+            if version_id.upper() == "LEGACY_LIST":
+                download_minecraft_with_version_id(NO_LIST=True, list_type='legacy')
+                return
+
+            if version_id.upper() == "LEGACY_ALL":
+                print("Warning: Version list has been set to LEGACY_ALL. That mean launcher will search version_id in LEGACY_ALL.", color='yellow')
+                print("To reset the list back to original. You can enter 'legacy_list' or just 'list' to back.", color='green')
+                download_minecraft_with_version_id(NO_LIST=True, list_type='legacy_all')
                 return
 
             try:
@@ -449,6 +499,7 @@ class Create_Instance:
                 # Check user type version_id are available
                 minecraft_version = version_list[version_id]
                 self.download_games_files(minecraft_version)
+                return
             else:
                 print(f"DownloadTool: You type version id '{version_id}' are not found :(", color='red')
                 time.sleep(1.2)
@@ -462,6 +513,11 @@ class Create_Instance:
             # Find minecraft_version after get version_id(IMPORTANT:version =/= version_id!)
 
             if regular_version_input.upper() == "EXIT":
+                return
+
+            elif regular_version_input.upper() == "LIST":
+                self.get_version_list("all_version")
+                download_with_regular_minecraft_version()
                 return
 
             for version in version_list:
@@ -488,6 +544,10 @@ class Create_Instance:
 
         try:
             user_input = str(input(":"))
+            if user_input.upper() == "EXIT":
+                print("Exiting....", color='green')
+                return
+
             if user_input == "1":
                 download_minecraft_with_version_id()
             elif user_input == "2":

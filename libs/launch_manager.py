@@ -1,15 +1,7 @@
-"""
-InternalName: LaunchManager
-In the file structure: launch_client.py
-
-Just a tool to prepare command for launching clients...
-"""
-
 import os
 import time
 from json import JSONDecodeError
-from LauncherBase import print_custom as print
-from LauncherBase import timer, GetPlatformName, launcher_version
+from LauncherBase import Base, timer, print_custom as print
 from libs.__assets_grabber import assets_grabber
 from libs.jvm_tool import java_version_check, java_search
 from libs.__create_instance import create_instance
@@ -47,7 +39,6 @@ def generate_libraries_paths(version, libraries_dir):
     global client_jar_path
     jar_paths_string = ""
     client_jar_path = f"libraries/net/minecraft/{version}/client.jar"
-    PlatformName = GetPlatformName.check_platform_valid_and_return()
 
     # Traverse the libraries directory
     print("Generating dependent libraries path for " + version + " of Minecraft...", color="green")
@@ -59,7 +50,7 @@ def generate_libraries_paths(version, libraries_dir):
                 full_path = os.path.join("libraries", relative_path)
 
                 # Append the path to the jar_paths_string with the correct separator
-                if PlatformName == "Windows":
+                if Base.Platform == "Windows":
                     jar_paths_string += full_path + ";"
                 else:
                     jar_paths_string += full_path + ":"
@@ -91,7 +82,7 @@ def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, 
         .replace("${user_properties}", user_properties)  # Replace user_properties if present
 
     if "--userProperties" in minecraftArguments:
-        print("LaunchManage: This version of Minecraft requires --userProperties!", color='green')
+        print("This version of Minecraft requires --userProperties!", color='green')
         # Properly replace ${user_properties} or add user properties if not present
 
     # Handle special case where ${auth_player_name} and ${auth_session} are at the beginning
@@ -114,16 +105,6 @@ def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, 
                          f"--accessToken {access_token} --userType {user_type}"
 
     return minecraft_args
-
-
-def launch_wit_args(platform, version_id, librariesCFG, gameDir, assetsDir, assetsIndex, jvm_path, nativespath,
-                    main_class, ):
-    Main = "LaunchManager"
-    local = os.getcwd()
-
-    # I "will" choose a free time to refactor this code....
-    print(f"Launch with args has been deleted since {launcher_version}", color='green')
-    timer(8)
 
 
 def LaunchManager():
@@ -150,6 +131,9 @@ def LaunchManager():
     print(" | ".join(map(str, instances_list)))
     print("LaunchManager: Which instances is you want to launch instances ?")
     version_id = input(":")
+
+    if str(version_id).upper() == "EXIT":
+        return
 
     # Check user type instances are available
     if version_id not in instances_list:
@@ -186,8 +170,7 @@ def LaunchManager():
         return "FailedToCheckJavaPath"
 
     # After get JVMPath(bin), Get PlatformName and set the actual required Java Virtual Machine Path
-    PlatformName = GetPlatformName.check_platform_valid_and_return()
-    if PlatformName == 'Windows':
+    if Base.Platform == 'Windows':
         java_executable = "java.exe"
     else:
         java_executable = "java"
@@ -351,12 +334,12 @@ def LaunchManager():
     instances_id = f"Minecraft {version_id}"
 
     # Bake Minecraft :)
-    if PlatformName == "Windows":
+    if Base.Platform == "Windows":
         print(f"Mode:(Windows;WithHeapDump;SetWindowSize{CustomLaunchStatus})", color='green', tag='Debug')
         LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump,
                      JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
                      CustomGameArgs, instances_id, EnableMultitasking)
-    elif PlatformName == "Darwin":
+    elif Base.Platform == "Darwin":
         JVM_Args_HeapDump = " "
         # In LWJGL 3.x, macOS requires this args to make lwjgl running on the JVM starts with thread 0) (from wiki.vg)
         CheckRequireXThread, XThreadArgs = macos_jvm_args_support(version_id)
@@ -374,7 +357,7 @@ def LaunchManager():
             LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump,
                          JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
                          CustomGameArgs, instances_id, EnableMultitasking)
-    elif PlatformName == "Linux":
+    elif Base.Platform == "Linux":
         JVM_Args_HeapDump = " "
         print(f"Mode:(Linux;WithoutHeapDump;SetWindowSize{CustomLaunchStatus})", color='green', tag='Debug')
         LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVM_Args_HeapDump,

@@ -3,9 +3,7 @@ import tempfile
 import subprocess
 import time
 import multiprocessing
-import LauncherBase
-from LauncherBase import GetPlatformName, launcher_version
-from LauncherBase import print_custom as print
+from LauncherBase import Base, launcher_version, print_custom as print
 
 terminals = [
     "gnome-terminal",
@@ -22,10 +20,10 @@ terminals = [
 ]
 
 
-def create_new_launch_thread(launch_command, title, DontPrintColor, *args):
-    global FailedToLaunch, PlatFormName
+
+def create_new_client_thread(launch_command, title, DontPrintColor, PlatFormName, *args):
+    global FailedToLaunch
     FailedToLaunch = False
-    PlatFormName = GetPlatformName.check_platform_valid_and_return()
     if not DontPrintColor:
         print("Please check the launcher already created a new terminal.", color='purple')
         print("If it didn't create it please check the output and report it to GitHub!", color='green')
@@ -140,7 +138,7 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
     title = f"BakaLauncher: {instances_id}"
 
     # Create the full launch command with version logging and Minecraft command
-    if GetPlatformName.check_platform_valid_and_return() == 'Windows':
+    if Base.Platform == 'Windows':
         launch_command = [
             f'echo {light_yellow}BakeLauncher Version: {launcher_version}{reset}',
             f'echo {light_blue}Minecraft Log Output: {reset}',
@@ -148,8 +146,7 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
             f'{minecraft_command}',
             f'echo {green}LaunchManager: Minecraft has stopped running! (Thread terminated){reset}'
         ]
-    elif GetPlatformName.check_platform_valid_and_return() == 'Darwin':
-        # THANKS　Apple making this process become complicated...
+    elif Base.Platform == 'Darwin':
         launch_command = [
             f'echo -ne "\033]0;{title}\007\n"',
             f'cd {WorkPath}\n',
@@ -161,7 +158,7 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
             f'printf "{green}LaunchManager: Minecraft has stopped running! (Thread terminated){reset}\\n"',
             f'exit\n'
         ]
-    elif GetPlatformName.check_platform_valid_and_return() == "Linux":
+    elif Base.Platform == "Linux":
         launch_command = [
             f'echo -ne "\033]0;{title}\007"',
             f'echo -e {light_yellow}"BakeLauncher Version: {launcher_version}"{reset}',
@@ -183,7 +180,7 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
     launch_command = '\n'.join(launch_command)
 
     # For unix-like...
-    if not GetPlatformName.check_platform_valid_and_return() == "Windows":
+    if not Base.Platform == "Windows":
         if os.path.exists("LaunchLoadCommandTemp.sh"):
             os.remove("LaunchLoadCommandTemp.sh")
 
@@ -194,29 +191,28 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
         global DontPrintColor
 
         # Check DontPrintColor status
-        if LauncherBase.DontPrintColor:
+        if Base.DontPrintColor:
             DontPrintColor = True
         else:
             DontPrintColor = False
 
         # Set default terminal(linux)
-        if GetPlatformName.check_platform_valid_and_return() == "Linux":
+        if Base.Platform == "Linux":
             DefaultTerminal = os.getenv("TERM")
         else:
             DefaultTerminal = ""
 
         print("EnableExperimentalMultitasking is Enabled!", color='purple')
         client_process = multiprocessing.Process(
-            target=create_new_launch_thread,
-            args=(launch_command, title, DontPrintColor, DefaultTerminal)
+            target=create_new_client_thread,
+            args=(launch_command, title, DontPrintColor, Base.Platform, DefaultTerminal)
         )
-
         # Start the process
         client_process.start()
     else:
         print("EnableExperimentalMultitasking is Disabled!", color='green')
         print('"BakeLauncher One Thread Launch Mode"', color='green')
-        if GetPlatformName.check_platform_valid_and_return() == "Windows":
+        if Base.Platform == "Windows":
             subprocess.run(minecraft_command_one_thread, shell=True)
             print("Minecraft has stopped running! (Thread terminated)", color='green')
             back_to_main_memu = input("Press any key to continue. . .")

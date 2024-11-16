@@ -4,7 +4,7 @@ import platform
 from print_color import print as print_color
 
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = 'Beta 0.9(Dev-KB111524)'
+launcher_version = 'Beta 0.9(Dev-KG111624)'
 
 BetaWarningMessage = ("You are running beta version of BakeLauncher.\n"
                       "This is an 'Experimental' version with potential instability.\n"
@@ -14,29 +14,55 @@ ChangeLog = ("Changelog:\n"
              ""
              "\n")
 
+global_config = """[BakeLauncher Configuration]
+
+<Global>
+DisableClearOutput = false
+DefaultAccountID = 1
+DontPrintColor = false
+
+<MainMemu>
+# Automatic open you want option when launcher load MainMemu
+AutomaticOpenOptions = false
+Option = None
+
+# ?
+DontPrintList = false
+
+<LaunchManager>
+# New feature! :)  (Create a new terminal when launching Minecraft. The new terminal won't be killed when the main stop working!
+EnableExperimentalMultitasking = true
+
+%Ehh...under this line items have not been implemented yet.
+# Automatic launch you want to launch instances
+AutomaticLaunch = false
+InstancesName = None
+
+# Use old libraries.cfg
+UseCustomLibrariesCFG = false
+CustomLibrariesCFGPath = None
+
+<AutoTool>
+# Get token(Minecraft) from refresh token(or name "Microsoft Token")
+RefreshCustomToken = false
+RefreshToken = None
+
+# Save the token given by the user
+SaveCustomToken = false
+Token = None
+Username = None
+UUID = None
+
+<DownloadTool>
+# Automatic download you want Minecraft version
+AutomaticDownVersion = true
+Version = None
+"""
+
 # Default value for some settings
 DontPrintColor = False
 DisableClearOutput = False
 global_config_path = os.path.join("data/config.bakelh.cfg")
-
-
-# Load config file if it exists
-def load_setting():
-    global DontPrintColor
-    global DisableClearOutput
-    with open("data/config.bakelh.cfg", 'r') as file:
-        for line in file:
-            if "DisableClearOutput" in line:
-                DisableClearOutput = line.split('=')[1].strip().upper() == "TRUE"
-                break
-
-            if "DontPrintColor" in line:
-                DontPrintColor = line.split('=')[1].strip().upper() == "TRUE"
-
-    if DontPrintColor:
-        print_color("Colorful text has been disabled.", tag='Global')
-    if DisableClearOutput:
-        print_color("Clear Output has been disabled.", tag='Global')
 
 
 def print_custom(*args, **kwargs):
@@ -53,7 +79,25 @@ def initialize_config():
         os.makedirs("data")
     if not os.path.exists(global_config_path):
         with open(global_config_path, "w") as config:
-            config.write(cfg_text)
+            config.write(global_config)
+
+
+# Load config file if it exists
+def load_setting():
+    global DontPrintColor, DisableClearOutput
+    with open("data/config.bakelh.cfg", 'r') as file:
+        for line in file:
+            if "DisableClearOutput" in line:
+                DisableClearOutput = line.split('=')[1].strip().upper() == "TRUE"
+                break
+
+            if "DontPrintColor" in line:
+                DontPrintColor = line.split('=')[1].strip().upper() == "TRUE"
+
+    if DontPrintColor:
+        print_color("Colorful text has been disabled.", tag='Global')
+    if DisableClearOutput:
+        print_color("Clear Output has been disabled.", tag='Global')
 
 
 def ClearOutput():
@@ -88,35 +132,6 @@ def timer(seconds):
     print(" " * 20, end='\r')
 
 
-class PlatformCheck:
-    def __init__(self):
-        self.platformArch = "None"
-        self.platformName = "None"
-        self.set_platform()
-
-    def set_platform(self):
-        self.platformName = platform.system()
-        self.platformArch = platform.architecture()
-
-    def check_platform_valid_and_return(self):
-        if self.platformName == "Windows":
-            return "Windows"
-        elif self.platformName == "Darwin":
-            return "Darwin"
-        elif self.platformName == "Linux":
-            return "Linux"
-        else:
-            print("Warning! BakeLauncher are not supported on this platform :(")
-            print("Launcher can still run on this platform, but you may encounter serious issues with the file system!")
-            return "Unsupported"
-
-    def check_platform_arch_and_return(self):
-        if self.platformArch[0] == "64bit":
-            return True
-        else:
-            return False
-
-
 class LauncherBase:
     def __init__(self):
         self.PlatformSupportList = ["Windows", "Darwin", "Linux"]
@@ -131,6 +146,7 @@ class LauncherBase:
         self.MainMemuResetFlag = False
         self.global_config_path = os.path.join("data/config.bakelh.cfg")
 
+    def Initialize(self):
         if self.EndLoadFlag:
             print("Launcher /")
             return
@@ -163,6 +179,7 @@ class LauncherBase:
         elif self.Platform == "Linux":
             os.system(f'echo -ne "\033]0;BakeLauncher {launcher_version}\007"')
 
+        return True
 
     def get_platform(self, mode):
         # Get "normal" platform name
@@ -231,53 +248,38 @@ class LauncherBase:
                 return Arch
 
 
-
-
-
-GetPlatformName = PlatformCheck()
 Base = LauncherBase()
 
-cfg_text = """[BakeLauncher Configuration]
 
-<Global>
-DisableClearOutput = false
-DefaultAccountID = 1
-DontPrintColor = false
+def bake_game():
+    count = 0
+    texts = ""
+    print_custom("Bake Game", color='yellow', tag_color='yellow', tag=':)')
+    print_custom("If you feel crush. You can press Ctrl+C to end the launcher :)", color='green')
 
-<MainMemu>
-# Automatic open you want option when launcher load MainMemu
-AutomaticOpenOptions = false
-Option = None
+    while True:
+        user_input = input("Bake> ")
 
-# ?
-DontPrintList = false
+        if user_input.upper() == 'EXIT':
+            return
 
-<LaunchManager>
-# New feature! :)  (Create a new terminal when launching Minecraft. The new terminal won't be killed when the main stop working!
-EnableExperimentalMultitasking = true
+        occurrences = user_input.split().count('Bake')
+        count += occurrences
 
-%Ehh...under this line items have not been implemented yet.
-# Automatic launch you want to launch instances
-AutomaticLaunch = false
-InstancesName = None
-
-# Use old libraries.cfg
-UseCustomLibrariesCFG = false
-CustomLibrariesCFGPath = None
-
-<AutoTool>
-# Get token(Minecraft) from refresh token(or name "Microsoft Token")
-RefreshCustomToken = false
-RefreshToken = None
-
-# Save the token given by the user
-SaveCustomToken = false
-Token = None
-Username = None
-UUID = None
-
-<DownloadTool>
-# Automatic download you want Minecraft version
-AutomaticDownVersion = true
-Version = None
-"""
+        if count == 1:
+            print("?Bake")
+        elif count == 2:
+            texts = "Bake "
+            print(texts)  # Print "Bake " with newline
+        elif count == 3:
+            texts += "Bake "
+            print(texts)  # Print "Bake " with newline
+        else:
+            times = texts.count("Bake") ** 2
+            if times > 65536:
+                print("Ouch!")
+            for _ in range(times):  # Print one "Bake " at a time with delay
+                print("Bake ", end='', flush=True)
+                time.sleep(0.001)  # Wait 0.001 seconds between each print
+            texts = "Bake " * times  # Update texts to the final result
+            print()  # Add a final newline to end the sequence

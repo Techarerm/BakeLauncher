@@ -4,8 +4,7 @@ Main
 CheckArch(Call LauncherBase)>GetPlatformName>Load Main_Memu>Ended
 """
 import multiprocessing
-from LauncherBase import ClearOutput, BetaWarningMessage, LauncherBase, Base
-from LauncherBase import print_custom as print
+from LauncherBase import Base, ClearOutput, BetaWarningMessage, print_custom as print
 from libs.main_memu import main_memu
 
 
@@ -14,11 +13,10 @@ class BakeLauncher:
     Main(Just main :D )
     Check platform and arch support > check args > main_memu or parse_arguments > terminated
     """
-
     def __init__(self):
 
         # Load LauncherBase
-        StartStatus = LauncherBase()
+        StartStatus = Base.Initialize()
 
         # Start launcher process if loading base pass
         if StartStatus:

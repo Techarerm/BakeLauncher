@@ -1,10 +1,8 @@
 import os
 import requests
 import hashlib
-import time
 from tqdm import tqdm
-from LauncherBase import GetPlatformName
-from LauncherBase import print_custom as print
+from LauncherBase import Base, print_custom as print
 
 # Step 1: Get the Minecraft version data
 def get_version_data(version_url):
@@ -36,11 +34,11 @@ def get_java_manifest(java_manifest_url):
 
 # Step 4: Find the correct manifest URL based on the component and major version
 def find_manifest_url(manifest_data, component, major_version):
-    PlatformName = GetPlatformName.check_platform_valid_and_return()
+    PlatformName = Base.Platform
     PlatformNameLW = PlatformName.lower()
-    if PlatformNameLW == 'windows':
+    if Base.LibrariesPlatform == 'windows':
         PlatformNameLW = 'windows-x64'
-    elif PlatformNameLW == 'darwin':
+    elif Base.LibrariesPlatform == 'darwin':
         PlatformNameLW = 'mac-os'
     if PlatformNameLW not in manifest_data:
         raise Exception(f"No {PlatformName} platform data found in the manifest.")
@@ -166,7 +164,7 @@ def download_jvm(version_data):
 
 
         # Fix permissions(for unix like)
-        if not GetPlatformName.check_platform_valid_and_return() == "Windows":
+        if not Base.Platform == "Windows":
             os.system(f"chmod 755 {JVM_Path}/bin/*")
 
 
