@@ -7,8 +7,9 @@ import os
 import time
 from print_color import print as print_color
 
+
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = 'Beta 0.9(Dev-KB111524)'
+launcher_version = 'Beta 0.9(Dev-KG111024-Final)'
 
 BetaWarningMessage = ("You are running beta version of BakeLauncher.\n"
                       "This is an 'Experimental' version with potential instability.\n"
@@ -22,7 +23,6 @@ ChangeLog = ("Changelog:\n"
 DontPrintColor = False
 DisableClearOutput = False
 global_config_path = os.path.join("data/config.bakelh.cfg")
-
 
 # Load config file if it exists
 def load_setting():
@@ -60,18 +60,20 @@ def initialize_config():
             config.write(cfg_text)
 
 
-def ClearOutput():
+def ClearOutput(platform):
     if not DisableClearOutput:
-        if Base.Platform == "Windows":
+        if platform == "Windows":
             os.system("cls")
-        elif Base.Platform == "Darwin":
+        elif platform == "Darwin":
             os.system("clear")
-        elif Base.Platform == "Linux":
+        elif platform == "Linux":
             os.system("clear")
         else:
             print("Unsupported platform! Bypassing ClearOutput...")
     else:
         return
+
+
 
 
 def timer(seconds):
@@ -120,126 +122,22 @@ class PlatformCheck:
         else:
             return False
 
+def initialize_base():
+    if not os.path.exists("data/config.bakelh.cfg"):
+        initialize_config()
+    else:
+        load_setting()
 
-class LauncherBase:
-    def __init__(self):
-        self.PlatformSupportList = ["Windows", "Darwin", "Linux"]
-        self.Platform = self.get_platform("platform")
-        self.LibrariesPlatform = self.get_platform("libraries")
-        self.LibrariesPlatform2nd = self.get_platform("libraries_2nd")
-        self.LibrariesPlatform2ndOld = self.get_platform("libraries_2nd_old")
-        self.Arch = self.get_platform("Arch")
-        self.DontPrintColor = False
-        self.DisableClearOutput = False
-        self.EndLoadFlag = False
-        self.MainMemuResetFlag = False
-        self.global_config_path = os.path.join("data/config.bakelh.cfg")
-
-        if self.EndLoadFlag:
-            print("Launcher /")
-            return
-
-        # Check workdir(If launcher running in a non-ASCII path)
-        try:
-            work_dir = os.getcwd()
-            work_dir.encode('ascii')
-        except UnicodeEncodeError:
-            print_color("Warning: The launcher is running in a directory with non-ASCII characters.", color='yellow')
-            print_color("You may get failed to launch when you enable EnableExperimentalMultitasking support.",
-                        color='yellow')
-            print_color("This bug has been confirmed if the user are using Windows(other systems are unverified).",
-                        color='yellow')
-            continue_load = str(input("Enter Y to ignore this warning: "))
-            if not continue_load.upper() == "Y":
-                return
-
-        # Load config
-        if not os.path.exists("data/config.bakelh.cfg"):
-            initialize_config()
-        else:
-            load_setting()
-
-        # Set window(terminal?) title
-        if self.Platform == "Windows":
-            os.system(f"title BakeLauncher {launcher_version}")
-        elif self.Platform == "Darwin":
-            os.system(rf'echo -ne "\033]0;BakeLauncher {launcher_version}\007"')
-        elif self.Platform == "Linux":
-            os.system(f'echo -ne "\033]0;BakeLauncher {launcher_version}\007"')
-
-
-    def get_platform(self, mode):
-        # Get "normal" platform name
-        Platform = platform.system()
-        Arch = platform.architecture()
-
-        # Get special platform name for some method
-        LibrariesPlatform = Platform.lower()
-        if Platform == "Darwin":
-            LibrariesPlatform2nd = "macos"
-            LibrariesPlatform2ndOld = "osx"
-        else:
-            LibrariesPlatform2nd = LibrariesPlatform
-            LibrariesPlatform2ndOld = LibrariesPlatform
-
-        # Check platform support
-        if Arch[0] == "64bit":
-            if Platform not in self.PlatformSupportList:
-                print_color(f"You are running on a unsupported platform name {Platform}", color='yellow',
-                            tag_color='yellow', tag='Warning')
-                print_color(
-                    "You can still continue running the launcher. However, you may get some error when you create "
-                    "instance.", color='yellow', tag_color='yellow', tag='Warning')
-                print_color("If you still want to launch Minecraft. You need to build LWJGL and JDK for your platform.",
-                            tag_color='blue', tag='Note')
-                continue_running = str(input("Enter Y to ignore: "))
-                if continue_running.upper() == "Y":
-                    if mode.upper() == "PLATFORM":
-                        return Platform
-                    elif mode.upper() == "LIBRARIES":
-                        return LibrariesPlatform
-                    elif mode.upper() == "LIBRARIES_2ND":
-                        return LibrariesPlatform2nd
-                    elif mode.upper() == "LIBRARIES_2ND_OLD":
-                        return LibrariesPlatform2ndOld
-                    elif mode.upper() == "ARCH":
-                        return Arch
-                    else:
-                        print_color(f"Base: Unknown args {mode}")
-                else:
-                    self.EndLoadFlag = True
-                    return
-            else:
-                if mode.upper() == "PLATFORM":
-                    return Platform
-                elif mode.upper() == "LIBRARIES":
-                    return LibrariesPlatform
-                elif mode.upper() == "LIBRARIES_2ND":
-                    return LibrariesPlatform2nd
-                elif mode.upper() == "LIBRARIES_2ND_OLD":
-                    return LibrariesPlatform2ndOld
-                elif mode.upper() == "ARCH":
-                    return Arch
-                else:
-                    print_color(f"Base: Unknown args {mode}")
-                    self.EndLoadFlag = True
-                    return None
-        else:
-            print_color(f"BakeLauncher for 32bit(or other arch) architecture support is untested.")
-            print_color(f"You can still continue running the launcher. But you may get some weired bug during use.")
-            continue_running = str(input("Enter Y to ignore: "))
-            if not continue_running.upper == "Y":
-                self.EndLoadFlag = True
-                return
-            else:
-                return Arch
-
-
+    if GetPlatformName.check_platform_valid_and_return() == "Windows":
+        os.system(f"title BakeLauncher {launcher_version}")
+    elif GetPlatformName.check_platform_valid_and_return() == "Darwin":
+        os.system(rf'echo -ne "\033]0;BakeLauncher {launcher_version}\007"')
+    elif GetPlatformName.check_platform_valid_and_return() == "Linux":
+        os.system(f'echo -ne "\033]0;BakeLauncher {launcher_version}\007"')
 
 
 
 GetPlatformName = PlatformCheck()
-Base = LauncherBase()
 
 cfg_text = """[BakeLauncher Configuration]
 
