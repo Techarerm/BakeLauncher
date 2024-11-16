@@ -134,7 +134,7 @@ class assets_grabber:
             response.raise_for_status()
 
             with open(asset_save_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size = 32 * 1024):
+                for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         f.write(chunk)
             print(f"Downloaded: {asset_name} -> {asset_hash}")
