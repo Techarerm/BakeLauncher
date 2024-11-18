@@ -1,12 +1,14 @@
 import os
 import json
 import requests
-from LauncherBase import print_custom as print
+from tqdm import tqdm
+from LauncherBase import Base, print_custom as print
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 class assets_grabber:
     def __init__(self):
+        self.without_downloaded_output = None
         self.manifest_url = "https://launchermeta.mojang.com/mc/game/version_manifest_v2.json"
         self.minecraft_version = "1.20"
         self.version_data = []
@@ -113,11 +115,14 @@ class assets_grabber:
                 return assetsIndex_version
 
             except FileNotFoundError:
-                # Trying to fix use old version BakeLaunch didn't save assetsIndex to .minecraft(It will ask user to fix it)
+                # Trying to fix use old version BakeLaunch didn't save assetsIndex to .minecraft(It will ask user to
+                # fix it)
                 print("LaunchManager: Still can't fix it :(", color='red')
                 return None
 
-    def download_asset_file(self, asset_name, asset_info, objects_dir):
+    def download_asset_file(self, asset_name, asset_info, objects_dir, **kwargs):
+        self.without_downloaded_output = kwargs.get('NoOutput', None)
+
         asset_hash = asset_info['hash']
         hash_prefix = asset_hash[:2]
         url = f"https://resources.download.minecraft.net/{hash_prefix}/{asset_hash}"
@@ -137,11 +142,13 @@ class assets_grabber:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         f.write(chunk)
-            print(f"Downloaded: {asset_name} -> {asset_hash}")
+            if not self.without_downloaded_output:
+                print(f"Downloaded: {asset_name} -> {asset_hash}")
         except Exception as e:
             print(f"Failed to download: {asset_name}. Error: {e}")
 
-    def download_legacy_assets(self, asset_name, asset_info, assets_dir):
+    def download_legacy_assets(self, asset_name, asset_info, assets_dir, **kwargs):
+        self.without_downloaded_output = kwargs.get('NoOutput', None)
         hash_value = asset_info['hash']
         hash_prefix = hash_value[:2]
         download_url = f'https://resources.download.minecraft.net/{hash_prefix}/{hash_value}'
@@ -152,7 +159,8 @@ class assets_grabber:
 
         # Download the asset if it doesn't already exist
         if not os.path.exists(file_path):
-            print(f"Downloading {asset_name}...")
+            if not self.without_downloaded_output:
+                print(f"Downloading {asset_name}...")
             response = requests.get(download_url, stream=True)
             if response.status_code == 200:
                 with open(file_path, 'wb') as file:
@@ -163,41 +171,73 @@ class assets_grabber:
     def download_assets_plus(self, asset_index, objects_dir, mode):
         if mode == "ModernAssets":
             assets = asset_index['objects']
+            total_assets = len(assets)
+
             # Use ThreadPoolExecutor to download assets concurrently
             with ThreadPoolExecutor(max_workers=10) as executor:
-                futures = {executor.submit(self.download_asset_file, asset_name, asset_info, objects_dir): asset_name
+                futures = {executor.submit(self.download_asset_file, asset_name, asset_info, objects_dir,
+                                           NoOutput=True): asset_name
                            for asset_name, asset_info in assets.items()}
-                for future in as_completed(futures):
-                    asset_name = futures[future]
-                    try:
-                        future.result()  # This will raise an exception if download_asset_file failed
-                    except Exception as e:
-                        print(f"Error downloading {asset_name}: {e}", color='red')
 
-        elif mode == "LegacyAssets":
+                # Use tqdm for progress bar, based on total assets
+                if not Base.UsingLegacyDownloadOutput:
+                    with tqdm(total=total_assets, desc="Downloading Assets") as pbar:
+                        for future in as_completed(futures):
+                            asset_name = futures[future]
+                            try:
+                                future.result()  # Will raise an exception if download_asset_file failed
+                                pbar.update(1)  # Increment progress bar only on success
+                            except Exception as e:
+                                print(f"Error downloading {asset_name}: {e}", color='red')
+                else:
+                    for future in as_completed(futures):
+                        asset_name = futures[future]
+                        try:
+                            future.result()
+                        except Exception as e:
+                            print(f"Error downloading {asset_name}: {e}", color='red')
+
+        if mode == "LegacyAssets":
             # Load the asset index JSON file
             index_path = os.path.join(objects_dir, 'indexes', f"{asset_index}.json")
+
             with open(index_path, 'r') as f:
                 asset_index = json.load(f)
 
+            # Get the objects and calculate total assets
             objects = asset_index.get('objects', {})
+            total_assets = len(objects)
 
-            # Use ThreadPoolExecutor to download assets concurrently
+            # Use ThreadPoolExecutor to download concurrently
             with ThreadPoolExecutor(max_workers=10) as executor:
-                futures = [
-                    (executor.submit(self.download_legacy_assets, asset_name, asset_info, objects_dir), asset_name)
+                futures = {
+                    executor.submit(self.download_legacy_assets, asset_name, asset_info, objects_dir,
+                                    NoOutput=True): asset_name
                     for asset_name, asset_info in objects.items()
-                ]
-                # Wait for all threads to complete
-                for future, asset_name in futures:
-                    try:
-                        future.result()  # This will raise an exception if download_legacy_assets failed
-                    except Exception as e:
-                        print(f"Error downloading {asset_name}: {e}", color='red')
+                }
+
+                # Use tqdm to track progress
+                if not Base.UsingLegacyDownloadOutput:
+                    with tqdm(total=total_assets, desc="Downloading Legacy Assets") as pbar:
+                        for future in as_completed(futures):
+                            asset_name = futures[future]
+                            try:
+                                future.result()  # Download the asset
+                                pbar.update(1)  # Increment progress bar only on success
+                            except Exception as e:
+                                print(f"Error downloading {asset_name}: {e}", color='red')
+                else:
+                    for future in as_completed(futures):
+                        asset_name = futures[future]
+                        try:
+                            future.result()
+                        except Exception as e:
+                            print(f"Error downloading {asset_name}: {e}", color='red')
 
             print("Legacy assets have been downloaded :)", color='blue')
 
-    def get_assets_dir(self, version_id):
+    @staticmethod
+    def get_assets_dir(version_id):
         assets_dir = ".minecraft/assets"
         legacy_assets_dir = os.path.join(assets_dir, "virtual", "legacy")
         try:
@@ -215,7 +255,6 @@ class assets_grabber:
             else:
                 return assets_dir
 
-
     def assets_file_grabber(self, version_id):
         WorkDir = os.getcwd()
         # Get version data
@@ -229,6 +268,8 @@ class assets_grabber:
         save_dir = os.path.join(game_folder, "assets", "indexes")  # Assets file save path
 
         # Change work directory to instance(instances/{version_id})
+        if not os.path.exists(instance_path):
+            os.makedirs(instance_path, exist_ok=True)
         os.chdir(instance_path)
         # If .minecraft does not exist, create it.
         if os.path.exists(".minecraft"):
@@ -289,5 +330,6 @@ class assets_grabber:
                     self.download_assets_plus("legacy", assets_dir, "LegacyAssets")
                 else:
                     print("??? Can't found assets name! Bypass it....)", color='red')
+
 
 assets_grabber_manager = assets_grabber()

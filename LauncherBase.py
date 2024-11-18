@@ -4,7 +4,7 @@ import platform
 from print_color import print as print_color
 
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = 'Beta 0.9(Dev-KG111624)'
+launcher_version = 'Beta 0.9(Dev-KA111824)'
 
 BetaWarningMessage = ("You are running beta version of BakeLauncher.\n"
                       "This is an 'Experimental' version with potential instability.\n"
@@ -17,23 +17,23 @@ ChangeLog = ("Changelog:\n"
 global_config = """[BakeLauncher Configuration]
 
 <Global>
+DontPrintColor = false
 DisableClearOutput = false
 DefaultAccountID = 1
-DontPrintColor = false
+LauncherWorkDir = "None"
 
 <MainMemu>
 # Automatic open you want option when launcher load MainMemu
 AutomaticOpenOptions = false
 Option = None
 
-# ?
-DontPrintList = false
+# 
+NoList = false
 
 <LaunchManager>
-# New feature! :)  (Create a new terminal when launching Minecraft. The new terminal won't be killed when the main stop working!
+Create a new terminal when launching Minecraft. The new terminal won't be killed when the main stop working.
 EnableExperimentalMultitasking = true
 
-%Ehh...under this line items have not been implemented yet.
 # Automatic launch you want to launch instances
 AutomaticLaunch = false
 InstancesName = None
@@ -42,7 +42,7 @@ InstancesName = None
 UseCustomLibrariesCFG = false
 CustomLibrariesCFGPath = None
 
-<AutoTool>
+<AccountManager>
 # Get token(Minecraft) from refresh token(or name "Microsoft Token")
 RefreshCustomToken = false
 RefreshToken = None
@@ -53,20 +53,24 @@ Token = None
 Username = None
 UUID = None
 
-<DownloadTool>
+<Create_Instance>
 # Automatic download you want Minecraft version
 AutomaticDownVersion = true
+
+# If a same version is already installed in the runtimes folder, reinstall it(but bypass ask user)
+OverwriteJVMIfExist = False
 Version = None
 """
 
 # Default value for some settings
 DontPrintColor = False
 DisableClearOutput = False
+NoList = False
 global_config_path = os.path.join("data/config.bakelh.cfg")
 
 
 def print_custom(*args, **kwargs):
-    if not DontPrintColor:
+    if not Base.DontPrintColor:
         color = kwargs.pop('color', None)  # Remove color from kwargs if it exists
         print_color(*args, color=color, **kwargs)  # Pass remaining args and color
     else:
@@ -84,20 +88,35 @@ def initialize_config():
 
 # Load config file if it exists
 def load_setting():
-    global DontPrintColor, DisableClearOutput
     with open("data/config.bakelh.cfg", 'r') as file:
         for line in file:
             if "DisableClearOutput" in line:
-                DisableClearOutput = line.split('=')[1].strip().upper() == "TRUE"
-                break
+                Base.DisableClearOutput = line.split('=')[1].strip().upper() == "TRUE"
 
             if "DontPrintColor" in line:
-                DontPrintColor = line.split('=')[1].strip().upper() == "TRUE"
+                Base.DontPrintColor = line.split('=')[1].strip().upper() == "TRUE"
 
-    if DontPrintColor:
+            if "NoList" in line:
+                Base.NoList = line.split('=')[1].strip().upper() == "TRUE"
+
+            if "OverwriteJVMIfExist" in line:
+                Base.OverwriteJVMIfExist = line.split('=')[1].strip().upper() == "TRUE"
+
+            if "UsingLegacyDownloadOutput" in line:
+                Base.UsingLegacyDownloadOutput = line.split('=')[1].strip().upper() == "TRUE"
+
+            if "LauncherWorkDir" in line:
+                Base.LauncherWorkDir = line.split('=')[1].strip().strip('"').strip("'")
+
+    if Base.DontPrintColor:
         print_color("Colorful text has been disabled.", tag='Global')
-    if DisableClearOutput:
+    if Base.DisableClearOutput:
         print_color("Clear Output has been disabled.", tag='Global')
+    if Base.NoList:
+        print_color("Print list Has been disabled.", tag='Global')
+    if Base.LauncherWorkDir is not None:
+        if not Base.LauncherWorkDir == "None" or Base.LauncherWorkDir == "null":
+            print_color("Launcher workDir has been set by exist config.", tag='Global')
 
 
 def ClearOutput():
@@ -140,21 +159,40 @@ class LauncherBase:
         self.LibrariesPlatform2nd = self.get_platform("libraries_2nd")
         self.LibrariesPlatform2ndOld = self.get_platform("libraries_2nd_old")
         self.Arch = self.get_platform("Arch")
-        self.DontPrintColor = False
-        self.DisableClearOutput = False
-        self.EndLoadFlag = False
-        self.MainMemuResetFlag = False
-        self.global_config_path = os.path.join("data/config.bakelh.cfg")
+        self.DontPrintColor = False  # Stop print colorful text
+        self.DisableClearOutput = False  # Debug
+        self.EndLoadFlag = False  # If load process failed(platform check failed), Set to True
+        self.MainMemuResetFlag = False  # Set to true by check_account_data_are_valid
+        self.NoList = False  # Make main_memu not print the list
+        self.AutomaticOpenOptions = False  # Start selected option when load main_memu
+        self.AutoOpenOptions = None  # Select option
+        self.OverwriteJVMIfExist = False
+        self.UsingLegacyDownloadOutput = False
+        self.LauncherWorkDir = None
+        self.launcher_root_dir = os.getcwd()
+        self.global_config_path = os.path.join(self.launcher_root_dir, "data/config.bakelh.cfg")
 
     def Initialize(self):
+        global DontPrintColor
+
         if self.EndLoadFlag:
             print("Launcher /")
             return
 
-        # Check workdir(If launcher running in a non-ASCII path)
+        # Load config
+        if not os.path.exists("data/config.bakelh.cfg"):
+            initialize_config()
+        else:
+            load_setting()
+
+        # Check workdir(If launcher running in a non-ASCII path)(Also
         try:
-            work_dir = os.getcwd()
-            work_dir.encode('ascii')
+            if self.LauncherWorkDir is not None and self.LauncherWorkDir != "None":
+                os.chdir(self.LauncherWorkDir)
+                print_color(f'Launcher workDir now is "{self.LauncherWorkDir}"', color='green')
+            else:
+                os.chdir(self.launcher_root_dir)
+
         except UnicodeEncodeError:
             print_color("Warning: The launcher is running in a directory with non-ASCII characters.", color='yellow')
             print_color("You may get failed to launch when you enable EnableExperimentalMultitasking support.",
@@ -165,12 +203,6 @@ class LauncherBase:
             if not continue_load.upper() == "Y":
                 return
 
-        # Load config
-        if not os.path.exists("data/config.bakelh.cfg"):
-            initialize_config()
-        else:
-            load_setting()
-
         # Set window(terminal?) title
         if self.Platform == "Windows":
             os.system(f"title BakeLauncher {launcher_version}")
@@ -179,7 +211,35 @@ class LauncherBase:
         elif self.Platform == "Linux":
             os.system(f'echo -ne "\033]0;BakeLauncher {launcher_version}\007"')
 
+        DontPrintColor = self.DontPrintColor
+
         return True
+
+    def load_setting_lightweight(self, **kwargs):
+        # Don't ask why LauncherBase has two load_setting. ONE is version lightweight!
+        ConfigPath = kwargs.get('CfgPath', None)
+        if not ConfigPath is None:
+            self.global_config_path = ConfigPath
+
+        with open(self.global_config_path, 'r') as file:
+            for line in file:
+                if "DisableClearOutput" in line:
+                    self.DisableClearOutput = line.split('=')[1].strip().upper() == "TRUE"
+
+                if "DontPrintColor" in line:
+                    self.DontPrintColor = line.split('=')[1].strip().upper() == "TRUE"
+
+                if "NoList" in line:
+                    self.NoList = line.split('=')[1].strip().upper() == "TRUE"
+
+                if "OverwriteJVMIfExist" in line:
+                    self.OverwriteJVMIfExist = line.split('=')[1].strip().upper() == "TRUE"
+
+                if "UsingLegacyDownloadOutput" in line:
+                    self.UsingLegacyDownloadOutput = line.split('=')[1].strip().upper() == "TRUE"
+
+                if "LauncherWorkDir" in line:
+                    self.LauncherWorkDir = line.split('=')[1].strip().strip('"').strip("'")
 
     def get_platform(self, mode):
         # Get "normal" platform name

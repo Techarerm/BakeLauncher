@@ -30,6 +30,7 @@ def back_to_memu():
     ClearOutput()
     main_memu()
 
+
 def bake_bake():
     print("POWERED BY BAKE!", color="yellow")
     print("BakeLauncher " + launcher_version, color='yellow')
@@ -64,12 +65,10 @@ def bake_bake():
             type_time = 1
 
 
-
-
-
 def extra_memu():
-    print("Extra list:")
-    print("1: Custom Args 2: Reset AccountData.json 3: Clear JVM config file 4:Clear ErrorMessage 5: Exit")
+    if not Base.NoList:
+        print("Extra list:")
+        print("1: Custom Args 2: Reset AccountData.json 3: Clear JVM config file 4:Clear ErrorMessage 5: Exit")
     user_input = int(input(":"))
     while True:
         try:
@@ -112,43 +111,47 @@ def main_memu():
 
     # Return error message
     error_return("", "Read")
-    print("What would you like to do?")
-    print("1. Launch Minecraft 2. AccountManager 3: Create Instance")
-    print("4: Configure Java 5: About 6: Extra 7: Exit Launcher")
+    if not Base.NoList:
+        print("What would you like to do?")
+        print("1. Launch Minecraft 2. AccountManager 3: Create Instance")
+        print("4: Configure Java 5: About 6: Extra 7: Exit Launcher")
 
     try:
-        user_input = int(input(":"))
-        if user_input == int:
-            print("BakeLauncher: Invalid type :(", color='red')
-            print("Please check you type option is number and try again!", color='yellow')
-            back_to_memu()
-        if user_input == 1:
+        user_input = str(input(":"))
+        if user_input == "1":
             print("Launching Minecraft...", color='green')
             LaunchMessage = LaunchManager()
             error_return(LaunchMessage, "Write")
             back_to_memu()
-        elif user_input == 2:
+        elif user_input == "2":
             AccountMSCMessage = account_manager.AccountManager()
             error_return(AccountMSCMessage, "Write")
             back_to_memu()
-        elif user_input == 3:
+        elif user_input == "3":
             root = os.getcwd()
             create_instance.create_instance()
             os.chdir(root)
             back_to_memu()
-        elif user_input == 4:
+        elif user_input == "4":
             java_finder()
             back_to_memu()
-        elif user_input == 5:
+        elif user_input == "5":
             bake_bake()
             back_to_memu()
-        elif user_input == 6:
+        elif user_input == "6":
             extra_memu()
             back_to_memu()
-        elif user_input == 7:
+        elif user_input.upper() == "7" or user_input.upper() == "EXIT":
             print("Exiting launcher...", color='green')
             print("Bye :)", color='blue')
             print(" ")
+            return
+        elif user_input.upper() == "RELOAD":
+            # Soft reload(reset?) launcher
+            Base.load_setting_lightweight()
+            ErrorMessageList.clear()
+            ClearOutput()
+            main_memu()
             return
         else:
             print(f"BakeLauncher: Can't found option {user_input} :( ", color='red')

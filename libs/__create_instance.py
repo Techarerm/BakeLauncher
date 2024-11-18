@@ -5,8 +5,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from LauncherBase import Base, ClearOutput, print_custom as print
 from libs.__assets_grabber import assets_grabber_manager
-from libs.download_jvm import download_jvm
-
+from libs.download_jvm import install_jvm
 
 def extract_zip(zip_path, extract_to):
     try:
@@ -162,7 +161,7 @@ class Create_Instance:
         # New methods
         rows = (len(release_versions) + 9) // 10  # Round up division to determine rows
         rows_all = (len(all_available_version) + 50) // 40  # Round up division to determine rows
-        print("DownloadTool: Available version list:", color='purple')
+        print("Available version list:", color='purple')
         if mode == "release":
             for row in range(rows):
                 line = ""
@@ -192,7 +191,7 @@ class Create_Instance:
             return all_available_version
 
     def download_natives(self, libraries, libraries_dir):
-        print(f"DownloadTool: {Base.LibrariesPlatform}", tag='Debug', color='green')
+        print(f"PlatformInfo: {Base.LibrariesPlatform}", tag='Debug', color='green')
         native_keys = {
             'windows': 'natives-windows',
             'linux': 'natives-linux',
@@ -299,7 +298,8 @@ class Create_Instance:
         # Get libraries data from version_data
         libraries = version_data.get('libraries', [])
 
-        # Search support user platform libraries(include natives)
+        # Search support user platform libraries
+        print("Downloading require libraries...")
         for lib in libraries:
             lib_downloads = lib.get('downloads', {})
             artifact = lib_downloads.get('artifact')
@@ -330,7 +330,7 @@ class Create_Instance:
                 multi_thread_download(lib_url_and_dest)
 
         # Download natives(Separated from download is for other functions can easily call it)
-        print("DownloadTool: Now downloading natives...")
+        print("Downloading natives...")
         self.download_natives(libraries, libraries_dir)
 
     def unzip_natives(self, version):
@@ -396,26 +396,27 @@ class Create_Instance:
 
     def download_games_files(self, version_id):
         version_data = self.get_version_data(version_id)
-        # Download game file( libraries, .jar files...., and lwjgl!)
+        # Download game file( libraries, .jar files...., and natives)
         ClearOutput()
-        print("DownloadTool: Loading version info...")
+        print("Loading version info...")
         self.download_libraries(version_data, version_id)
         self.mac_os_libraries_bug_fix(version_id)
-        print("DownloadTool: The required dependent libraries should have been downloaded :)", color='blue')
+        print("The required dependent libraries should have been downloaded :)", color='blue')
 
         # Download assets(Also it will check this version are use legacy assets or don't use)
         ClearOutput()
-        print("Now create assets...", color='green')
+        print("Creating assets...", color='green')
         assets_grabber_manager.assets_file_grabber(version_id)
         os.chdir(self.WorkDir)
 
         ClearOutput()
-        print("Now unzip natives...", color='green')
+        print("Unzipping natives...", color='green')
         self.unzip_natives(version_id)
 
         ClearOutput()
-        print("Finally...download JVM!", color='green')
-        download_jvm(version_data)
+        print("Downloading JVM...", color='green')
+        install_jvm(version_id)
+        print("Download JVM has been disabled in this version :)", color='blue')
 
         print("When you install a Java version that has never been installed before,"
               " you need to reconfig Java Path!",
@@ -485,7 +486,7 @@ class Create_Instance:
             if isinstance(version_id, int):
                 version_id = int(version_id)
             else:
-                print("DownloadTool: You are NOT typing VersionID!", color='red')
+                print("You are NOT typing a valid versionID!", color='red')
                 print("VersionID: MinecraftVersion", "\n")
                 print(
                     "Please type VersionID not MinecraftVersion or back memu and using '2:Type Minecraft version' "
@@ -501,14 +502,14 @@ class Create_Instance:
                 self.download_games_files(minecraft_version)
                 return
             else:
-                print(f"DownloadTool: You type version id '{version_id}' are not found :(", color='red')
+                print(f"You type version id '{version_id}' are not found :(", color='red')
                 time.sleep(1.2)
                 download_minecraft_with_version_id()
 
         def download_with_regular_minecraft_version():
             selected_version = False
             version_list = self.get_version_list("normal")
-            print("DownloadTool: Using regular Minecraft version method...", color='green')
+            print("Using regular Minecraft version method...", color='green')
             regular_version_input = str(input("Please enter the Minecraft version:"))
             # Find minecraft_version after get version_id(IMPORTANT:version =/= version_id!)
 
@@ -529,13 +530,13 @@ class Create_Instance:
                     self.download_games_files(regular_version_input)
                 else:
                     # idk this thing would happen or not :)  , just leave it and see what happen....
-                    print(f"DownloadTool: You type Minecraft version {regular_version_input} are not found :(",
+                    print(f"You type Minecraft version {regular_version_input} are not found :(",
                           color='red')
                     download_with_regular_minecraft_version()
 
             except ValueError:
                 # Back to download_main avoid crash(when user type illegal thing
-                print("DownloadTool: Oops! Invalid input :( Please enter Minecraft version.")
+                print("Oops! Invalid input :( Please enter Minecraft version.")
                 download_with_regular_minecraft_version()
 
         print("Which method you wanna use?", color='green')
@@ -553,7 +554,7 @@ class Create_Instance:
             elif user_input == "2":
                 download_with_regular_minecraft_version()
             else:
-                print("DownloadTool: Unknown options :( Please try again.", color='red')
+                print("Unknown options :( Please try again.", color='red')
                 self.create_instance()
         except ValueError:
             # Back to main avoid crash(when user type illegal thing)

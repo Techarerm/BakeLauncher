@@ -11,9 +11,9 @@ import time
 import requests
 import json
 from libs.download_jvm import get_java_version_info
-from LauncherBase import print_custom as print
+from LauncherBase import Base, print_custom as print
 
-Work_Dir = os.getcwd()
+
 
 
 def write_json(path, JVM_VERSION):
@@ -187,7 +187,7 @@ def find_jvm_path_unix_like(path):
                 os.chdir(JVM_21)
                 os.system("java -version")
                 print("Saving path to Java_HOME.json...")
-                os.chdir(Work_Dir)
+                os.chdir(Base.launcher_root_dir)
                 write_json(JVM_21, version)
                 print(" ")
                 break
@@ -326,14 +326,13 @@ def initialize_jvm_config():
     print("Cleaning JVM config file...")
     if os.path.exists("data/Java_HOME.json"):
         os.remove("data/Java_HOME.json")
-        print("JVM config file has been removed", color='green')
+        print("JVM config file has been removed.", color='blue')
         time.sleep(2)
     else:
         print("Failed to remove JVM config file. Cause by config file not found.", color='red')
         time.sleep(2)
 
 def java_finder():
-    system = platform.system()
     if os.path.isfile('data/Java_HOME.json'):
         print("Found old jvm path config! Do you want to reconfigure this file? (Yes=1, No=0)", color='purple')
         user_input = int(input(":"))
@@ -345,3 +344,4 @@ def java_finder():
             print("Back to main menu.....")
     else:
         java_search()
+

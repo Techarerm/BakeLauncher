@@ -20,11 +20,10 @@ terminals = [
 ]
 
 
-
-def create_new_client_thread(launch_command, title, DontPrintColor, PlatFormName, *args):
-    global FailedToLaunch
+def create_new_client_thread(launch_command, title, PlatFormName, ConfigPath):
     FailedToLaunch = False
-    if not DontPrintColor:
+    Base.load_setting_lightweight(CfgPath=ConfigPath)
+    if not Base.DontPrintColor:
         print("Please check the launcher already created a new terminal.", color='purple')
         print("If it didn't create it please check the output and report it to GitHub!", color='green')
     else:
@@ -111,7 +110,6 @@ def create_new_client_thread(launch_command, title, DontPrintColor, PlatFormName
 def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
                  JVM_Args, JVM_ArgsWindowsSize, JVM_ArgsRAM, GameArgs, custom_game_args, instances_id,
                  EnableMultitasking):
-    global DefaultTerminal
     WorkPath = os.getcwd()
     # Construct the Minecraft launch command with proper quoting
     minecraft_command = (
@@ -188,14 +186,6 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
             f.write(launch_command)
 
     if EnableMultitasking == True:
-        global DontPrintColor
-
-        # Check DontPrintColor status
-        if Base.DontPrintColor:
-            DontPrintColor = True
-        else:
-            DontPrintColor = False
-
         # Set default terminal(linux)
         if Base.Platform == "Linux":
             DefaultTerminal = os.getenv("TERM")
@@ -205,7 +195,7 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
         print("EnableExperimentalMultitasking is Enabled!", color='purple')
         client_process = multiprocessing.Process(
             target=create_new_client_thread,
-            args=(launch_command, title, DontPrintColor, Base.Platform, DefaultTerminal)
+            args=(launch_command, title, Base.Platform, Base.global_config_path)
         )
         # Start the process
         client_process.start()

@@ -275,7 +275,7 @@ def LaunchManager():
 
     # Get assetsIndex and assets_dir
     assetsIndex = assets_grabber.get_assets_index_version("", version_id)
-    assets_dir = assets_grabber.get_assets_dir("", version_id)
+    assets_dir = assets_grabber.get_assets_dir(version_id)
 
     # Get GameArgs
     GameArgs = GetGameArgs(version_id, username, access_token, gameDir, assets_dir, assetsIndex, uuid)

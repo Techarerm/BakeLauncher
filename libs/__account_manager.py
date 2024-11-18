@@ -211,7 +211,6 @@ class AuthManager:
             try:
                 with open("data/AccountData.json", "w") as jsonFile:
                     json.dump(account_data, jsonFile, indent=4)
-                print("Token refreshed and saved successfully!")
                 return True, "Token refreshed and saved successfully!"
             except IOError as e:
                 return False, f"Error saving AccountData.json: {e}"
@@ -219,7 +218,7 @@ class AuthManager:
         print(f"No account found with ID {account_id}.", color='yellow')
         return False, "Account not found"
 
-    def set_default_account_id(self, id):
+    def set_default_account_id(self, account_id):
         AccountData = os.path.join("data", "AccountData.json")
         if not os.path.exists(AccountData):
             initialize_config()
@@ -228,7 +227,7 @@ class AuthManager:
             for i in range(len(lines)):
                 if 'DefaultAccountID' in lines[i]:
                     # Use the new or existing account ID
-                    lines[i] = f'DefaultAccountID = {id}\n'
+                    lines[i] = f'DefaultAccountID = {account_id}\n'
         with open("data/config.bakelh.cfg", 'w') as file:
             file.writelines(lines)
 
@@ -410,6 +409,8 @@ class AuthManager:
 
             # Set flag after refresh token finished
             Base.MainMemuResetFlag = True
+
+            print("Refresh token process finished!", color='blue')
             return True, "AccountDataRefreshSuccessfully"
 
     def login_status(self):
@@ -570,7 +571,8 @@ class AuthManager:
         except json.JSONDecodeError:
             print("AuthTool: Error decoding account data.")
 
-    def initialize_account_data(self):
+    @staticmethod
+    def initialize_account_data():
         if not os.path.exists('data'):
             os.makedirs('data')
         json_data = []
@@ -579,7 +581,7 @@ class AuthManager:
             "id": 1,
             "Username": 'Player',
             "UUID": "Unknown",
-            "RefreshToken": "None",  # When auth_tool notice RefreshToken = None it will stop refresh
+            "RefreshToken": "None",  # When check_account_data_are_valid notice RefreshToken = None it will stop refresh
             "AccessToken": "null",
             "tag": "TempUser;DemoUser"
         }

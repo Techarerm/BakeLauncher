@@ -1,68 +1,14 @@
 import os
+import time
+
 import requests
 import hashlib
+import shutil
 from tqdm import tqdm
 from LauncherBase import Base, print_custom as print
+from libs.__assets_grabber import assets_grabber_manager
 
-# Step 1: Get the Minecraft version data
-def get_version_data(version_url):
-    response = requests.get(version_url)
-    if response.status_code == 200:
-        version_data = response.json()
-        return version_data
-    else:
-        raise Exception(f"Failed to fetch version data. Status code: {response.status_code}")
 
-# Step 2: Extract the required Java version
-def get_java_version_info(version_data):
-    try:
-        java_version_info = version_data['javaVersion']
-        component = java_version_info['component']
-        major_version = java_version_info['majorVersion']
-        return component, major_version
-    except KeyError:
-        raise Exception("Failed to find the javaVersion information in the version data.")
-
-# Step 3: Fetch the Java manifest based on the component and version
-def get_java_manifest(java_manifest_url):
-    response = requests.get(java_manifest_url)
-    if response.status_code == 200:
-        manifest_data = response.json()
-        return manifest_data
-    else:
-        raise Exception(f"Failed to fetch Java manifest. Status code: {response.status_code}")
-
-# Step 4: Find the correct manifest URL based on the component and major version
-def find_manifest_url(manifest_data, component, major_version):
-    PlatformName = Base.Platform
-    PlatformNameLW = PlatformName.lower()
-    if Base.LibrariesPlatform == 'windows':
-        PlatformNameLW = 'windows-x64'
-    elif Base.LibrariesPlatform == 'darwin':
-        PlatformNameLW = 'mac-os'
-    if PlatformNameLW not in manifest_data:
-        raise Exception(f"No {PlatformName} platform data found in the manifest.")
-
-    java_versions = manifest_data[PlatformNameLW].get(component, [])
-    for version in java_versions:
-        if version['version']['name'].startswith(str(major_version)):
-            manifest_url = version['manifest']['url']
-            return manifest_url
-    raise Exception(f"No matching Java manifest found for component {component} and version {major_version}.")
-
-# Step 5: Download the Java manifest
-def download_java_manifest(manifest_url):
-    response = requests.get(manifest_url)
-    if response.status_code == 200:
-        manifest_content = response.content
-        manifest_file_name = manifest_url.split("/")[-2] + ".json"
-        with open(manifest_file_name, "wb") as file:
-            file.write(manifest_content)
-        print(f"Java manifest downloaded: {manifest_file_name}", color="blue")
-    else:
-        raise Exception(f"Failed to download manifest. Status code: {response.status_code}")
-
-# Function to verify SHA1 checksum of a file
 def verify_checksum(file_path, expected_sha1):
     sha1 = hashlib.sha1()
     with open(file_path, "rb") as f:
@@ -74,14 +20,14 @@ def verify_checksum(file_path, expected_sha1):
     file_sha1 = sha1.hexdigest()
     return file_sha1 == expected_sha1
 
-# Function to create directories based on the file path
+
 def create_directories(file_path, destination_folder):
     # Extract directory path and create it if it doesn't exist
     directory = os.path.join(destination_folder, os.path.dirname(file_path))
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-# Function to download a single file with checksum verification
+
 def download_file(file_info, file_path, destination_folder):
     download_type = "raw"  # You can choose "lzma" if preferred
     file_url = file_info["downloads"][download_type]["url"]
@@ -108,66 +54,158 @@ def download_file(file_info, file_path, destination_folder):
         print(f"Failed to download {file_name}. Status code: {response.status_code}")
 
 
-
-# Function to download all files with the proper directory structure
-def download_java_files(manifest, destination_folder):
-    if not os.path.exists(destination_folder):
-        os.makedirs(destination_folder)
+def download_java_runtime_files(manifest, install_path):
+    if not os.path.exists(install_path):
+        return False, "InstallFolderAreNotExist"
 
     files = manifest.get("files", {})
-    total_files = len(files)  # Total number of files to download
-
-    description_color = "\033[32m"  # Green text color for description
-    reset_color = "\033[39m"  # Reset color back to default
+    total_files = len(files)  # Get total number of files to download(for progress bar)
 
     # Create a progress bar with a custom color
-    with tqdm(total=total_files, unit="file", desc="Downloading files") as progress_bar:
+    if not Base.UsingLegacyDownloadOutput:
+        with tqdm(total=total_files, unit="file", desc="Downloading files") as progress_bar:
+            for file_path, file_info in files.items():
+                if "downloads" in file_info:
+                    # Test method
+                    download_file(file_info, file_path, install_path)
+                    progress_bar.update(1)  # Increment progress bar for each completed file
+
+            # Ensure the progress bar completes at 100%(??? Why it stuck in 92%???)
+            progress_bar.n = total_files
+            progress_bar.refresh()
+    else:
+        files = manifest.get("files", {})
         for file_path, file_info in files.items():
             if "downloads" in file_info:
-                # Call download_file and update progress if download or verification succeeds
-                download_file(file_info, file_path, destination_folder)
-                progress_bar.update(1)  # Increment progress bar for each completed file
+                download_file(file_info, file_path, install_path)
 
-        # Ensure the progress bar completes at 100%(??? Why it stuck in 92%???)
-        progress_bar.n = total_files
-        progress_bar.refresh()
-def download_jvm(version_data):
+    return True, "DownloadFinished"
+
+
+def get_java_version_info(version_data):
     try:
-        # Step 2: Extract the Java version information
-        component, major_version = get_java_version_info(version_data)
-        print(f"Required Java Component: {component}, Major Version: {major_version}", color='green')
+        java_version_info = version_data['javaVersion']
+        component = java_version_info['component']
+        major_version = java_version_info['majorVersion']
+        return component, major_version
+    except KeyError:
+        raise Exception("Failed to find the javaVersion information in the version data.")
 
-        # Step 3: Get the Java manifest URL
-        java_manifest_url = 'https://launchermeta.mojang.com/v1/products/java-runtime/2ec0cc96c44e5a76b9c8b7c39df7210883d12871/all.json'
-        java_manifest_data = get_java_manifest(java_manifest_url)
 
-        # Step 4: Find the correct manifest URL for the required Java version
-        manifest_url = find_manifest_url(java_manifest_data, component, major_version)
+def find_selected_java_version_manifest_url(manifest_data, component, major_version):
+    if Base.LibrariesPlatform == 'windows':
+        JavaPlatformName = 'windows-x64'
+    elif Base.LibrariesPlatform == 'darwin':
+        JavaPlatformName = 'mac-os'
+    else:
+        JavaPlatformName = Base.LibrariesPlatform
 
-        # Step 5: Download the Java manifest
-        manifest = requests.get(manifest_url).json()
-        JVM_Path = os.path.join("runtimes/" + f'Java_{major_version}')
-        if not os.path.exists("runtimes"):
-            os.mkdir("runtimes")
-        if os.path.exists(f'runtimes' + f'Java_{major_version}'):
-            print("Found exits jvm! Do you want to reinstall it? Y/N")
-            user_input = input(":")
-            if user_input.upper() == "Y":
-                os.rmdir(f'runtimes' + f'Java_{major_version}')
-                os.mkdir("runtimes/" + f'Java_{major_version}')
-                download_java_files(manifest, JVM_Path)
-                print("Download JVM finished.", color='blue')
+    if JavaPlatformName not in manifest_data:
+        raise Exception(f"No {Base.Platform} platform data found in the manifest.")
+
+    java_versions = manifest_data[JavaPlatformName].get(component, [])
+    for version in java_versions:
+        if version['version']['name'].startswith(str(major_version)):
+            manifest_url = version['manifest']['url']
+            return manifest_url
+    raise Exception(f"No matching Java manifest found for component {component} and version {major_version}.")
+
+
+def install_jvm(minecraft_version):
+    java_manifest_url = 'https://launchermeta.mojang.com/v1/products/java-runtime/2ec0cc96c44e5a76b9c8b7c39df7210883d12871/all.json'
+
+    # Get version data
+    selected_version_data = assets_grabber_manager.get_version_data(minecraft_version)
+
+    # Get Java Version Info(from selected version's data)
+    component, major_version = get_java_version_info(selected_version_data)
+    print(f"Required Java Component: {component}, Major Version: {major_version}", color='green', tag='DEBUG')
+
+    # Get java manifest
+    try:
+        response = requests.get(java_manifest_url)
+        if response.status_code == 200:
+            manifest_data = response.json()
         else:
-            download_java_files(manifest, JVM_Path)
-            print("Download JVM finished.", color='blue')
-
-
-
-        # Fix permissions(for unix like)
-        if not Base.Platform == "Windows":
-            os.system(f"chmod 755 {JVM_Path}/bin/*")
-
-
+            print(f"Failed to fetch Java manifest. Status code: {response.status_code}")
+            return "FailedToFetchJavaManifest"
     except Exception as e:
-        print(f"Error: {e}")
-        return None
+        print(f"Error when fetch Java Manifest: {e}")
+        return f"FailedToFetchJavaManifest[{e}]"
+
+    # gEt "selected java version manifest_url"
+    selected_java_version_manifest_url = find_selected_java_version_manifest_url(manifest_data, component,
+                                                                                 major_version)
+
+    try:
+        # Get manifest data
+        manifest_data = requests.get(selected_java_version_manifest_url).json()
+    except Exception as e:
+        print(f"Error when fetch selected Java manifest data: {e}", color='red')
+        return "FailedToFetchJavaManifestData"
+
+    # Change work dir back to launcher root(avoid some path error) and get install dir
+    os.chdir(Base.launcher_root_dir)
+    install_path = os.path.join("runtimes", f"Java_{major_version}")
+
+    # Check install dir status
+    if Base.OverwriteJVMIfExist:
+        print("OverwriteJVMIfExist has been enabled.", color='blue', tag='INFO')
+        if os.path.exists(install_path):
+            shutil.rmtree(install_path)
+
+    if os.path.exists(install_path):
+        print("Warning: A same version of Java runtime has been installed.", color='yellow')
+        print("Do you want to reinstall it? Y/N")
+        user_input = str(input(":"))
+        if not user_input.upper() == "Y":
+            print("Bypass installing Java runtime...", color='green')
+            return True, "BypassInstallJVM"
+        else:
+            # Install, uninstall ???
+            print("Uninstall Java runtime...", color='green')
+            shutil.rmtree(install_path, ignore_errors=True)
+            print("Uninstall Java runtime finished!", color='blue')
+            os.makedirs(install_path)
+            time.sleep(0.5)
+    else:
+        os.makedirs(install_path)
+    Status, Message = download_java_runtime_files(manifest_data, install_path)
+
+    if Status:
+        print(f"Successfully installed Java runtime.", color='blue')
+    else:
+        print(f"Failed to install Java runtime :( Cause by {Message}", color='red')
+        return False, "DownloadJavaRuntime>InstallJVMFailed"
+
+    if not Base.Platform == "Windows":
+        print("Do you want to fix permissions for the Java runtime?", color='blue', tag='PROMPT')
+        print(
+            "Sometimes you may get 'Permission denied' errors when launching Minecraft. "
+            "This method can help fix these issues. :)",
+            color='green'
+        )
+        print("The launcher may require your password to repair permissions.", color='purple', tag='INFO')
+        print("Linux systems often need this fix to ensure the Java runtime works properly.", color='green')
+
+        user_input = input("Proceed with fixing permissions? (Y/N): ").strip().upper()
+
+        if user_input == "Y":
+            try:
+                # Execute chmod command
+                command = f"chmod -R +x {install_path}/*"
+                command2 = f"chmod -R +x {install_path}/bin/*"
+                os.system(command)
+                os.system(command2)
+                print("Permissions fixed successfully.", color='green', tag='SUCCESS')
+            except Exception as e:
+                print(f"Error when fixing permissions: {e}", color='red', tag='ERROR')
+                return False, "FailedToFixPermissions"
+        else:
+            print("Permission fix skipped by user.", color='yellow', tag='INFO')
+            Message = "PermissionFixBypassed"
+
+    if not len(Message) == 0:
+        return True, f"InstallJVMFinished[{Message}]"
+    else:
+        return True, "InstallJVMFinished"
