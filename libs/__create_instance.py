@@ -6,6 +6,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from LauncherBase import Base, ClearOutput, print_custom as print
 from libs.__assets_grabber import assets_grabber_manager
 from libs.download_jvm import install_jvm
+from tqdm import tqdm
+
 
 def extract_zip(zip_path, extract_to):
     try:
@@ -33,57 +35,40 @@ def download_file(url, dest_path):
         with open(dest_path, 'wb') as file:
             for chunk in response.iter_content(chunk_size=8192):
                 file.write(chunk)
-        print(f"Download successful: {dest_path}")
+        if Base.UsingLegacyDownloadOutput:
+            print(f"Download successful: {dest_path}")
         return True  # Indicate success
     except requests.exceptions.RequestException as e:
         print(f"Failed to download {url}: {e}")
         return False  # Indicate failure
 
 
-def multi_thread_download(urls_and_paths, max_workers=5, retries=1):
+def multi_thread_download(nested_urls_and_paths, name, max_workers=5, retries=1):
     """
     Downloads multiple files using multiple threads with retry attempts.
-    Each item in urls_and_paths should be a tuple of (url, dest_path).
+    nested_urls_and_paths should be a nested list where each element is a list containing a tuple of (url, dest_path).
     """
+    # Flatten the nested list into a single list of (url, dest_path) tuples
+    urls_and_paths = [item for sublist in nested_urls_and_paths for item in sublist]
+
+    # Calculate the total number of files to download (half the length of the list)
+    total_files = len(urls_and_paths)
+
     downloaded_files = []
     failed_files = []
 
     def download_with_retry(url, dest_path, retry_count):
         """Attempts to download a file with retries."""
         for attempt in range(retry_count + 1):
-            success = download_file(url, dest_path)
+            success = download_file(url, dest_path)  # Replace with your download logic
             if success:
                 return True
             print(f"Retry {attempt + 1} for {url}")
         failed_files.append((url, dest_path))  # Track failed downloads
         return False
 
-    # Initial download attempt
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_url = {
-            executor.submit(download_with_retry, url, dest_path, retries): (url, dest_path)
-            for url, dest_path in urls_and_paths
-        }
-
-        for future in as_completed(future_to_url):
-            url, dest_path = future_to_url[future]
-            try:
-                success = future.result()
-                if success:
-                    downloaded_files.append(dest_path)
-            except Exception as exc:
-                print(f"Error downloading {url}: {exc}")
-
-    # Retry failed downloads
-    if failed_files:
-        print("\nRetrying failed downloads...")
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_url = {
-                executor.submit(download_with_retry, url, dest_path, retries): (url, dest_path)
-                for url, dest_path in failed_files
-            }
-            failed_files.clear()  # Clear the list to track final failures
-
+    def futures_download(future_to_url, total_files):
+        if Base.UsingLegacyDownloadOutput:
             for future in as_completed(future_to_url):
                 url, dest_path = future_to_url[future]
                 try:
@@ -95,9 +80,43 @@ def multi_thread_download(urls_and_paths, max_workers=5, retries=1):
                 except Exception as exc:
                     print(f"Error downloading {url}: {exc}")
                     failed_files.append((url, dest_path))
+        else:
+            with tqdm(total=len(failed_files), desc=f"Downloading {name}", unit="file") as progress_bar:
+                for future in future_to_url:
+                    url, dest_path = future_to_url[future]
+                    try:
+                        success = future.result()
+                        if success:
+                            downloaded_files.append(dest_path)
+                    except Exception as exc:
+                        print(f"Error downloading {url}: {exc}")
+                    # Update the progress bar after each file retry
+                    progress_bar.n = total_files
+                    progress_bar.update(1)
 
-    print("Downloaded files:", downloaded_files[0])
-    if len(failed_files) > 0:
+    # Initial download attempt with a progress bar
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Wrap the futures in tqdm to create a progress bar
+        future_to_url = {
+            executor.submit(download_with_retry, url, dest_path, retries): (url, dest_path)
+            for url, dest_path in urls_and_paths
+        }
+
+        futures_download(future_to_url, total_files)
+
+    # Retry failed downloads
+    if failed_files:
+        print("\nRetrying failed downloads...")
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_url = {
+                executor.submit(download_with_retry, url, dest_path, retries): (url, dest_path)
+                for url, dest_path in failed_files
+            }
+            failed_files.clear()  # Clear the list to track final failures
+
+            futures_download(future_to_url, total_files)
+
+    if failed_files:
         print("Files that failed after retries:", failed_files)
     return downloaded_files, failed_files
 
@@ -156,7 +175,7 @@ class Create_Instance:
                                         for index, version in enumerate(release_versions)])
 
         formatted_versions_all = '\n'.join([f"{index + 1}: {version}"
-                                        for index, version in enumerate(all_available_version)])
+                                            for index, version in enumerate(all_available_version)])
 
         # New methods
         rows = (len(release_versions) + 9) // 10  # Round up division to determine rows
@@ -191,7 +210,10 @@ class Create_Instance:
             return all_available_version
 
     def download_natives(self, libraries, libraries_dir):
-        print(f"PlatformInfo: {Base.LibrariesPlatform}", tag='Debug', color='green')
+        print(f"Platform: {Base.LibrariesPlatform} LibrariesPlatform: {Base.LibrariesPlatform}", tag='Debug',
+              color='green')
+
+        # Map platforms to native keys
         native_keys = {
             'windows': 'natives-windows',
             'linux': 'natives-linux',
@@ -205,76 +227,64 @@ class Create_Instance:
             print(f"Warning: No native key found for {Base.LibrariesPlatform}", color='yellow')
             return "NativeKeyCheckFailed"
 
+        download_queue = []  # Collect (url, destination) pairs for batch downloading
+
+        def add_to_queue(url, dest):
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            natives_url_and_dest = [
+                (url, dest)
+            ]
+            download_queue.append(natives_url_and_dest)
+
         found_any_native = False
 
         for lib in libraries:
             lib_downloads = lib.get('downloads', {})
-            artifact = lib_downloads.get('artifact')
 
-            # Check if the library has rules that allow it for the current platform
+            # Check platform compatibility via rules
             rules = lib.get('rules')
             if rules:
-                allowed = False
-                for rule in rules:
-                    action = rule.get('action')
-                    os_info = rule.get('os')
-                    if action == 'allow' and (not os_info or os_info.get('name') == Base.LibrariesPlatform2ndOld):
-                        allowed = True
-                    elif action == 'disallow' and os_info and os_info.get('name') == Base.LibrariesPlatform2ndOld:
-                        allowed = False
-                        break
-                if not allowed:
+                allowed = any(
+                    rule.get('action') == 'allow' and
+                    (not rule.get('os') or rule['os'].get('name') == Base.LibrariesPlatform2ndOld)
+                    for rule in rules
+                )
+                disallowed = any(
+                    rule.get('action') == 'disallow' and
+                    rule.get('os', {}).get('name') == Base.LibrariesPlatform2ndOld
+                    for rule in rules
+                )
+                if not allowed or disallowed:
                     continue
 
-            # Check if artifact exists and download it (for newer versions)
-            if artifact:
-                lib_name = lib.get('name', '')
-                if native_key in lib_name or native_key in artifact.get('path', ''):
-                    native_path = artifact['path']
-                    native_url = artifact['url']
-                    native_dest = os.path.join(libraries_dir, native_path)
-                    os.makedirs(os.path.dirname(native_dest), exist_ok=True)
-                    print(f"Downloading {native_path} to {native_dest}...")
-                    download_file(native_url, native_dest)
-                    found_any_native = True
+            # Handle artifact downloads
+            artifact = lib_downloads.get('artifact')
+            if artifact and native_key in (lib.get('name', '') or artifact.get('path', '')):
+                add_to_queue(artifact['url'], os.path.join(libraries_dir, artifact['path']))
+                found_any_native = True
 
-            # Check if classifiers exist and download natives (for legacy versions)
+            # Handle classifier downloads
             classifiers = lib_downloads.get('classifiers')
             if classifiers and native_key in classifiers:
                 classifier_info = classifiers[native_key]
-                native_path = classifier_info['path']
-                native_url = classifier_info['url']
-                native_dest = os.path.join(libraries_dir, native_path)
-                os.makedirs(os.path.dirname(native_dest), exist_ok=True)
-                print(f"Downloading {native_path} to {native_dest}...")
-                native_url_and_dest = [
-                    (native_url, native_dest)
-                ]
-                multi_thread_download(native_url_and_dest)
+                add_to_queue(classifier_info['url'], os.path.join(libraries_dir, classifier_info['path']))
                 found_any_native = True
 
-        # Check for natives-osx fallback if natives-macos is not found
+        # Fallback for macOS to 'natives-osx'
         if not found_any_native and Base.LibrariesPlatform == 'darwin':
-            native_key_osx = 'natives-osx'  # Fallback key
+            fallback_key = 'natives-osx'
             for lib in libraries:
-                lib_downloads = lib.get('downloads', {})
-                classifiers = lib_downloads.get('classifiers')
-
-                if classifiers and native_key_osx in classifiers:
-                    classifier_info = classifiers[native_key_osx]
-                    native_path = classifier_info['path']
-                    native_url = classifier_info['url']
-                    native_dest = os.path.join(libraries_dir, native_path)
-                    os.makedirs(os.path.dirname(native_dest), exist_ok=True)
-                    print(f"Downloading {native_path} to {native_dest}...")
-                    native_url_and_dest = [
-                        (native_url, native_dest)
-                    ]
-                    multi_thread_download(native_url_and_dest)
+                classifiers = lib.get('downloads', {}).get('classifiers')
+                if classifiers and fallback_key in classifiers:
+                    classifier_info = classifiers[fallback_key]
+                    add_to_queue(classifier_info['url'], os.path.join(libraries_dir, classifier_info['path']))
                     found_any_native = True
-                    break  # Exit after first successful download
+                    break
 
-        if not found_any_native:
+        # Perform the batch download
+        if download_queue:
+            multi_thread_download(download_queue, "natives")
+        else:
             print(f"No native library found for key: {native_key}", color='yellow')
             return "NativeLibrariesNotFound"
 
@@ -295,11 +305,13 @@ class Create_Instance:
 
         # Download libraries
 
+        # Waiting-Download-List
+        download_queue = []
+
         # Get libraries data from version_data
         libraries = version_data.get('libraries', [])
 
         # Search support user platform libraries
-        print("Downloading require libraries...")
         for lib in libraries:
             lib_downloads = lib.get('downloads', {})
             artifact = lib_downloads.get('artifact')
@@ -323,14 +335,17 @@ class Create_Instance:
                 lib_url = artifact['url']
                 lib_dest = os.path.join(libraries_dir, lib_path)
                 os.makedirs(os.path.dirname(lib_dest), exist_ok=True)
-                print(f"Downloading {lib_path} to {lib_dest}...")
+                if Base.UsingLegacyDownloadOutput:
+                    print(f"Downloading {lib_path} to {lib_dest}...")
                 lib_url_and_dest = [
                     (lib_url, lib_dest)
                 ]
-                multi_thread_download(lib_url_and_dest)
+                download_queue.append(lib_url_and_dest)
 
         # Download natives(Separated from download is for other functions can easily call it)
-        print("Downloading natives...")
+        multi_thread_download(download_queue, "libraries")
+        print("Downloading natives...", color='green')
+        time.sleep(0.5)
         self.download_natives(libraries, libraries_dir)
 
     def unzip_natives(self, version):
@@ -382,7 +397,8 @@ class Create_Instance:
                   " Minecraft again.", color='yellow')
         os.chdir(self.WorkDir)
 
-    def mac_os_libraries_bug_fix(self, minecraft_version):
+    @staticmethod
+    def mac_os_libraries_bug_fix(minecraft_version):
         # Patch for some idiot version bug
         if Base.Platform == "Darwin":
             directory = f"instances/{minecraft_version}/libraries/ca/weblite/1.0.0"
@@ -395,28 +411,24 @@ class Create_Instance:
                     print(f"An error occurred: {e}")
 
     def download_games_files(self, version_id):
+        print("Loading version info...")
         version_data = self.get_version_data(version_id)
         # Download game file( libraries, .jar files...., and natives)
-        ClearOutput()
-        print("Loading version info...")
+        print("Downloading libraries...", color='blue')
         self.download_libraries(version_data, version_id)
         self.mac_os_libraries_bug_fix(version_id)
         print("The required dependent libraries should have been downloaded :)", color='blue')
 
         # Download assets(Also it will check this version are use legacy assets or don't use)
-        ClearOutput()
-        print("Creating assets...", color='green')
+        print("Downloading assets...", color='purple')
         assets_grabber_manager.assets_file_grabber(version_id)
         os.chdir(self.WorkDir)
 
-        ClearOutput()
         print("Unzipping natives...", color='green')
         self.unzip_natives(version_id)
 
-        ClearOutput()
-        print("Downloading JVM...", color='green')
+        print("Downloading JVM...", color='cyan')
         install_jvm(version_id)
-        print("Download JVM has been disabled in this version :)", color='blue')
 
         print("When you install a Java version that has never been installed before,"
               " you need to reconfig Java Path!",
@@ -450,22 +462,29 @@ class Create_Instance:
                 print("To reset the list back to original. You can enter 'legacy_list' or just 'list' to back.",
                       color='green')
             print("Some cool stuff:'")
-            print("Type 'list' to print list again. 'legacy_list' for legacy list(support more system than normal list)", color='blue')
-            print("'legacy_all' for legacy list(but it wll print all available versions. The list will be long)", color='blue')
-            print("'list_all' can print all available versions(Not recommended. Poor support for most of system)", color='purple')
+            print(
+                "Type 'list' to print list again. 'legacy_list' for legacy list(support more system than normal list)",
+                color='blue')
+            print("'legacy_all' for legacy list(but it wll print all available versions. The list will be long)",
+                  color='blue')
+            print("'list_all' can print all available versions(Not recommended. Poor support for most of system)",
+                  color='purple')
             version_id = str(input("Please enter the version ID:"))
 
             if version_id.upper() == "EXIT":
                 return
 
             if version_id.upper() == "LIST":
-                download_minecraft_with_version_id(NO_LIST=True,list_type="release")
+                download_minecraft_with_version_id(NO_LIST=True, list_type="release")
                 return
 
             if version_id.upper() == "LIST_ALL":
-                print("Warning: Version list has been set to 'LIST_ALL'. That mean launcher will search version_id in 'LIST_ALL'.", color='yellow')
-                print("To reset the list back to original. You can enter 'legacy_list' or just 'list' to back.", color='green')
-                download_minecraft_with_version_id(NO_LIST=True,list_type="all_version")
+                print(
+                    "Warning: Version list has been set to 'LIST_ALL'. That mean launcher will search version_id in 'LIST_ALL'.",
+                    color='yellow')
+                print("To reset the list back to original. You can enter 'legacy_list' or just 'list' to back.",
+                      color='green')
+                download_minecraft_with_version_id(NO_LIST=True, list_type="all_version")
                 return
 
             if version_id.upper() == "LEGACY_LIST":
@@ -473,8 +492,11 @@ class Create_Instance:
                 return
 
             if version_id.upper() == "LEGACY_ALL":
-                print("Warning: Version list has been set to LEGACY_ALL. That mean launcher will search version_id in LEGACY_ALL.", color='yellow')
-                print("To reset the list back to original. You can enter 'legacy_list' or just 'list' to back.", color='green')
+                print(
+                    "Warning: Version list has been set to LEGACY_ALL. That mean launcher will search version_id in LEGACY_ALL.",
+                    color='yellow')
+                print("To reset the list back to original. You can enter 'legacy_list' or just 'list' to back.",
+                      color='green')
                 download_minecraft_with_version_id(NO_LIST=True, list_type='legacy_all')
                 return
 

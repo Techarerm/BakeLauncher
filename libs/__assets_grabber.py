@@ -173,29 +173,30 @@ class assets_grabber:
             assets = asset_index['objects']
             total_assets = len(assets)
 
-            # Use ThreadPoolExecutor to download assets concurrently
-            with ThreadPoolExecutor(max_workers=10) as executor:
-                futures = {executor.submit(self.download_asset_file, asset_name, asset_info, objects_dir,
-                                           NoOutput=True): asset_name
-                           for asset_name, asset_info in assets.items()}
-
-                # Use tqdm for progress bar, based on total assets
-                if not Base.UsingLegacyDownloadOutput:
-                    with tqdm(total=total_assets, desc="Downloading Assets") as pbar:
-                        for future in as_completed(futures):
-                            asset_name = futures[future]
-                            try:
-                                future.result()  # Will raise an exception if download_asset_file failed
-                                pbar.update(1)  # Increment progress bar only on success
-                            except Exception as e:
-                                print(f"Error downloading {asset_name}: {e}", color='red')
-                else:
+            if not Base.UsingLegacyDownloadOutput:
+                with ThreadPoolExecutor(max_workers=10) as executor:
+                    futures = {executor.submit(self.download_asset_file, asset_name, asset_info, objects_dir,
+                                               NoOutput=True): asset_name
+                               for asset_name, asset_info in assets.items()}
+                with tqdm(total=total_assets, desc="Downloading Assets") as pbar:
                     for future in as_completed(futures):
                         asset_name = futures[future]
                         try:
-                            future.result()
+                            future.result()  # Will raise an exception if download_asset_file failed
+                            pbar.update(1)  # Increment progress bar only on success
                         except Exception as e:
                             print(f"Error downloading {asset_name}: {e}", color='red')
+            else:
+                with ThreadPoolExecutor(max_workers=10) as executor:
+                    futures = {
+                        executor.submit(self.download_asset_file, asset_name, asset_info, objects_dir): asset_name
+                        for asset_name, asset_info in assets.items()}
+                for future in as_completed(futures):
+                    asset_name = futures[future]
+                    try:
+                        future.result()
+                    except Exception as e:
+                        print(f"Error downloading {asset_name}: {e}", color='red')
 
         if mode == "LegacyAssets":
             # Load the asset index JSON file
@@ -204,20 +205,17 @@ class assets_grabber:
             with open(index_path, 'r') as f:
                 asset_index = json.load(f)
 
-            # Get the objects and calculate total assets
             objects = asset_index.get('objects', {})
             total_assets = len(objects)
 
             # Use ThreadPoolExecutor to download concurrently
             with ThreadPoolExecutor(max_workers=10) as executor:
-                futures = {
-                    executor.submit(self.download_legacy_assets, asset_name, asset_info, objects_dir,
-                                    NoOutput=True): asset_name
-                    for asset_name, asset_info in objects.items()
-                }
-
-                # Use tqdm to track progress
                 if not Base.UsingLegacyDownloadOutput:
+                    futures = {
+                        executor.submit(self.download_legacy_assets, asset_name, asset_info, objects_dir,
+                                        NoOutput=True): asset_name
+                        for asset_name, asset_info in objects.items()
+                    }
                     with tqdm(total=total_assets, desc="Downloading Legacy Assets") as pbar:
                         for future in as_completed(futures):
                             asset_name = futures[future]
@@ -227,6 +225,10 @@ class assets_grabber:
                             except Exception as e:
                                 print(f"Error downloading {asset_name}: {e}", color='red')
                 else:
+                    futures = {
+                        executor.submit(self.download_legacy_assets, asset_name, asset_info, objects_dir): asset_name
+                        for asset_name, asset_info in objects.items()
+                    }
                     for future in as_completed(futures):
                         asset_name = futures[future]
                         try:
@@ -300,7 +302,6 @@ class assets_grabber:
             asset_index = self.grab_asset_index_file(version_data, "indexes")
 
             # Now download the actual asset files into the objects directory
-            print("Point objects ", game_folder)
             objects_dir = os.path.join(game_folder, "assets", "objects")
             self.download_assets_plus(asset_index, objects_dir, "ModernAssets")
         else:

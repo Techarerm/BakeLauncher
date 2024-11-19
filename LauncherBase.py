@@ -1,10 +1,11 @@
 import os
 import time
 import platform
+import socket
 from print_color import print as print_color
 
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = 'Beta 0.9(Dev-KA111824)'
+launcher_version = 'Beta 0.9(Dev-KB111924)'
 
 BetaWarningMessage = ("You are running beta version of BakeLauncher.\n"
                       "This is an 'Experimental' version with potential instability.\n"
@@ -21,6 +22,8 @@ DontPrintColor = false
 DisableClearOutput = false
 DefaultAccountID = 1
 LauncherWorkDir = "None"
+PingServerIP = "None"
+DontCheckInternetConnection = true
 
 <MainMemu>
 # Automatic open you want option when launcher load MainMemu
@@ -31,7 +34,7 @@ Option = None
 NoList = false
 
 <LaunchManager>
-Create a new terminal when launching Minecraft. The new terminal won't be killed when the main stop working.
+Create a new terminal when launching Minecraft. The new terminal will not be killed when the main stop working.
 EnableExperimentalMultitasking = true
 
 # Automatic launch you want to launch instances
@@ -59,8 +62,11 @@ AutomaticDownVersion = true
 
 # If a same version is already installed in the runtimes folder, reinstall it(but bypass ask user)
 OverwriteJVMIfExist = False
+UsingLegacyDownloadOutput = False
 Version = None
 """
+
+
 
 # Default value for some settings
 DontPrintColor = False
@@ -84,39 +90,6 @@ def initialize_config():
     if not os.path.exists(global_config_path):
         with open(global_config_path, "w") as config:
             config.write(global_config)
-
-
-# Load config file if it exists
-def load_setting():
-    with open("data/config.bakelh.cfg", 'r') as file:
-        for line in file:
-            if "DisableClearOutput" in line:
-                Base.DisableClearOutput = line.split('=')[1].strip().upper() == "TRUE"
-
-            if "DontPrintColor" in line:
-                Base.DontPrintColor = line.split('=')[1].strip().upper() == "TRUE"
-
-            if "NoList" in line:
-                Base.NoList = line.split('=')[1].strip().upper() == "TRUE"
-
-            if "OverwriteJVMIfExist" in line:
-                Base.OverwriteJVMIfExist = line.split('=')[1].strip().upper() == "TRUE"
-
-            if "UsingLegacyDownloadOutput" in line:
-                Base.UsingLegacyDownloadOutput = line.split('=')[1].strip().upper() == "TRUE"
-
-            if "LauncherWorkDir" in line:
-                Base.LauncherWorkDir = line.split('=')[1].strip().strip('"').strip("'")
-
-    if Base.DontPrintColor:
-        print_color("Colorful text has been disabled.", tag='Global')
-    if Base.DisableClearOutput:
-        print_color("Clear Output has been disabled.", tag='Global')
-    if Base.NoList:
-        print_color("Print list Has been disabled.", tag='Global')
-    if Base.LauncherWorkDir is not None:
-        if not Base.LauncherWorkDir == "None" or Base.LauncherWorkDir == "null":
-            print_color("Launcher workDir has been set by exist config.", tag='Global')
 
 
 def ClearOutput():
@@ -169,8 +142,13 @@ class LauncherBase:
         self.OverwriteJVMIfExist = False
         self.UsingLegacyDownloadOutput = False
         self.LauncherWorkDir = None
+        self.NoPrintConfigInfo = False
+        self.PingServerIP = None
+        self.DontCheckInternetConnection = False
+        self.InternetConnect = False
         self.launcher_root_dir = os.getcwd()
         self.global_config_path = os.path.join(self.launcher_root_dir, "data/config.bakelh.cfg")
+        self.PingServerHostList = ["8.8.8.8", "180.76.76.76", "1.1.1.1"]
 
     def Initialize(self):
         global DontPrintColor
@@ -183,7 +161,7 @@ class LauncherBase:
         if not os.path.exists("data/config.bakelh.cfg"):
             initialize_config()
         else:
-            load_setting()
+            self.load_setting()
 
         # Check workdir(If launcher running in a non-ASCII path)(Also
         try:
@@ -201,7 +179,7 @@ class LauncherBase:
                         color='yellow')
             continue_load = str(input("Enter Y to ignore this warning: "))
             if not continue_load.upper() == "Y":
-                return
+                return False, "WorkDirUnicodeEncodeError"
 
         # Set window(terminal?) title
         if self.Platform == "Windows":
@@ -211,11 +189,14 @@ class LauncherBase:
         elif self.Platform == "Linux":
             os.system(f'echo -ne "\033]0;BakeLauncher {launcher_version}\007"')
 
-        DontPrintColor = self.DontPrintColor
+        # Check internet connect
+        ConnectStatus, Message = self.check_internet_socket()
+        if not ConnectStatus:
+            return False, Message
 
         return True
 
-    def load_setting_lightweight(self, **kwargs):
+    def load_setting(self, **kwargs):
         # Don't ask why LauncherBase has two load_setting. ONE is version lightweight!
         ConfigPath = kwargs.get('CfgPath', None)
         if not ConfigPath is None:
@@ -240,6 +221,26 @@ class LauncherBase:
 
                 if "LauncherWorkDir" in line:
                     self.LauncherWorkDir = line.split('=')[1].strip().strip('"').strip("'")
+
+                if "PingServerIP" in line:
+                    self.PingServerIP = line.split('=')[1].strip().strip('"').strip("'")
+
+                if "DontCheckInternetConnection" in line:
+                    self.DontCheckInternetConnection = line.split('=')[1].strip().upper() == "TRUE"
+
+        if not self.NoPrintConfigInfo:
+            if self.DontPrintColor:
+                print_color("Colorful text has been disabled.", tag='Global')
+            if self.DisableClearOutput:
+                print_color("Clear Output has been disabled.", tag='Global')
+            if self.NoList:
+                print_color("Print list Has been disabled.", tag='Global')
+            if self.LauncherWorkDir is not None:
+                if not self.LauncherWorkDir == "None" or Base.LauncherWorkDir == "null":
+                    print_color("Launcher workDir has been set by exist config.", tag='Global')
+            if self.DontCheckInternetConnection:
+                print_color("Check internet connection has been disabled.", tag='Global')
+
 
     def get_platform(self, mode):
         # Get "normal" platform name
@@ -306,6 +307,56 @@ class LauncherBase:
                 return
             else:
                 return Arch
+
+    def check_internet_socket(self, port=53, timeout=5):
+        global host
+        if self.PingServerIP is not None:
+            if not self.PingServerIP == "None":
+                host = self.PingServerIP
+            else:
+                host = "InternalList"
+        else:
+            host = "InternalList"
+
+        if Base.DontCheckInternetConnection:
+            return True, "BypassCheckInternetConnection"
+        if host == "InternalList":
+            for host in self.PingServerHostList:
+                try:
+                    # Try to establish a socket connection to the host and port
+                    socket.create_connection((host, port), timeout=timeout)
+                    self.InternetConnect = True
+                    continue
+                except (socket.timeout, socket.error):
+                    print_color(f"Trying to connect host {host} failed :(", tag='Warning', color='red')
+                    print_color("Retrying after 5 sec...", tag='INFO')
+                    time.sleep(5)
+        else:
+            print_color("Using exist host to check internet connection...", tag='INFO')
+            try:
+                socket.create_connection((host, port), timeout=timeout)
+                self.InternetConnect = True
+            except (socket.timeout, socket.error):
+                print_color(f"Trying to connect host {host} failed :(", tag='Error', color='red')
+                print_color("Failed to check internet connect. Cause by unknown host error.", tag='Error')
+
+        if not self.InternetConnect:
+            print_color("Internet connection failed :(", color='red', tag='Error')
+            print("Unable to connect to the internet. Some features may be unavailable, including:")
+            print("- AccountManager")
+            print("- Instance Creation")
+            print("- Any feature that requires an internet connection")
+
+            print("\nWould you like to ignore this error and proceed without internet-dependent features? (Y/N)")
+            user_input = input(": ").strip().lower()
+
+            if user_input.upper() == 'y':
+                return True, "IgnoreInternetConnectionError"
+            else:
+                self.EndLoadFlag = True
+                return False, "InternetConnectionError"
+        else:
+            return True, "Pass"
 
 
 Base = LauncherBase()

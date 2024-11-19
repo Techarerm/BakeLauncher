@@ -47,6 +47,9 @@ def download_file(file_info, file_path, destination_folder):
     if response.status_code == 200:
         with open(full_file_path, "wb") as f:
             f.write(response.content)
+        if Base.UsingLegacyDownloadOutput:
+            if verify_checksum(full_file_path, expected_sha1):
+                print(f"Downloaded and verified {file_name} to {full_file_path}", color='green')
         if not verify_checksum(full_file_path, expected_sha1):
             print(f"Checksum mismatch for {file_name}.", color='yellow')
             os.remove(full_file_path)

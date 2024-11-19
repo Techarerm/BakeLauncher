@@ -91,6 +91,11 @@ def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, 
         minecraft_args = f"{username} {access_token} --gameDir {minecraft_path} " \
                          f"--assetsDir {assets_dir} --assetIndex {assetsIndex}"
 
+    elif minecraftArguments.endswith("--tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker"):
+        # For classic Minecraft
+        minecraft_args = f"{username} {access_token} --gameDir {minecraft_path} " \
+                         f"--assetsDir {assets_dir} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker "
+
     elif minecraftArguments.endswith("${game_assets}"):
         minecraft_args = f"--username {username} --session {access_token} --version {version_id} --gameDir {minecraft_path} " \
                          f"--assetsDir {assets_dir} --assetIndex {assetsIndex}"

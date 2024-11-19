@@ -22,7 +22,8 @@ terminals = [
 
 def create_new_client_thread(launch_command, title, PlatFormName, ConfigPath):
     FailedToLaunch = False
-    Base.load_setting_lightweight(CfgPath=ConfigPath)
+    Base.NoPrintConfigInfo = True
+    Base.load_setting(CfgPath=ConfigPath)
     if not Base.DontPrintColor:
         print("Please check the launcher already created a new terminal.", color='purple')
         print("If it didn't create it please check the output and report it to GitHub!", color='green')
