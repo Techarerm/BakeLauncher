@@ -39,6 +39,7 @@ from LauncherBase import Base,ClearOutput, initialize_config, timer,print_custom
 
 class AuthManager:
     def __init__(self):
+        self.RefreshTokenFlag = False
         self.grant_type = None
         self.request_data = None
         self.oauth20_token = "https://login.live.com/oauth20_token.srf"
@@ -68,7 +69,6 @@ class AuthManager:
             self.request_data.raise_for_status()
             microsoft_token = self.request_data.json()["access_token"]
             microsoft_refresh_token = self.request_data.json()["refresh_token"]
-            print("Get Microsoft account token and refresh Token successfully!", color='blue')
             return True, microsoft_token, microsoft_refresh_token
         except requests.RequestException:
             print("AuthTool: Failed to get Microsoft token :(", color='red')
@@ -141,14 +141,15 @@ class AuthManager:
             r.raise_for_status()
             username = r.json()["name"]
             uuid = r.json()["id"]
-            print("AuthTool: Minecraft Username:", username, color='blue')
-            print("AuthTool: Minecraft UUID:", uuid, color='blue')
+            if not self.RefreshTokenFlag:
+                print("Minecraft Username:", username, color='blue')
+                print("Minecraft UUID:", uuid, color='blue')
             return True, username, uuid
         except requests.RequestException:
-            print("AuthTool: Failed to get Minecraft profile information.", color='red')
-            print("AuthTool: Maybe this url are expired. Try to relogin again!", color='red')
-            print("AuthTool: If stil can't login please clean your browser token and try again.", color='red')
-            print("AuthTool: If still can't login....report this issue to GitHUb!.", color='red')
+            print("Failed to get Minecraft profile information.", color='red')
+            print("Maybe this url are expired. Try to re-login again!", color='red')
+            print("If you still can't login please clean your browser token and try again.", color='red')
+            print("If still can't login....report this issue to GitHUb!.", color='red')
             return False, "FailedToGetAccountData", ""
 
     def get_account_id(self, data):
@@ -175,8 +176,10 @@ class AuthManager:
                             # Return the matching entry
                             return True, entry
                     print(f"No account found with ID {target_id}.", color='yellow')
+                    return False, None
                 except json.JSONDecodeError:
                     print("Error reading the JSON file.", color='red')
+                    return False, None
         else:
             print("JSON file does not exist :(", color='red')
             print("Trying to login your account first!", color='yellow')
@@ -248,7 +251,7 @@ class AuthManager:
         try:
             code = blank_page_url.split("code=")[1].split("&")[0]
         except IndexError:
-            print("AuthTool: Invalid URL. Please try again.", color='red')
+            print("Invalid URL. Please try again.", color='red')
             return "CheckURLValidFailed"
 
         # Start get token process...
@@ -285,13 +288,13 @@ class AuthManager:
                         json_data = json.load(f)
                         # Ensure json_data is a list
                         if not isinstance(json_data, list):
-                            print("AuthTool: JSON data is not valid! Go to Extra>2: Reset AccountData.json to reset "
+                            print("JSON data is not valid! Go to Extra>2: Reset AccountData.json to reset "
                                   "AccountData.json!", color='yellow')
                             timer(4)
                             json_data = []
                     except json.JSONDecodeError:
-                        print("AuthTool: Failed to load existing JSON data, resetting to empty list.", color='red')
-                        print("AutoTool: Go to Extra>2: Reset AccountData.json to reset "
+                        print("Failed to load existing JSON data, resetting to empty list.", color='red')
+                        print("Go to Extra>2: Reset AccountData.json to reset "
                               "AccountData.json!", color='yellow')
                         json_data = []
 
@@ -304,7 +307,7 @@ class AuthManager:
                 existing_entry["RefreshToken"] = microsoft_refresh_token
                 existing_entry["AccessToken"] = access_token
                 existing_entry["Username"] = username
-                print(f"AuthTool: Updated existing account data for UUID: {uuid}", color='yellow')
+                print(f"Updated existing account data for UUID: {uuid}", color='yellow')
                 new_id = existing_entry["id"]  # Use the existing ID
             else:
                 # Get a new ID for new accounts
@@ -319,23 +322,23 @@ class AuthManager:
 
                 # Append new data to old json data(or new?)
                 json_data.append(data)
-                print(f"AuthTool: Added new account data for UUID: {uuid}", color='green')
+                print(f"Added new account data for UUID: {uuid}", color='green')
 
             # Write the updated or new data back to the AccountData
             with open("data/AccountData.json", "w") as jsonFile:
                 json.dump(json_data, jsonFile, indent=4)
 
-            print("AuthTool: AccountData saved successfully!", color='green')
-            print("AuthTool: Want to change launch using account? Y/N:", color='green')
+            print("AccountData saved successfully!", color='green')
+            print("Want to change launch using account? Y/N:", color='green')
             user_input = input(":")
             if user_input.upper() == "Y":
-                print("AuthTool: Change using account...", color='green')
+                print("Change using account...", color='green')
                 self.set_default_account_id(new_id)
 
 
         except Exception as e:
-            print(f"AuthTool: Failed to save account data. Error: {e}", color='red')
-            print("AuthTool: Trying to delete file name AccountData.json (in the data folder)!", color='yellow')
+            print(f"Failed to save account data. Error: {e}", color='red')
+            print("Trying to delete file name AccountData.json (in the data folder)!", color='yellow')
 
         print("Login process finished :)", color='blue')
 
@@ -353,7 +356,7 @@ class AuthManager:
             accessToken = account_data["AccessToken"]
             RefreshToken = account_data.get("RefreshToken")
             if RefreshToken is None:
-                print(f"AuthTool: Stopping refresh token! Cause by invalid token :(", color='red')
+                print(f"Stopping refresh token! Cause by invalid token :(", color='red')
                 return
         except KeyError:
             return False, "CheckMinecraftToken>GetAccountDataFailed", ""
@@ -375,17 +378,18 @@ class AuthManager:
             return True, "AccountDataAreValid"
 
         except requests.RequestException:
-            print("AuthTool: Your Minecraft token has expired. Refreshing...", color='yellow')
+            print("Your Minecraft token has expired. Refreshing...", color='yellow')
 
             # Refresh Microsoft token using the refresh token
             Status, new_microsoft_token, new_refresh_token = self.get_microsoft_account_token(RefreshToken, "RefreshToken")
             if not Status:
-                print("AuthTool: Failed to refresh Microsoft token.", color='red')
-                print("AuthTool: Maybe your refresh token are expired! please re-login your account.",
+                print("Failed to refresh Microsoft token.", color='red')
+                print("Maybe your refresh token are expired! please re-login your account.",
                       color='yellow')
                 return False, "CheckAccountDataAreValid>FetchNewMicrosoftTokenFailed"
 
             # Get a new Minecraft token using the refreshed Microsoft token
+            self.RefreshTokenFlag = True
             Status, xbl_token = self.get_xbl_token(new_microsoft_token)
             if not Status:
                 return False, f"GettingXBLToken>{xbl_token}"
@@ -409,7 +413,7 @@ class AuthManager:
 
             # Set flag after refresh token finished
             Base.MainMemuResetFlag = True
-
+            self.RefreshTokenFlag = False
             print("Refresh token process finished!", color='blue')
             return True, "AccountDataRefreshSuccessfully"
 
@@ -418,6 +422,7 @@ class AuthManager:
         Check login status.
         Avoid Minecraft crash on auth... However, if the token expires, it will still crash on launch :)
         """
+        global id
         username = "Player"  # Initialize username to avoid UnboundLocalError
         try:
             with open("data/config.bakelh.cfg", 'r') as file:
@@ -426,6 +431,12 @@ class AuthManager:
                         id = line.split('=')[1].strip()  # Extract the value if found
                         break  # Stop after finding the ID
         except FileNotFoundError:
+            print("Cannot find config.bakelh.cfg in the folder name 'data'.", color='red')
+            initialize_config()
+            id = 1
+
+        if id is None:
+            print("DefaultAccountID are not found. Is your config corrupted?")
             initialize_config()
             id = 1
 
@@ -433,7 +444,7 @@ class AuthManager:
             Status, account_data = self.get_account_data_use_accountid(int(id))
             if account_data is None:
                 print(
-                    "AuthTool: config.bakelh.cfg item DefaultAccountID are not available! Change to use local "
+                    f"Can't find id '{id}' in the account data ! Change to use local "
                     "account...",
                     color='yellow')
                 id = 1
@@ -478,12 +489,12 @@ class AuthManager:
             print(f'{item["id"]}: {item["Username"]}')
 
         # Get user input
-        print("AuthTool: Please enter the account ID you want to use.", color='blue')
+        print("Please enter the account ID you want to use.", color='blue')
         print("Type 'exit' to go back to the main menu.")
         user_input = input(":")
 
         if str(user_input).lower() == "exit":
-            print("AuthTool: Exiting...", color='green')
+            print("Exiting...", color='green')
             return
 
         try:
@@ -492,20 +503,20 @@ class AuthManager:
             for item in data:
                 if user_input == item["id"]:
                     found = True
-                    print("AuthTool: Changing to account...", color='green')
+                    print("Changing to account...", color='green')
 
                     self.set_default_account_id(user_input)
 
-                    print("AuthTool: Changing default account successfully!", color='blue')
+                    print("Changing default account successfully!", color='blue')
                     time.sleep(1.5)
 
             if not found:
-                print(f"AuthTool: Can't find account with ID {user_input} :(", color='red')
-                print("AuthTool: Please check the ID you entered and try again.", color='yellow')
+                print(f"ACan't find account with ID {user_input} :(", color='red')
+                print("Please check the ID you entered and try again.", color='yellow')
                 time.sleep(3)
                 self.SelectDefaultAccount()
         except ValueError:
-            print("AuthTool: Invalid ID format. Please enter a valid integer.", color='red')
+            print("Invalid ID format. Please enter a valid integer.", color='red')
             time.sleep(2)
             self.SelectDefaultAccount()
 
@@ -520,7 +531,7 @@ class AuthManager:
                 print(f'{item["id"]}: {item["Username"]}')
 
             # Get user input
-            print("AuthTool: Please enter the ID of the account you want to delete.")
+            print("Please enter the ID of the account you want to delete.")
             print("Or you can type 'exit' to go back to the main menu.")
             user_input = input(": ")
             if str(user_input).lower() == "exit":
@@ -531,7 +542,7 @@ class AuthManager:
             try:
                 user_input = int(user_input)
             except ValueError:
-                print("AuthTool: Invalid ID format. Please enter a valid integer.")
+                print("Invalid ID format. Please enter a valid integer.")
                 time.sleep(2)
                 self.SelectDefaultAccount()
                 return
@@ -542,11 +553,11 @@ class AuthManager:
                 if user_input == item["id"]:
                     found = True
                     if user_input == 1:
-                        print("AuthTool: You can't delete the launcher local account!")
-                        time.sleep(3)
+                        print("You can't delete the launcher local account!", color='red')
+                        time.sleep(1.8)
                         return
                     data = [entry for entry in data if entry["id"] != user_input]
-                    print(f"AuthTool: Deleting account ID {user_input}...")
+                    print(f"Deleting account ID {user_input}...")
 
                     # Reassign IDs sequentially
                     for index, account in enumerate(data):
@@ -556,20 +567,38 @@ class AuthManager:
                     with open("data/AccountData.json", "w") as file:
                         json.dump(data, file, indent=4)
 
-                    print(f"AuthTool: Deleted account ID {user_input} successfully!")
+                    print(f"Deleted account ID {user_input} successfully!")
                     time.sleep(3)
                     break
 
             if not found:
-                print(f"AuthTool: Can't find account with ID {user_input}.")
-                print("AuthTool: Please check the ID and try again.")
+                print(f"Can't find account with ID {user_input}.")
+                print("Please check the ID and try again.")
                 time.sleep(3)
                 self.SelectDefaultAccount()
+            else:
+                try:
+                    with open("data/config.bakelh.cfg", 'r') as file:
+                        for line in file:
+                            if "DefaultAccountID" in line:
+                                id = line.split('=')[1].strip()  # Extract the value if found
+                                break  # Stop after finding the ID
+                except FileNotFoundError:
+                    initialize_config()
+
+                id = int(id)
+                if id is not None:
+                    if not id == 1:
+                        if id > user_input:
+                            id -= 1
+                            self.set_default_account_id(id)
 
         except FileNotFoundError:
-            print("AuthTool: Account data file not found.")
+            print("Account data file not found.", color='red')
+            self.initialize_account_data()
         except json.JSONDecodeError:
-            print("AuthTool: Error decoding account data.")
+            print("Error decoding account data.")
+            self.initialize_account_data()
 
     @staticmethod
     def initialize_account_data():
@@ -616,7 +645,7 @@ class AuthManager:
                 return
 
         except ValueError:
-            print("AuthTool: Invalid Option :0", color='red')
+            print("Invalid Option :0", color='red')
             self.AccountManager()
 
 

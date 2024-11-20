@@ -66,7 +66,7 @@ def download_java_runtime_files(manifest, install_path):
 
     # Create a progress bar with a custom color
     if not Base.UsingLegacyDownloadOutput:
-        with tqdm(total=total_files, unit="file", desc="Downloading files") as progress_bar:
+        with tqdm(total=total_files, unit="file", desc="Downloading files", colour='cyan') as progress_bar:
             for file_path, file_info in files.items():
                 if "downloads" in file_info:
                     # Test method

@@ -120,8 +120,7 @@ class assets_grabber:
                 print("LaunchManager: Still can't fix it :(", color='red')
                 return None
 
-    def download_asset_file(self, asset_name, asset_info, objects_dir, **kwargs):
-        self.without_downloaded_output = kwargs.get('NoOutput', None)
+    def download_asset_file(self, asset_name, asset_info, objects_dir):
 
         asset_hash = asset_info['hash']
         hash_prefix = asset_hash[:2]
@@ -142,13 +141,12 @@ class assets_grabber:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         f.write(chunk)
-            if not self.without_downloaded_output:
+            if Base.UsingLegacyDownloadOutput:
                 print(f"Downloaded: {asset_name} -> {asset_hash}")
         except Exception as e:
             print(f"Failed to download: {asset_name}. Error: {e}")
 
-    def download_legacy_assets(self, asset_name, asset_info, assets_dir, **kwargs):
-        self.without_downloaded_output = kwargs.get('NoOutput', None)
+    def download_legacy_assets(self, asset_name, asset_info, assets_dir):
         hash_value = asset_info['hash']
         hash_prefix = hash_value[:2]
         download_url = f'https://resources.download.minecraft.net/{hash_prefix}/{hash_value}'
@@ -159,7 +157,7 @@ class assets_grabber:
 
         # Download the asset if it doesn't already exist
         if not os.path.exists(file_path):
-            if not self.without_downloaded_output:
+            if Base.UsingLegacyDownloadOutput:
                 print(f"Downloading {asset_name}...")
             response = requests.get(download_url, stream=True)
             if response.status_code == 200:
@@ -172,31 +170,26 @@ class assets_grabber:
         if mode == "ModernAssets":
             assets = asset_index['objects']
             total_assets = len(assets)
-
-            if not Base.UsingLegacyDownloadOutput:
-                with ThreadPoolExecutor(max_workers=10) as executor:
-                    futures = {executor.submit(self.download_asset_file, asset_name, asset_info, objects_dir,
-                                               NoOutput=True): asset_name
-                               for asset_name, asset_info in assets.items()}
-                with tqdm(total=total_assets, desc="Downloading Assets") as pbar:
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                futures = {executor.submit(self.download_asset_file, asset_name, asset_info, objects_dir): asset_name
+                           for asset_name, asset_info in assets.items()}
+                if Base.UsingLegacyDownloadOutput:
                     for future in as_completed(futures):
                         asset_name = futures[future]
                         try:
-                            future.result()  # Will raise an exception if download_asset_file failed
-                            pbar.update(1)  # Increment progress bar only on success
+                            future.result()
                         except Exception as e:
                             print(f"Error downloading {asset_name}: {e}", color='red')
-            else:
-                with ThreadPoolExecutor(max_workers=10) as executor:
-                    futures = {
-                        executor.submit(self.download_asset_file, asset_name, asset_info, objects_dir): asset_name
-                        for asset_name, asset_info in assets.items()}
-                for future in as_completed(futures):
-                    asset_name = futures[future]
-                    try:
-                        future.result()
-                    except Exception as e:
-                        print(f"Error downloading {asset_name}: {e}", color='red')
+                else:
+                    with tqdm(total=total_assets, desc="Downloading Assets", colour='cyan') as pbar:
+                        for future in as_completed(futures):
+                            asset_name = futures[future]
+                            try:
+                                future.result()
+                            except Exception as e:
+                                print(f"Error downloading {asset_name}: {e}", color='red')
+                            finally:
+                                pbar.update(1)
 
         if mode == "LegacyAssets":
             # Load the asset index JSON file
@@ -210,31 +203,26 @@ class assets_grabber:
 
             # Use ThreadPoolExecutor to download concurrently
             with ThreadPoolExecutor(max_workers=10) as executor:
-                if not Base.UsingLegacyDownloadOutput:
-                    futures = {
-                        executor.submit(self.download_legacy_assets, asset_name, asset_info, objects_dir,
-                                        NoOutput=True): asset_name
-                        for asset_name, asset_info in objects.items()
-                    }
-                    with tqdm(total=total_assets, desc="Downloading Legacy Assets") as pbar:
-                        for future in as_completed(futures):
-                            asset_name = futures[future]
-                            try:
-                                future.result()  # Download the asset
-                                pbar.update(1)  # Increment progress bar only on success
-                            except Exception as e:
-                                print(f"Error downloading {asset_name}: {e}", color='red')
-                else:
-                    futures = {
-                        executor.submit(self.download_legacy_assets, asset_name, asset_info, objects_dir): asset_name
-                        for asset_name, asset_info in objects.items()
-                    }
+                futures = {
+                    executor.submit(self.download_legacy_assets, asset_name, asset_info, objects_dir): asset_name
+                    for asset_name, asset_info in objects.items()
+                }
+                if Base.UsingLegacyDownloadOutput:
                     for future in as_completed(futures):
                         asset_name = futures[future]
                         try:
                             future.result()
                         except Exception as e:
                             print(f"Error downloading {asset_name}: {e}", color='red')
+                else:
+                    with tqdm(total=total_assets, desc="Downloading Legacy Assets", colour='cyan') as pbar:
+                        for future in as_completed(futures):
+                            asset_name = futures[future]
+                            try:
+                                future.result()
+                                pbar.update(1)  # Increment only if successful
+                            except Exception as e:
+                                print(f"Error downloading {asset_name}: {e}", color='red')
 
             print("Legacy assets have been downloaded :)", color='blue')
 

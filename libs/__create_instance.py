@@ -81,18 +81,17 @@ def multi_thread_download(nested_urls_and_paths, name, max_workers=5, retries=1)
                     print(f"Error downloading {url}: {exc}")
                     failed_files.append((url, dest_path))
         else:
-            with tqdm(total=len(failed_files), desc=f"Downloading {name}", unit="file") as progress_bar:
+            with tqdm(total=total_files, desc=f"Downloading {name}", unit="file", colour='cyan') as pbar_download:
                 for future in future_to_url:
                     url, dest_path = future_to_url[future]
                     try:
-                        success = future.result()
+                        success = future.result()  # Wait for the future to complete
                         if success:
                             downloaded_files.append(dest_path)
                     except Exception as exc:
                         print(f"Error downloading {url}: {exc}")
-                    # Update the progress bar after each file retry
-                    progress_bar.n = total_files
-                    progress_bar.update(1)
+                    # Update the progress bar correctly
+                    pbar_download.update(1)
 
     # Initial download attempt with a progress bar
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -521,6 +520,8 @@ class Create_Instance:
             if 0 <= version_id < len(version_list):
                 # Check user type version_id are available
                 minecraft_version = version_list[version_id]
+                ClearOutput()
+                print("Creating instance....", color='green')
                 self.download_games_files(minecraft_version)
                 return
             else:
@@ -549,6 +550,8 @@ class Create_Instance:
 
             try:
                 if selected_version:
+                    ClearOutput()
+                    print("Creating instance....", color='green')
                     self.download_games_files(regular_version_input)
                 else:
                     # idk this thing would happen or not :)  , just leave it and see what happen....

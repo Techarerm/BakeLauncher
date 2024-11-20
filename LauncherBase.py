@@ -5,7 +5,7 @@ import socket
 from print_color import print as print_color
 
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-launcher_version = 'Beta 0.9(Dev-KB111924)'
+launcher_version = 'Beta 0.9(Dev-KC112024)'
 
 BetaWarningMessage = ("You are running beta version of BakeLauncher.\n"
                       "This is an 'Experimental' version with potential instability.\n"
@@ -65,8 +65,6 @@ OverwriteJVMIfExist = False
 UsingLegacyDownloadOutput = False
 Version = None
 """
-
-
 
 # Default value for some settings
 DontPrintColor = False
@@ -189,11 +187,6 @@ class LauncherBase:
         elif self.Platform == "Linux":
             os.system(f'echo -ne "\033]0;BakeLauncher {launcher_version}\007"')
 
-        # Check internet connect
-        ConnectStatus, Message = self.check_internet_socket()
-        if not ConnectStatus:
-            return False, Message
-
         return True
 
     def load_setting(self, **kwargs):
@@ -240,7 +233,6 @@ class LauncherBase:
                     print_color("Launcher workDir has been set by exist config.", tag='Global')
             if self.DontCheckInternetConnection:
                 print_color("Check internet connection has been disabled.", tag='Global')
-
 
     def get_platform(self, mode):
         # Get "normal" platform name
