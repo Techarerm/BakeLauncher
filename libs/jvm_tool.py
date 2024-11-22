@@ -10,7 +10,7 @@ import platform
 import time
 import requests
 import json
-from libs.download_jvm import get_java_version_info
+from libs.__create_instance import create_instance
 from LauncherBase import Base, print_custom as print
 
 
@@ -288,7 +288,7 @@ def java_version_check(Main, version_id):
         version_data = version_response.json()
 
         # Extract the Java version information
-        component, major_version = get_java_version_info(version_data)
+        component, major_version = create_instance.get_java_version_info(version_data)
         print(f"Required Java Component: {component}, Major Version: {major_version}", color='green')
 
     except Exception as e:

@@ -6,7 +6,7 @@ BakeLaunch Main Memu
 import os
 import time
 from libs.__account_manager import account_manager
-from LauncherBase import Base, ChangeLog, ClearOutput, launcher_version, bake_game, print_custom as print
+from LauncherBase import Base, ChangeLog, ClearOutput, bake_game, print_custom as print
 from libs.launch_manager import LaunchManager
 from libs.__create_instance import create_instance
 from libs.jvm_tool import java_finder, initialize_jvm_config
@@ -33,12 +33,12 @@ def back_to_memu():
 
 def bake_bake():
     print("POWERED BY BAKE!", color="yellow")
-    print("BakeLauncher " + launcher_version, color='yellow')
+    print("BakeLauncher " + Base.launcher_version, color='yellow')
     print("Contact Me :) TedKai/@Techarerm", color="blue")
     print("Source code: https://github.com/Techarerm/BakeLauncher", color='yellow')
-    if "Dev" in launcher_version:
+    if "Dev" in Base.launcher_version:
         print("This bread isn't baked yet?", color='blue')
-    elif "Beta" in launcher_version:
+    elif "Beta" in Base.launcher_version:
         print("Almost done? (Just wait...like 1 years?)", color='blue')
     print(" ")
     print(ChangeLog, color='cyan')
@@ -99,7 +99,7 @@ def extra_memu():
 
 def main_memu():
     print('"BakeLauncher Main Menu"', color='blue')
-    print("Version: " + launcher_version, color='green')
+    print("Version: " + Base.launcher_version_display, color='green')
 
     # Check login status
     account_manager.login_status()
@@ -148,7 +148,7 @@ def main_memu():
             return
         elif user_input.upper() == "RELOAD":
             # Soft reload(reset?) launcher
-            Base.load_setting_lightweight()
+            Base.load_setting()
             ErrorMessageList.clear()
             ClearOutput()
             main_memu()

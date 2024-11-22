@@ -3,7 +3,7 @@ import tempfile
 import subprocess
 import time
 import multiprocessing
-from LauncherBase import Base, launcher_version, print_custom as print
+from LauncherBase import Base, print_custom as print
 
 terminals = [
     "gnome-terminal",
@@ -139,7 +139,7 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
     # Create the full launch command with version logging and Minecraft command
     if Base.Platform == 'Windows':
         launch_command = [
-            f'echo {light_yellow}BakeLauncher Version: {launcher_version}{reset}',
+            f'echo {light_yellow}BakeLauncher Version: {Base.launcher_version}{reset}',
             f'echo {light_blue}Minecraft Log Output: {reset}',
             'echo ================================================',
             f'{minecraft_command}',
@@ -150,7 +150,7 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
             f'echo -ne "\033]0;{title}\007\n"',
             f'cd {WorkPath}\n',
             f'clear\n',
-            f'printf "{light_yellow}BakeLauncher Version: {launcher_version}{reset}\\n"',
+            f'printf "{light_yellow}BakeLauncher Version: {Base.launcher_version}{reset}\\n"',
             f'printf "{light_blue}Minecraft Log Output: {reset}\\n"',
             'echo "==============================================="',
             f'{minecraft_command}',
@@ -160,7 +160,7 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
     elif Base.Platform == "Linux":
         launch_command = [
             f'echo -ne "\033]0;{title}\007"',
-            f'echo -e {light_yellow}"BakeLauncher Version: {launcher_version}"{reset}',
+            f'echo -e {light_yellow}"BakeLauncher Version: {Base.launcher_version}"{reset}',
             f'echo -e {light_blue}"Minecraft Log Output: "{reset}',
             'echo "==============================================="',
             f'{minecraft_command}',
@@ -168,7 +168,7 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
         ]
     else:
         launch_command = [
-            f'echo -e "BakeLauncher Version: {launcher_version}"',
+            f'echo -e "BakeLauncher Version: {Base.launcher_version}"',
             f'echo -e "Minecraft Log Output: "',
             'echo "==============================================="',
             f'{minecraft_command}',

@@ -2,10 +2,14 @@ import requests
 import os
 import zipfile
 import time
+import datetime
+import hashlib
+import shutil
+from datetime import datetime
+from textwrap import dedent
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from LauncherBase import Base, ClearOutput, print_custom as print
 from libs.__assets_grabber import assets_grabber_manager
-from libs.download_jvm import install_jvm
 from tqdm import tqdm
 
 
@@ -122,6 +126,7 @@ def multi_thread_download(nested_urls_and_paths, name, max_workers=5, retries=1)
 
 class Create_Instance:
     def __init__(self):
+        self.SelectedInstanceInstalled = False
         self.VersionManifestURl = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
         self.version_id = None
         self.minecraft_version = ""
@@ -208,7 +213,31 @@ class Create_Instance:
         else:
             return all_available_version
 
-    def download_natives(self, libraries, libraries_dir):
+    def get_version_type(self, minecraft_version):
+        response = requests.get(self.VersionManifestURl)
+        data = response.json()
+
+        for version in data["versions"]:
+            if version["id"] == minecraft_version:
+                return version["type"]
+        return None
+
+
+    @staticmethod
+    def instance_list():
+        instances_list = os.listdir(Base.launcher_instances_dir)
+        row_count = 0
+        for name in instances_list:
+            if row_count >= Base.MaxInstancesPerRow:
+                print("\n", end='')
+                row_count = 0
+            print(f"{name}", end='')
+            print(" | ", end='', color='blue')
+            row_count += 1
+        print("\n", end='')
+
+    @staticmethod
+    def download_natives(libraries, libraries_dir):
         print(f"Platform: {Base.LibrariesPlatform} LibrariesPlatform: {Base.LibrariesPlatform}", tag='Debug',
               color='green')
 
@@ -287,18 +316,18 @@ class Create_Instance:
             print(f"No native library found for key: {native_key}", color='yellow')
             return "NativeLibrariesNotFound"
 
-    def download_libraries(self, version_data, version_id):
+    def download_libraries(self, version_data, minecraft_version, install_dir):
         """
         Create instances/version_id/folder and download game files
         """
-        version_dir = os.path.join("instances", version_id)
+        version_dir = os.path.join(Base.launcher_instances_dir, install_dir)
         libraries_dir = os.path.join(version_dir, "libraries")
         os.makedirs(libraries_dir, exist_ok=True)
 
         # Download client.jar
         client_info = version_data['downloads']['client']
         client_url = client_info['url']
-        client_dest = os.path.join(version_dir, 'libraries', 'net', 'minecraft', version_id, "client.jar")
+        client_dest = os.path.join(version_dir, 'libraries', 'net', 'minecraft', minecraft_version, "client.jar")
         print(f"Downloading client.jar to {client_dest}...")
         download_file(client_url, client_dest)
 
@@ -347,17 +376,19 @@ class Create_Instance:
         time.sleep(0.5)
         self.download_natives(libraries, libraries_dir)
 
-    def unzip_natives(self, version):
+    def unzip_natives(self, instance_name):
         global unzip_status
 
         # Handle platform naming for macOS
         if Base.LibrariesPlatform == 'darwin':
             PlatformName = 'macos'
 
-        if not os.path.exists(f"instances/{version}/.minecraft/natives"):
-            os.mkdir(f"instances/{version}/.minecraft/natives")
+        instance_dir = os.path.join(Base.launcher_instances_dir, instance_name)
+        natives_dir = os.path.join(instance_dir, ".minecraft", "natives")
+        if not os.path.exists(natives_dir):
+            os.mkdir(natives_dir)
 
-        os.chdir(f"instances/{version}")
+        os.chdir(instance_dir)
         # Find all natives and unzip
         print("Unzipping Natives...", color='green')
         jar_files = []
@@ -394,13 +425,262 @@ class Create_Instance:
         else:
             print("Warring: You may get some error you download libraries. Please re-download this version of"
                   " Minecraft again.", color='yellow')
-        os.chdir(self.WorkDir)
+        os.chdir(Base.launcher_root_dir)
 
     @staticmethod
-    def mac_os_libraries_bug_fix(minecraft_version):
+    def verify_checksum(file_path, expected_sha1):
+        sha1 = hashlib.sha1()
+        with open(file_path, "rb") as f:
+            while True:
+                data = f.read(65536)  # Read in 64KB chunks
+                if not data:
+                    break
+                sha1.update(data)
+        file_sha1 = sha1.hexdigest()
+        return file_sha1 == expected_sha1
+
+    @staticmethod
+    def create_directories(file_path, destination_folder):
+        # Extract directory path and create it if it doesn't exist
+        directory = os.path.join(destination_folder, os.path.dirname(file_path))
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+    def download_java_file(self, file_info, file_path, destination_folder):
+        download_type = "raw"  # You can choose "lzma" if preferred
+        file_url = file_info["downloads"][download_type]["url"]
+        file_name = os.path.basename(file_path)  # Extract the file name
+        full_file_path = os.path.join(destination_folder, file_path)
+        expected_sha1 = file_info["downloads"][download_type]["sha1"]
+
+        # Create necessary directories
+        self.create_directories(file_path, destination_folder)
+
+        # Check if the file already exists and verify checksum
+        if os.path.exists(full_file_path) and self.verify_checksum(full_file_path, expected_sha1):
+            return
+
+        # Download file
+        response = requests.get(file_url)
+        if response.status_code == 200:
+            with open(full_file_path, "wb") as f:
+                f.write(response.content)
+            if Base.UsingLegacyDownloadOutput:
+                if self.verify_checksum(full_file_path, expected_sha1):
+                    print(f"Downloaded and verified {file_name} to {full_file_path}", color='green')
+            if not self.verify_checksum(full_file_path, expected_sha1):
+                print(f"Checksum mismatch for {file_name}.", color='yellow')
+                os.remove(full_file_path)
+        else:
+            print(f"Failed to download {file_name}. Status code: {response.status_code}")
+
+    def download_java_runtime_files(self, manifest, install_path):
+        if not os.path.exists(install_path):
+            return False, "InstallFolderAreNotExist"
+
+        files = manifest.get("files", {})
+        total_files = len(files)  # Get total number of files to download(for progress bar)
+
+        # Create a progress bar with a custom color
+        if not Base.UsingLegacyDownloadOutput:
+            with tqdm(total=total_files, unit="file", desc="Downloading files", colour='cyan') as progress_bar:
+                for file_path, file_info in files.items():
+                    if "downloads" in file_info:
+                        # Test method
+                        self.download_java_file(file_info, file_path, install_path)
+                        progress_bar.update(1)  # Increment progress bar for each completed file
+
+                # Ensure the progress bar completes at 100%(??? Why it stuck in 92%???)
+                progress_bar.n = total_files
+                progress_bar.refresh()
+        else:
+            files = manifest.get("files", {})
+            for file_path, file_info in files.items():
+                if "downloads" in file_info:
+                    self.download_java_file(file_info, file_path, install_path)
+
+        return True, "DownloadFinished"
+
+    @staticmethod
+    def get_java_version_info(version_data):
+        try:
+            java_version_info = version_data['javaVersion']
+            component = java_version_info['component']
+            major_version = java_version_info['majorVersion']
+            return component, major_version
+        except KeyError:
+            raise Exception("Failed to find the javaVersion information in the version data.")
+
+    @staticmethod
+    def find_selected_java_version_manifest_url(manifest_data, component, major_version):
+        if Base.LibrariesPlatform == 'windows':
+            JavaPlatformName = 'windows-x64'
+        elif Base.LibrariesPlatform == 'darwin':
+            JavaPlatformName = 'mac-os'
+        else:
+            JavaPlatformName = Base.LibrariesPlatform
+
+        if JavaPlatformName not in manifest_data:
+            raise Exception(f"No {Base.Platform} platform data found in the manifest.")
+
+        java_versions = manifest_data[JavaPlatformName].get(component, [])
+        for version in java_versions:
+            if version['version']['name'].startswith(str(major_version)):
+                manifest_url = version['manifest']['url']
+                return manifest_url
+        raise Exception(f"No matching Java manifest found for component {component} and version {major_version}.")
+
+    def install_jvm(self, minecraft_version):
+        java_manifest_url = 'https://launchermeta.mojang.com/v1/products/java-runtime/2ec0cc96c44e5a76b9c8b7c39df7210883d12871/all.json'
+
+        # Get version data
+        selected_version_data = assets_grabber_manager.get_version_data(minecraft_version)
+
+        # Get Java Version Info(from selected version's data)
+        component, major_version = self.get_java_version_info(selected_version_data)
+        print(f"Required Java Component: {component}, Major Version: {major_version}", color='green', tag='DEBUG')
+
+        # Get java manifest
+        try:
+            response = requests.get(java_manifest_url)
+            if response.status_code == 200:
+                manifest_data = response.json()
+            else:
+                print(f"Failed to fetch Java manifest. Status code: {response.status_code}")
+                return "FailedToFetchJavaManifest"
+        except Exception as e:
+            print(f"Error when fetch Java Manifest: {e}")
+            return f"FailedToFetchJavaManifest[{e}]"
+
+        # gEt "selected java version manifest_url"
+        selected_java_version_manifest_url = self.find_selected_java_version_manifest_url(manifest_data, component,
+                                                                                          major_version)
+
+        try:
+            # Get manifest data
+            manifest_data = requests.get(selected_java_version_manifest_url).json()
+        except Exception as e:
+            print(f"Error when fetch selected Java manifest data: {e}", color='red')
+            return "FailedToFetchJavaManifestData"
+
+        # Change work dir back to launcher root(avoid some path error) and get install dir
+        os.chdir(Base.launcher_root_dir)
+        install_path = os.path.join("runtimes", f"Java_{major_version}")
+
+        # Check install dir status
+        if Base.OverwriteJVMIfExist:
+            print("OverwriteJVMIfExist has been enabled.", color='blue', tag='INFO')
+            if os.path.exists(install_path):
+                shutil.rmtree(install_path)
+
+        if os.path.exists(install_path):
+            print("Warning: A same version of Java runtime has been installed.", color='yellow')
+            print("Do you want to reinstall it? Y/N")
+            user_input = str(input(":"))
+            if not user_input.upper() == "Y":
+                print("Bypass installing Java runtime...", color='green')
+                return True, "BypassInstallJVM"
+            else:
+                # Install, uninstall ???
+                print("Uninstall Java runtime...", color='green')
+                shutil.rmtree(install_path, ignore_errors=True)
+                print("Uninstall Java runtime finished!", color='blue')
+                os.makedirs(install_path)
+                time.sleep(0.5)
+        else:
+            os.makedirs(install_path)
+        Status, Message = self.download_java_runtime_files(manifest_data, install_path)
+
+        if Status:
+            print(f"Successfully installed Java runtime.", color='blue')
+        else:
+            print(f"Failed to install Java runtime :( Cause by {Message}", color='red')
+            return False, "DownloadJavaRuntime>InstallJVMFailed"
+
+        if not Base.Platform == "Windows":
+            print("Do you want to fix permissions for the Java runtime?", color='blue', tag='PROMPT')
+            print(
+                "Sometimes you may get 'Permission denied' errors when launching Minecraft. "
+                "This method can help fix these issues. :)",
+                color='green'
+            )
+            print("The launcher may require your password to repair permissions.", color='purple', tag='INFO')
+            print("Linux systems often need this fix to ensure the Java runtime works properly.", color='green')
+
+            user_input = input("Proceed with fixing permissions? (Y/N): ").strip().upper()
+
+            if user_input == "Y":
+                try:
+                    # Execute chmod command
+                    command = f"chmod -R +x {install_path}/*"
+                    command2 = f"chmod -R +x {install_path}/bin/*"
+                    os.system(command)
+                    os.system(command2)
+                    print("Permissions fixed successfully.", color='green', tag='SUCCESS')
+                except Exception as e:
+                    print(f"Error when fixing permissions: {e}", color='red', tag='ERROR')
+                    return False, "FailedToFixPermissions"
+            else:
+                print("Permission fix skipped by user.", color='yellow', tag='INFO')
+                Message = "PermissionFixBypassed"
+
+        if not len(Message) == 0:
+            return True, f"InstallJVMFinished[{Message}]"
+        else:
+            return True, "InstallJVMFinished"
+
+    def create_instance_data(self, instance_name, client_version, version_type, is_vanilla, modify_status,
+                             mod_loader_name, mod_loader_version):
+        selected_instance_dir = os.path.join(Base.launcher_instances_dir, instance_name)
+        selected_instance_ini = os.path.join(selected_instance_dir, "instance.bakelh.ini")
+        create_date = datetime.now()
+        if not os.path.exists(selected_instance_dir):
+            os.makedirs(selected_instance_dir)
+        else:
+            self.SelectedInstanceInstalled = True
+
+        if os.path.exists(selected_instance_ini):
+            return True
+
+        instance_ini = dedent(f"""
+            # BakeLauncher Instance Info
+            # This configuration stores instance data for the launcher (e.g., instance_name, client_version).
+            # Do NOT edit this file or delete it!
+
+            # Instance Info
+            instance_name = "{instance_name}"
+            client_version = "{client_version}"
+            type = "{version_type}"
+            launcher_version = "{Base.launcher_internal_version}"
+            instance_format = "{Base.launcher_data_format}"
+            create_date = "{create_date}"
+            Reinstall? = False
+
+            # Instance Structure
+            game_folder = ".minecraft"  # Path to the main game folder
+            assets_folder = ".minecraft/assets"  # Path to the assets folder
+
+            # Modify Info
+            IsVanilla = {is_vanilla}
+            Modified = {modify_status}
+            ModLoaderName = {mod_loader_name}
+            ModLoaderVersion = {mod_loader_version}
+
+            # Config
+            EnableConfig = True
+            CFGPath = "instance.bakelh.cfg"
+        """)
+
+        if not os.path.exists(selected_instance_ini):
+            with open(selected_instance_ini, "w+") as ini_file:
+                ini_file.write(instance_ini)
+
+    @staticmethod
+    def mac_os_libraries_bug_fix(instance_name):
         # Patch for some idiot version bug
         if Base.Platform == "Darwin":
-            directory = f"instances/{minecraft_version}/libraries/ca/weblite/1.0.0"
+            directory = os.path.join(Base.launcher_instances_dir, f"{instance_name}", "libraries", "ca", "weblite",
+                                     "1.0.0")
             if not os.path.exists(directory):
                 os.makedirs(directory)  # Create intermediate directories if needed
                 url = "https://libraries.minecraft.net/ca/weblite/java-objc-bridge/1.0.0/java-objc-bridge-1.0.0.jar"
@@ -409,25 +689,28 @@ class Create_Instance:
                 except Exception as e:
                     print(f"An error occurred: {e}")
 
-    def download_games_files(self, version_id):
+    def download_games_files(self, version_id, install_dir):
         print("Loading version info...")
         version_data = self.get_version_data(version_id)
+
+        if not os.path.exists(install_dir):
+            os.makedirs(install_dir)
         # Download game file( libraries, .jar files...., and natives)
         print("Downloading libraries...", color='blue')
-        self.download_libraries(version_data, version_id)
-        self.mac_os_libraries_bug_fix(version_id)
+        self.download_libraries(version_data, version_id, install_dir)
+        self.mac_os_libraries_bug_fix(install_dir)
         print("The required dependent libraries should have been downloaded :)", color='blue')
 
         # Download assets(Also it will check this version are use legacy assets or don't use)
         print("Downloading assets...", color='purple')
-        assets_grabber_manager.assets_file_grabber(version_id)
+        assets_grabber_manager.assets_file_grabber(version_id, install_dir)
         os.chdir(self.WorkDir)
 
         print("Unzipping natives...", color='green')
-        self.unzip_natives(version_id)
+        self.unzip_natives(install_dir)
 
         print("Downloading JVM...", color='cyan')
-        install_jvm(version_id)
+        self.install_jvm(version_id)
 
         print("When you install a Java version that has never been installed before,"
               " you need to reconfig Java Path!",
@@ -437,6 +720,74 @@ class Create_Instance:
 
         # Add waiting time(If assets download failed it will print it?)
         time.sleep(1.2)
+
+    def start_create_instance(self, minecraft_version):
+        if not os.path.exists(Base.launcher_instances_dir):
+            print("Instances directory does not exist. Please check your configuration.", color='red')
+            return False, "InvalidInstancesDir"
+
+        print("Installed instance list:", color='green')
+        self.instance_list()
+
+        while True:
+            # Prompt for instance name
+            print("Give a name for this instance (or type 'EXIT' to cancel):", end='', color='blue')
+            name = input(":").strip()
+
+            if name.upper() == "EXIT":
+                print("Instance creation canceled.", color='yellow')
+                return False, "ExitCreateInstance"
+
+            if not name:
+                print("Please enter a valid name. Name cannot be empty or spaces only.", color='red')
+                continue
+
+            # Generate instance path and get version type
+            instance_path = os.path.join(Base.launcher_instances_dir, name)
+            version_type = self.get_version_type(minecraft_version)
+
+            # Check if instance already exists
+            if os.path.exists(instance_path):
+                counter = 2
+                new_instance_path = instance_path
+                while os.path.exists(new_instance_path):
+                    new_instance_path = os.path.join(Base.launcher_instances_dir, f"{name}({counter})")
+                    counter += 1
+
+                print(f'Instance name "{name}" already exists.')
+                print(f'Do you want to rename it to "{os.path.basename(new_instance_path)}"? (Y/N):', end='',
+                      color='yellow')
+                user_input = input(":").strip().upper()
+
+                if user_input == "Y":
+                    print(f'Renaming and creating instance at "{new_instance_path}"', color='green')
+                    self.create_instance_data(
+                        instance_name=os.path.basename(new_instance_path),
+                        client_version=minecraft_version,
+                        version_type=version_type,
+                        is_vanilla=True,
+                        modify_status=False,
+                        mod_loader_name=None,
+                        mod_loader_version=None,
+                    )
+                    self.download_games_files(minecraft_version, new_instance_path)
+                    return True, "InstanceCreated"
+                else:
+                    print("Please choose a different name.", color='red')
+                    continue
+            else:
+                print(f'Creating instance at "{instance_path}"', color='green')
+                self.create_instance_data(
+                    instance_name=name,
+                    client_version=minecraft_version,
+                    version_type=version_type,
+                    is_vanilla=True,
+                    modify_status=False,
+                    mod_loader_name=None,
+                    mod_loader_version=None,
+                )
+                self.download_games_files(minecraft_version, instance_path)
+                return True, "InstanceCreated"
 
     def create_instance(self):
         def download_minecraft_with_version_id(**kwargs):
@@ -522,7 +873,7 @@ class Create_Instance:
                 minecraft_version = version_list[version_id]
                 ClearOutput()
                 print("Creating instance....", color='green')
-                self.download_games_files(minecraft_version)
+                self.start_create_instance(version_id)
                 return
             else:
                 print(f"You type version id '{version_id}' are not found :(", color='red')
@@ -552,7 +903,7 @@ class Create_Instance:
                 if selected_version:
                     ClearOutput()
                     print("Creating instance....", color='green')
-                    self.download_games_files(regular_version_input)
+                    self.start_create_instance(regular_version_input)
                 else:
                     # idk this thing would happen or not :)  , just leave it and see what happen....
                     print(f"You type Minecraft version {regular_version_input} are not found :(",

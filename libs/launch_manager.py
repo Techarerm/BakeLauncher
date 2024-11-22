@@ -112,6 +112,37 @@ def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, 
     return minecraft_args
 
 
+def get_client_version(instance_info_path):
+    try:
+        with open(instance_info_path, 'r') as file:
+            for line in file:
+                # Strip whitespace and ignore comment lines
+                line = line.strip()
+                if line.startswith("client_version"):
+                    # Extract the value after the equals sign
+                    key, value = line.split("=", 1)
+                    return value.strip().strip('"')
+    except Exception as e:
+        print(f"Error reading file: {e}")
+        return None
+
+    print("client_version not found in the file.")
+    return None
+
+
+def instance_list():
+    instances_list = os.listdir(Base.launcher_instances_dir)
+    row_count = 0
+    for name in instances_list:
+        if row_count >= Base.MaxInstancesPerRow:
+            print("\n", end='')
+            row_count = 0
+        print(f"{name}", end='')
+        print(" | ", end='', color='blue')
+        row_count += 1
+    print("\n", end='')
+
+
 def LaunchManager():
     Main = "LaunchManager"
     root_directory = os.getcwd()
@@ -133,16 +164,16 @@ def LaunchManager():
         return "NoInstancesAreAvailable"
 
     # Ask user want to launch instances...
-    print(" | ".join(map(str, instances_list)))
-    print("LaunchManager: Which instances is you want to launch instances ?")
-    version_id = input(":")
+    instance_list()
+    print("LaunchManager: Which instances do you want to launch?")
+    instance_name = input(":")
 
-    if str(version_id).upper() == "EXIT":
+    if str(instance_name).upper() == "EXIT":
         return
 
     # Check user type instances are available
-    if version_id not in instances_list:
-        print("Can't found instances " + version_id + " of Minecraft :(", color='red')
+    if instance_name not in instances_list:
+        print("Can't found instances " + instance_name + " of Minecraft :(", color='red')
         print("Please check you type instances version are available on the list.")
         print("If you think game files are corrupted."
               " Just re-download it(Your world won't be delete when re-download Minecraft).")
@@ -165,7 +196,16 @@ def LaunchManager():
         else:
             return "JVMConfigAreNotFound"
     print("LaunchManager: Getting JVM Path...", color='c')
-    JavaPath = java_version_check(Main, version_id)
+
+    instance_dir = os.path.join(Base.launcher_instances_dir, instance_name)
+    instance_ini = os.path.join(Base.launcher_instances_dir, instance_name, "instance.bakelh.ini")
+    if os.path.exists(instance_ini):
+        minecraft_version = get_client_version(instance_ini)
+        minecraft_version = str(minecraft_version)
+    else:
+        minecraft_version = str(instance_name)
+
+    JavaPath = java_version_check(Main, minecraft_version)
 
     # Check JavaPath is valid
     if JavaPath is None:
@@ -174,6 +214,11 @@ def LaunchManager():
         timer(5)
         return "FailedToCheckJavaPath"
 
+    if not os.path.exists(JavaPath):
+        print("The selected version of Java runtime folder does not exist :(", color='red')
+        print("Please reinstall it! (Or download the latest version for your launch instances)", color='yellow')
+        time.sleep(2.5)
+        return "JavaRuntimePathDoesNotExist"
     # After get JVMPath(bin), Get PlatformName and set the actual required Java Virtual Machine Path
     if Base.Platform == 'Windows':
         java_executable = "java.exe"
@@ -186,9 +231,9 @@ def LaunchManager():
     if os.path.isfile(java_executable_path):
         JVMPath = f'"{java_executable_path}"'  # Enclose in quotes for proper execution
     else:
-        print("LaunchManager: Your Java executable is corrupted :(", color='red')
-        print("LaunchManager: Please reinstall it! (Or download the latest version for your launch instances)")
-        timer(5)
+        print("Error: Your Java executable is corrupted :(", color='red')
+        print("Please reinstall it! (Or download the latest version for your launch instances)", color='yellow')
+        timer(2.5)
         return "JavaExecutableAreCorrupted"
 
     # Get access token and username, uuid to set game args
@@ -234,7 +279,7 @@ def LaunchManager():
         print("LaunchManager: No config.bakelh.cfg found :0", color='yellow')
 
     # Sdt work path to instances
-    os.chdir(r'instances/' + version_id)
+    os.chdir(instance_dir)
     gameDir = ".minecraft"
 
     # Set Java Virtual Machine use Memory Size
@@ -270,20 +315,20 @@ def LaunchManager():
     NativesPath = ".minecraft/natives"
 
     # Get librariesPath(Example: /path/LWJGL-1.0.jar:/path/Hopper-1.2.jar:/path/client.jar)
-    libraries_paths_strings = generate_libraries_paths(version_id, "libraries")
+    libraries_paths_strings = generate_libraries_paths(minecraft_version, "libraries")
 
     # Get MainClass Name And Set Args(-cp "libraries":client.jar net.minecraft.client.main.Main or
     # net.minecraft.launchwrapper.Launch(old))
-    main_class = SelectMainClass(version_id)
+    main_class = SelectMainClass(minecraft_version)
     print(f"Using {main_class} as the Main Class.",
           color='blue' if "net.minecraft.client.main.Main" in main_class else 'purple')
 
     # Get assetsIndex and assets_dir
-    assetsIndex = assets_grabber.get_assets_index_version("", version_id)
-    assets_dir = assets_grabber.get_assets_dir(version_id)
+    assetsIndex = assets_grabber.get_assets_index_version("", minecraft_version)
+    assets_dir = assets_grabber.get_assets_dir(minecraft_version)
 
     # Get GameArgs
-    GameArgs = GetGameArgs(version_id, username, access_token, gameDir, assets_dir, assetsIndex, uuid)
+    GameArgs = GetGameArgs(minecraft_version, username, access_token, gameDir, assets_dir, assetsIndex, uuid)
 
     # Now it available :)
     if os.path.exists("instance.bakelh.cfg"):
@@ -334,9 +379,8 @@ def LaunchManager():
         if "DemoUser" not in CustomLaunchStatus:
             CustomLaunchStatus += ";DemoUser"
 
-
     # Set instances_id(for multitasking process title)
-    instances_id = f"Minecraft {version_id}"
+    instances_id = f"Minecraft {minecraft_version}"
 
     # Bake Minecraft :)
     if Base.Platform == "Windows":
@@ -347,7 +391,7 @@ def LaunchManager():
     elif Base.Platform == "Darwin":
         JVM_Args_HeapDump = " "
         # In LWJGL 3.x, macOS requires this args to make lwjgl running on the JVM starts with thread 0) (from wiki.vg)
-        CheckRequireXThread, XThreadArgs = macos_jvm_args_support(version_id)
+        CheckRequireXThread, XThreadArgs = macos_jvm_args_support(minecraft_version)
         if CheckRequireXThread:
             print(f"Mode:(Darwin;WithoutHeapDump;SetWindowSize;RequiresXStartFirstThread{CustomLaunchStatus})",
                   color='green', tag='Debug')

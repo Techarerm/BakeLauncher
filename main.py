@@ -16,11 +16,13 @@ class BakeLauncher:
     def __init__(self):
 
         # Load LauncherBase
-        StartStatus = Base.Initialize()
+        StartStatus, Message = Base.Initialize()
 
         # Start launcher process if loading base pass
         if StartStatus:
             self.main()
+        else:
+            print(f"Can't init BakeLauncher. Cause by {Message}")
 
         print("BakeLauncher thread terminated!")
         input("Press any key to continue...")

@@ -63,7 +63,7 @@ class assets_grabber:
             color='blue')
         return response.json()
 
-    def get_assets_index_data(self, version_data, version_id):
+    def get_assets_index_data(self, version_data, version_id, instance_path):
         """
         Get the assets index version from the version_data and save it to a JSON file
         LaunchManager needs this when launching Minecraft (To set assetsIndex)
@@ -72,13 +72,7 @@ class assets_grabber:
         asset_index = version_data.get("assetIndex", {})
         asset_index_id = asset_index.get("id")
 
-        if os.getcwd().endswith(version_id):
-            assets_index_file = os.path.join('.minecraft', "assets_index.json")
-        else:
-            assets_index_dir = os.path.join("instances", version_id, ".minecraft")
-            # Ensure the directory exists
-            os.makedirs(assets_index_dir, exist_ok=True)  # This will create the directory if it doesn't exist
-            assets_index_file = os.path.join(assets_index_dir, "assets_index.json")
+        assets_index_file = os.path.join(instance_path, '.minecraft', "assets_index.json")
 
         if asset_index_id:
             with open(assets_index_file, 'w') as f:
@@ -245,22 +239,19 @@ class assets_grabber:
             else:
                 return assets_dir
 
-    def assets_file_grabber(self, version_id):
-        WorkDir = os.getcwd()
+    def assets_file_grabber(self, version_id, instance_dir):
         # Get version data
         version_data = self.get_version_data(version_id)
 
         # Set select instance, game_folder(.minecraft), assets_index_json, save_dir path
-        instances_path = os.path.join(WorkDir, "instances")
-        instance_path = os.path.join(instances_path, str(version_id))
-        game_folder = os.path.join(instance_path, ".minecraft")
+        game_folder = os.path.join(instance_dir, ".minecraft")
         assets_index_json = os.path.join(game_folder, "assets_index.json")
         save_dir = os.path.join(game_folder, "assets", "indexes")  # Assets file save path
 
         # Change work directory to instance(instances/{version_id})
-        if not os.path.exists(instance_path):
-            os.makedirs(instance_path, exist_ok=True)
-        os.chdir(instance_path)
+        if not os.path.exists(instance_dir):
+            os.makedirs(instance_dir, exist_ok=True)
+        os.chdir(instance_dir)
         # If .minecraft does not exist, create it.
         if os.path.exists(".minecraft"):
             print(".minecraft already created!", color='green')
@@ -296,17 +287,20 @@ class assets_grabber:
             print("Failed to get version_data! Cause by unknown Minecraft version.", color='red')
 
         # Change work directory back to instance path
-        os.chdir(instance_path)
+        os.chdir(instance_dir)
 
         # Is for LaunchManager to get assets index version
         if not os.path.exists(assets_index_json):
             version_data = self.get_version_data(version_id)
-            self.get_assets_index_data(version_data, version_id)
+            self.get_assets_index_data(version_data, version_id, instance_dir)
 
         # Read assets index version(prepare to check if this version of minecraft are using old assets?)
-        with open(assets_index_json, "r") as file:
-            data = json.load(file)
-            assetsIndex = data["id"]
+        try:
+            with open(assets_index_json, "r") as file:
+                data = json.load(file)
+                assetsIndex = data["id"]
+        except FileNotFoundError:
+            print("Failed to get assets index! Trying to recreate it again...", color='red')
 
         if assetsIndex == "pre-1.6" or assetsIndex == "legacy":
             print("This version require legacy assets.", color='green', tag="DEBUG")
