@@ -13,7 +13,7 @@ on:
       - '.github/workflows/dev.yml'
 
 permissions:
-  contents: write  # Grant write permissions to content (push tags and create releases)
+  contents: write
 
 jobs:
   windows-build:
@@ -99,7 +99,7 @@ jobs:
 
   create-latest-tag:
     runs-on: ubuntu-latest
-    needs: [windows-build, macos-build, linux-build]  # Ensure it runs after all builds
+    needs: [windows-build, macos-build, linux-build]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -109,12 +109,12 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
 
-      - name: Create 'Latest' tag
+      - name: Create and push 'Latest' tag
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git tag -f Latest  # Renamed tag to 'Latest'
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} Latest --force  # Renamed tag to 'Latest'
+          git tag -f Latest  # Create or overwrite the 'Latest' tag
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} Latest --force  # Push the 'Latest' tag
 
   create-release-and-upload-artifact:
     runs-on: ubuntu-latest
@@ -123,13 +123,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create Release for Latest Tag
+      - name: Create Release for Latest Tag and Upload Artifacts
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
           files: |
             dist/BakeLauncher-Dev-KF112324.Linux
-            dist/BakeLauncher-Dev-KF112324.macOS
             dist/BakeLauncher-Dev-KF112324.Windows
+            dist/BakeLauncher-Dev-KF112324.macOS
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
