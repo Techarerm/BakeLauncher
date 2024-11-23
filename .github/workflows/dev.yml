@@ -122,8 +122,10 @@ jobs:
         with:
           tag_name: Latest
           files: |
-            dist/BakeLauncher-Dev-KF112324.Linux
-            dist/BakeLauncher-Dev-KF112324.Windows
-            dist/BakeLauncher-Dev-KF112324.macOS
+            dist/BakeLauncher-Dev-KF112324.Linux  # Linux artifact
+            dist/BakeLauncher-Dev-KF112324.Windows  # Windows artifact
+            dist/BakeLauncher-Dev-KF112324.macOS  # macOS artifact
+          make_latest: true
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
