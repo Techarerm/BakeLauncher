@@ -57,8 +57,8 @@ class InstanceManager:
         selected_instance_dir = os.path.join(Base.launcher_instances_dir, instance_name)
         selected_instance_ini = os.path.join(selected_instance_dir, "instance.bakelh.ini")
         create_date = datetime.now()
-        print(selected_instance_ini)
-        print(selected_instance_dir)
+        print("Instance Info Path: ", selected_instance_ini, color='green', tag='DEBUG')
+        print("Instance Dir: ", selected_instance_dir, color='green', tag='DEBUG')
 
         if not os.path.exists(selected_instance_dir):
             os.makedirs(selected_instance_dir)

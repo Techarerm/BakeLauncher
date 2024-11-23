@@ -12,8 +12,6 @@ on:
     paths:
       - '.github/workflows/dev.yml'
 
-
-
 jobs:
   windows-build:
     runs-on: windows-latest
@@ -43,7 +41,7 @@ jobs:
           path: dist/
 
   macos-build:
-    runs-on: 	macos-13
+    runs-on: macos-13
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -95,3 +93,20 @@ jobs:
         with:
           name: BakeLauncher-Dev-KF112324.Linux
           path: dist/
+
+  create-latest-tag:
+    runs-on: ubuntu-latest
+    needs: [windows-build, macos-build, linux-build]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Git
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+      - name: Create 'latest' tag
+        run: |
+          git tag -f Latest
+          git push origin Latest --force

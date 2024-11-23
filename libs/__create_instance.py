@@ -770,27 +770,28 @@ class Create_Instance:
             print(f"An error occurred when reinstall instance: {e}")
 
     def create_instance(self):
-        def download_minecraft_with_version_id(**kwargs):
-            global list_type
-            if not kwargs:
-                print("Grabbing version list...")
-                version_list = self.get_version_list("release")
-                print("VersionID: MinecraftVersion", "\n", color='purple')
-                print("Example: 15: 1.12.2 , 15 is version 1.12's ID", color='green')
-                list_type = ""
-            else:
-                list_type = kwargs.get('list_type', None)  # Default to None if 'list_type' is not provided
-                print("Grabbing version list...")
-                version_list = self.get_version_list(list_type)
-                print("VersionID: MinecraftVersion", "\n", color='purple')
-                print("Example: 15: 1.12.2 , 15 is version 1.12's ID", color='green')
+        def download_minecraft_with_version_id(list_type=None):
+            """
+            Allows users to select and download a Minecraft version based on version ID.
+            """
+            print("Grabbing version list...")
+            version_list = self.get_version_list(list_type or "release")
 
+            if not version_list:
+                print("No versions found. Please check your connection or version list source.", color='red')
+                return
+
+            print("VersionID: MinecraftVersion", "\n", color='purple')
+            print("Example: 15: 1.12.2 , 15 is version 1.12's ID", color='green')
+
+            # Handle special list types
             if list_type == "legacy_all":
                 print(
-                    "Warning: Version list has been set to LEGACY_ALL. That mean launcher will search version_id in LEGACY_ALL.",
+                    "Warning: Version list is set to LEGACY_ALL. This may include unsupported versions.",
                     color='yellow')
-                print("To reset the list back to original. You can enter 'legacy_list' or just 'list' to back.",
-                      color='green')
+                print("To reset the list, enter 'legacy_list' or 'list'.", color='green')
+
+            # Additional instructions
             print("Some cool stuff:'")
             print(
                 "Type 'list' to print list again. 'legacy_list' for legacy list(support more system than normal list)",
@@ -799,66 +800,52 @@ class Create_Instance:
                   color='blue')
             print("'list_all' can print all available versions(Not recommended. Poor support for most of system)",
                   color='purple')
-            version_id = str(input("Please enter the version ID:"))
 
+            # Get user input
+            version_id = input("Please enter the version ID:").strip()
+
+            # Handle special commands
             if version_id.upper() == "EXIT":
                 return
 
-            if version_id.upper() == "LIST":
-                download_minecraft_with_version_id(NO_LIST=True, list_type="release")
-                return
+            command_mapping = {
+                "LIST": "release",
+                "LIST_ALL": "all_version",
+                "LEGACY_LIST": "legacy",
+                "LEGACY_ALL": "legacy_all",
+            }
 
-            if version_id.upper() == "LIST_ALL":
-                print(
-                    "Warning: Version list has been set to 'LIST_ALL'. That mean launcher will search version_id in 'LIST_ALL'.",
-                    color='yellow')
-                print("To reset the list back to original. You can enter 'legacy_list' or just 'list' to back.",
-                      color='green')
-                download_minecraft_with_version_id(NO_LIST=True, list_type="all_version")
-                return
+            if version_id.upper() in command_mapping:
+                return download_minecraft_with_version_id(list_type=command_mapping[version_id.upper()])
 
-            if version_id.upper() == "LEGACY_LIST":
-                download_minecraft_with_version_id(NO_LIST=True, list_type='legacy')
-                return
-
-            if version_id.upper() == "LEGACY_ALL":
-                print(
-                    "Warning: Version list has been set to LEGACY_ALL. That mean launcher will search version_id in LEGACY_ALL.",
-                    color='yellow')
-                print("To reset the list back to original. You can enter 'legacy_list' or just 'list' to back.",
-                      color='green')
-                download_minecraft_with_version_id(NO_LIST=True, list_type='legacy_all')
-                return
-
+            # Validate version_id as an integer
             try:
                 version_id = int(version_id)
             except ValueError:
-                print('Failed to get version ID :(', color='red')
+                print("Invalid version ID. Please enter a numeric value.", color='red')
+                return download_minecraft_with_version_id(list_type=list_type)
 
-            if isinstance(version_id, int):
-                version_id = int(version_id)
-            else:
-                print("You are NOT typing a valid versionID!", color='red')
-                print("VersionID: MinecraftVersion", "\n")
-                print(
-                    "Please type VersionID not MinecraftVersion or back memu and using '2:Type Minecraft version' "
-                    "method !")
-                print("Example: 15: 1.12.2 , 15 is version 1.12's ID", color='green')
-                time.sleep(2)
-                download_minecraft_with_version_id()
-
+            # Adjust version_id to match 0-based indexing
             version_id -= 1
-            if 0 <= version_id < len(version_list):
-                # Check user type version_id are available
-                minecraft_version = version_list[version_id]
+
+            if not (0 <= version_id < len(version_list)):
+                print(f"Version ID '{version_id + 1}' is out of range. Please try again.", color='red')
+                return download_minecraft_with_version_id(list_type=list_type)
+
+            # Get selected Minecraft version
+            minecraft_version = version_list[version_id]
+
+            # Clear screen/output (if ClearOutput is defined)
+            if 'ClearOutput' in globals():
                 ClearOutput()
-                print("Creating instance....", color='green')
-                self.start_create_instance(version_id)
+
+            print("Creating instance...", color='green')
+            try:
+                self.start_create_instance(minecraft_version)
+            except Exception as e:
+                print(f"Failed to create instance. Error: {e}", color='red')
                 return
-            else:
-                print(f"You type version id '{version_id}' are not found :(", color='red')
-                time.sleep(1.2)
-                download_minecraft_with_version_id()
+
 
         def download_with_regular_minecraft_version():
             selected_version = False
@@ -896,8 +883,9 @@ class Create_Instance:
                 download_with_regular_minecraft_version()
 
         print("Which method you wanna use?", color='green')
-        print("1:List all available versions and download 2:Type regular Minecraft version and download(include "
-              "snapshot)")
+        print("1: List all available versions and download", color='green')
+        print("2: Type regular Minecraft version and download(include snapshot)", color='blue')
+        print("3: Reinstall instance", color='cyan')
 
         try:
             user_input = str(input(":"))
