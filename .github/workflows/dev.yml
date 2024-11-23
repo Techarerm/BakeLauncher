@@ -33,7 +33,7 @@ jobs:
           pip install -r Dev/requirements.txt
           pip install pyinstaller
 
-      - name: Build BakeLauncher Dev Version For Windows
+      - name: Build EXE with custom name
         run: |
           pyinstaller main.py -D --icon=bread.ico --name BakeLauncher
 
@@ -60,7 +60,7 @@ jobs:
           pip install -r Dev/requirements.txt
           pip install pyinstaller
 
-      - name: Build BakeLauncher Dev Version For macOS(x86-64)
+      - name: Build APP with custom name and x86-64 target
         run: |
           pyinstaller main.py -D --icon=bread.ico --name BakeLauncher
 
@@ -87,7 +87,7 @@ jobs:
           pip install -r Dev/requirements.txt
           pip install pyinstaller
 
-      - name: Build BakeLauncher Dev Version For Linux
+      - name: Build Linux binary with custom name
         run: |
           pyinstaller main.py -D --icon=bread.ico --name BakeLauncher
 
@@ -114,15 +114,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git tag -f Latest  # Create or overwrite the 'Latest' tag
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} Latest --force  # Push the 'Latest' tag
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} Latest --force
 
-      - name: Create Release for Latest Tag and Upload Artifacts
+      - name: Create Release for 'Latest' Tag and Upload Artifacts
         id: create_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
+          tag_name: Latest
           files: |
-            dist/BakeLauncher-Dev-KF112324.Linux  # Linux artifact
-            dist/BakeLauncher-Dev-KF112324.Windows  # Windows artifact
-            dist/BakeLauncher-Dev-KF112324.macOS  # macOS artifact
+            dist/BakeLauncher-Dev-KF112324.Linux
+            dist/BakeLauncher-Dev-KF112324.Windows
+            dist/BakeLauncher-Dev-KF112324.macOS
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
