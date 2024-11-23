@@ -131,12 +131,20 @@ jobs:
         with:
           name: BakeLauncher-Dev-KF112324.macOS
 
-      - name: Move artifacts to dist/
+      - name: Unzip Linux artifact
         run: |
           mkdir -p dist
-          mv BakeLauncher-Dev-KF112324.Linux/* dist/
-          mv BakeLauncher-Dev-KF112324.Windows/* dist/
-          mv BakeLauncher-Dev-KF112324.macOS/* dist/
+          unzip BakeLauncher-Dev-KF112324.Linux.zip -d dist/
+
+      - name: Unzip Windows artifact
+        run: |
+          mkdir -p dist
+          unzip BakeLauncher-Dev-KF112324.Windows.zip -d dist/
+
+      - name: Unzip macOS artifact
+        run: |
+          mkdir -p dist
+          unzip BakeLauncher-Dev-KF112324.macOS.zip -d dist/
 
       - name: Create Release for 'Latest' Tag and Upload Artifacts
         id: create_release
