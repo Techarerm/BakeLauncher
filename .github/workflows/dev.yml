@@ -13,7 +13,7 @@ on:
       - '.github/workflows/dev.yml'
 
 permissions:
-  contents: write
+  contents: write  # Grant write permissions to content (push tags and create releases)
 
 jobs:
   windows-build:
@@ -33,7 +33,7 @@ jobs:
           pip install -r Dev/requirements.txt
           pip install pyinstaller
 
-      - name: Build EXE with custom name
+      - name: BakeLauncher Dev Version For Windows
         run: |
           pyinstaller main.py -D --icon=bread.ico --name BakeLauncher
 
@@ -60,7 +60,7 @@ jobs:
           pip install -r Dev/requirements.txt
           pip install pyinstaller
 
-      - name: Build APP with custom name and x86-64 target
+      - name: BakeLauncher Dev Version For macOS(x86-64)
         run: |
           pyinstaller main.py -D --icon=bread.ico --name BakeLauncher
 
@@ -87,7 +87,7 @@ jobs:
           pip install -r Dev/requirements.txt
           pip install pyinstaller
 
-      - name: Build Linux binary with custom name
+      - name: BakeLauncher Dev Version For Linux
         run: |
           pyinstaller main.py -D --icon=bread.ico --name BakeLauncher
 
@@ -115,6 +115,19 @@ jobs:
         run: |
           git tag -f Latest  # Create or overwrite the 'Latest' tag
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} Latest --force
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: BakeLauncher-Dev-KF112324.Linux
+      - name: Download Artifacts (Windows)
+        uses: actions/download-artifact@v3
+        with:
+          name: BakeLauncher-Dev-KF112324.Windows
+      - name: Download Artifacts (macOS)
+        uses: actions/download-artifact@v3
+        with:
+          name: BakeLauncher-Dev-KF112324.macOS
 
       - name: Create Release for 'Latest' Tag and Upload Artifacts
         id: create_release
