@@ -113,21 +113,30 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git tag -f Latest  # Create or overwrite the 'Latest' tag
+          git tag -f Latest
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} Latest --force
 
-      - name: Download Artifacts
+      - name: Download Linux Artifact
         uses: actions/download-artifact@v4
         with:
           name: BakeLauncher-Dev-KF112324.Linux
-      - name: Download Artifacts (Windows)
+
+      - name: Download Windows Artifact
         uses: actions/download-artifact@v4
         with:
           name: BakeLauncher-Dev-KF112324.Windows
-      - name: Download Artifacts (macOS)
+
+      - name: Download macOS Artifact
         uses: actions/download-artifact@v4
         with:
           name: BakeLauncher-Dev-KF112324.macOS
+
+      - name: Move artifacts to dist/
+        run: |
+          mkdir -p dist
+          mv BakeLauncher-Dev-KF112324.Linux/* dist/
+          mv BakeLauncher-Dev-KF112324.Windows/* dist/
+          mv BakeLauncher-Dev-KF112324.macOS/* dist/
 
       - name: Create Release for 'Latest' Tag and Upload Artifacts
         id: create_release
@@ -135,9 +144,7 @@ jobs:
         with:
           tag_name: Latest
           files: |
-            dist/BakeLauncher-Dev-KF112324.Linux
-            dist/BakeLauncher-Dev-KF112324.Windows
-            dist/BakeLauncher-Dev-KF112324.macOS
+            dist/*
           make_latest: true
           fail_on_unmatched_files: true
         env:
