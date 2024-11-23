@@ -131,6 +131,13 @@ jobs:
         with:
           name: BakeLauncher-Dev-KF112324.macOS
 
+      - name: Verify Downloads and List Directory Contents
+        run: |
+          echo "Current working directory:"
+          pwd
+          echo "Listing all files in the current directory:"
+          ls -la
+
       - name: Move all Build into dist
         run: |
           mkdir -p dist
@@ -149,3 +156,4 @@ jobs:
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
