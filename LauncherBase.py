@@ -62,6 +62,7 @@ UUID = None
 <Create_Instance>
 # Automatic download you want Minecraft version
 AutomaticDownVersion = true
+MaxVersionPerRow = 
 
 # If a same version is already installed in the runtimes folder, reinstall it(but bypass ask user)
 OverwriteJVMIfExist = False
@@ -129,10 +130,10 @@ class LauncherBase:
 
     def __init__(self):
         # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-        self.launcher_version = 'Beta 0.9(Dev-KE112224)'
-        self.launcher_version_display = 'Beta 0.9 (Dev-KE112224)'
+        self.launcher_version = 'Beta 0.9(Dev-KF112324)'
+        self.launcher_version_display = 'Beta 0.9 (Dev-KF112324)'
         self.launcher_version_tag = "Dev"
-        self.launcher_internal_version = 'dev-beta-ke-112224'
+        self.launcher_internal_version = 'dev-beta-kf-112324'
         self.launcher_data_format = "dev-beta-0.9"
         self.PlatformSupportList = ["Windows", "Darwin", "Linux"]
         self.Platform = self.get_platform("platform")
@@ -155,6 +156,8 @@ class LauncherBase:
         self.NoPrintConfigInfo = False
         self.PingServerIP = None
         self.MaxInstancesPerRow = 20
+        self.MaxVersionPerRow = 40
+        self.MaxReleaseVersionPerRow = 9
         self.DontCheckInternetConnection = False
         self.InternetConnected = False
         self.launcher_root_dir = os.getcwd()
@@ -245,7 +248,22 @@ class LauncherBase:
                     try:
                         self.MaxInstancesPerRow = int(self.MaxInstancesPerRow)
                     except ValueError:
-                        self.MaxInstancesPerRow = self.MaxInstancesPerRow
+                        self.MaxInstancesPerRow = 20
+
+                if "MaxVersionPerRow" in line:
+                    self.MaxVersionPerRow = line.split('=')[1].strip().strip('"').strip("'")
+                    try:
+                        self.MaxVersionPerRow = int(self.MaxVersionPerRow)
+                    except ValueError:
+                        self.MaxVersionPerRow = 40
+
+                if "MaxReleaseVersionPerRow" in line:
+                    self.MaxReleaseVersionPerRow = line.split('=')[1].strip().strip('"').strip("'")
+                    try:
+                        self.MaxReleaseVersionPerRow = int(self.MaxReleaseVersionPerRow)
+                    except ValueError:
+                        self.MaxReleaseVersionPerRow = 9
+
 
                 if "EnableExperimentalMultitasking" in line:
                     self.EnableExperimentalMultitasking = line.split('=')[1].strip().upper() == "TRUE"

@@ -3,6 +3,7 @@ import time
 import requests
 import psutil
 import json
+from libs.__instance_manager import instance_manager
 from libs.__create_instance import create_instance
 from LauncherBase import print_custom as print
 from libs.launch_manager import GetGameArgs
@@ -243,7 +244,6 @@ def get_args_by_feature_choice(user_input, feature_dict):
 
 
 def get_instances_path():
-
     def create_config(path):
         config_path = os.path.join(path, "instance.bakelh.cfg")
         if not os.path.exists(config_path):
@@ -288,10 +288,10 @@ def get_instances_path():
 
 
 def get_game_args_and_edit():
-    path, version_id, status = get_instances_path()
+    Status, version_id, path = get_instances_path()
 
-    while path is None and status is None:
-        path, version_id, status = get_instances_path()
+    while path is None and Status is None:
+        Status, version_id, path = get_instances_path()
 
     if path is None or version_id is None:
         print("ArgsManager: Failed to get instance path or version ID.", color='red')

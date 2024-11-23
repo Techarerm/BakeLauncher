@@ -7,6 +7,7 @@ from libs.jvm_tool import java_version_check, java_search
 from libs.__create_instance import create_instance
 from libs.__account_manager import account_manager
 from libs.launch_client import LaunchClient
+from libs.__instance_manager import instance_manager
 
 
 def SelectMainClass(version_id):
@@ -112,40 +113,8 @@ def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, 
     return minecraft_args
 
 
-def get_client_version(instance_info_path):
-    try:
-        with open(instance_info_path, 'r') as file:
-            for line in file:
-                # Strip whitespace and ignore comment lines
-                line = line.strip()
-                if line.startswith("client_version"):
-                    # Extract the value after the equals sign
-                    key, value = line.split("=", 1)
-                    return value.strip().strip('"')
-    except Exception as e:
-        print(f"Error reading file: {e}")
-        return None
-
-    print("client_version not found in the file.")
-    return None
-
-
-def instance_list():
-    instances_list = os.listdir(Base.launcher_instances_dir)
-    row_count = 0
-    for name in instances_list:
-        if row_count >= Base.MaxInstancesPerRow:
-            print("\n", end='')
-            row_count = 0
-        print(f"{name}", end='')
-        print(" | ", end='', color='blue')
-        row_count += 1
-    print("\n", end='')
-
-
 def LaunchManager():
     Main = "LaunchManager"
-    root_directory = os.getcwd()
     global CustomGameArgs, CustomJVMArgs, JVM_Args_HeapDump, JVM_Args_WindowsSize, JVM_ArgsRAM, EnableMultitasking, \
         CustomLaunchStatus, account_data, username, access_token, uuid, DemoFlag
 
@@ -164,7 +133,9 @@ def LaunchManager():
         return "NoInstancesAreAvailable"
 
     # Ask user want to launch instances...
-    instance_list()
+    Status, Message = instance_manager.instance_list()
+    if not Status:
+        return Message
     print("LaunchManager: Which instances do you want to launch?")
     instance_name = input(":")
 
@@ -180,7 +151,19 @@ def LaunchManager():
         time.sleep(2.2)
         return "TypeInstanceAreNotFound"
     else:
+        instance_dir = os.path.join(Base.launcher_instances_dir, instance_name)
         print("Preparing to launch.....", color='c')
+
+    # Get instance's Minecraft version
+    instance_info_path = os.path.join(Base.launcher_instances_dir, instance_name, "instance.bakelh.ini")
+    InfoStatus, minecraft_version = instance_manager.get_instance_info(instance_info_path, info_name="client_version",
+                                                                       ignore_not_found=True)
+
+    if not InfoStatus:
+        print("Warning: You are trying to launch a who built with an older version of BakeLauncher.", color='yellow')
+        print("Old instances support will be drop soon. ", end='', color='red')
+        print("Please go to Extra>Convert Old Instance Structure to convert instance to new structure.", color='red')
+        minecraft_version = instance_name
 
     # Get required Java version path
     if os.path.isfile('data/Java_HOME.json'):
@@ -191,20 +174,12 @@ def LaunchManager():
         user_input = input(":")
         if user_input.upper() == "Y":
             print("LaunchManager: Calling java_search..")
-            os.chdir(root_directory)
+            os.chdir(Base.launcher_root_dir)
             java_search()
         else:
             return "JVMConfigAreNotFound"
+
     print("LaunchManager: Getting JVM Path...", color='c')
-
-    instance_dir = os.path.join(Base.launcher_instances_dir, instance_name)
-    instance_ini = os.path.join(Base.launcher_instances_dir, instance_name, "instance.bakelh.ini")
-    if os.path.exists(instance_ini):
-        minecraft_version = get_client_version(instance_ini)
-        minecraft_version = str(minecraft_version)
-    else:
-        minecraft_version = str(instance_name)
-
     JavaPath = java_version_check(Main, minecraft_version)
 
     # Check JavaPath is valid
@@ -298,17 +273,20 @@ def LaunchManager():
         if not len(os.listdir(".minecraft/natives")) == 0:
             print("Natives are available! (if it unzip correctly)", color='green')
         else:
-            timer(8)
             print("LaunchManager: Natives are not available or it unzip not correctly :(", color='red')
             print("Please download now you launch instances version(it will recreate it)",
                   color='yellow')
             print("If you still get this error please report this issue to GitHub!", color='green')
+            time.sleep(4)
+            os.chdir(Base.launcher_root_dir)
             return "NativesAreNotAvailable"
     else:
         timer(8)
         print("LaunchManager: Natives are not available or it unzip not correctly :(", color='red')
         print("Please download now you launch instances version(it will recreate it)", color='yellow')
         print("If you still get this error please report this issue to GitHub!", color='green')
+        time.sleep(4)
+        os.chdir(Base.launcher_root_dir)
         return "NativesAreNotAvailable"
 
     # Set Natives Path
@@ -419,5 +397,5 @@ def LaunchManager():
                      JVM_Args_WindowsSize, JVM_ArgsRAM, GameArgs,
                      CustomGameArgs, instances_id, EnableMultitasking)
 
-    os.chdir(root_directory)
+    os.chdir(Base.launcher_root_dir)
     time.sleep(2)

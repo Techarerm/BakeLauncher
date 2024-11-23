@@ -11,6 +11,7 @@ from libs.launch_manager import LaunchManager
 from libs.__create_instance import create_instance
 from libs.jvm_tool import java_finder, initialize_jvm_config
 from libs.args_manager import argsman
+from libs.__instance_manager import instance_manager
 
 ErrorMessageList = []
 
@@ -68,33 +69,39 @@ def bake_bake():
 def extra_memu():
     if not Base.NoList:
         print("Extra list:")
-        print("1: Custom Args 2: Reset AccountData.json 3: Clear JVM config file 4:Clear ErrorMessage 5: Exit")
-    user_input = int(input(":"))
+        print("1: Custom Args 2: Reset AccountData.json 3: Clear JVM config file 4:Clear ErrorMessage")
+        print("5: Convert Old Instance Structure 6: Auto-Convert Old Instance Structure 7: Exit")
+    user_input = str(input(":"))
     while True:
-        try:
-            if user_input == 1:
-                argsman()
-                return
-            elif user_input == 2:
-                print("Resting AccountData.json...", color='purple')
-                account_manager.initialize_account_data()
-                print("AccountData.json has been cleared.", color='blue')
-                return
-            elif user_input == 3:
-                print("Clear JVM config...", color='purple')
-                initialize_jvm_config()
-                print("JVM config has been cleared.", color='blue')
-                return
-            elif user_input == 4:
-                print("Clearing ErrorMessage...", color='green')
-                ErrorMessageList.clear()
-                print("ErrorMessage has been cleared.", color='green')
-                return
-            else:
-                print("Unknown options :O", color='red')
-                time.sleep(1.2)
-        except ValueError:
-            print("Invalid type :(", color='red')
+        if user_input == "1":
+            argsman()
+            return
+        elif user_input == "2":
+            print("Resting AccountData.json...", color='purple')
+            account_manager.initialize_account_data()
+            print("AccountData.json has been cleared.", color='blue')
+            return
+        elif user_input == "3":
+            print("Clear JVM config...", color='purple')
+            initialize_jvm_config()
+            print("JVM config has been cleared.", color='blue')
+            return
+        elif user_input == "4":
+            print("Clearing ErrorMessage...", color='green')
+            ErrorMessageList.clear()
+            print("ErrorMessage has been cleared.", color='green')
+            return
+        elif user_input == "5":
+            instance_manager.legacy_instances_convert()
+            return
+        elif user_input == "6":
+            instance_manager.legacy_instances_convert(automatic_convert=True)
+            return
+        elif user_input.upper() == "7" or user_input.upper() == "EXIT":
+            return
+        else:
+            print("Unknown options :O", color='red')
+            time.sleep(1.2)
 
 
 def main_memu():
