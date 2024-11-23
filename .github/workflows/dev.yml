@@ -33,7 +33,7 @@ jobs:
           pip install -r Dev/requirements.txt
           pip install pyinstaller
 
-      - name: Build EXE with custom name
+      - name: Build BakeLauncher Dev Version For Windows
         run: |
           pyinstaller main.py -D --icon=bread.ico --name BakeLauncher
 
@@ -60,7 +60,7 @@ jobs:
           pip install -r Dev/requirements.txt
           pip install pyinstaller
 
-      - name: Build APP with custom name and x86-64 target
+      - name: Build BakeLauncher Dev Version For macOS(x86-64)
         run: |
           pyinstaller main.py -D --icon=bread.ico --name BakeLauncher
 
@@ -87,7 +87,7 @@ jobs:
           pip install -r Dev/requirements.txt
           pip install pyinstaller
 
-      - name: Build Linux binary with custom name
+      - name: Build BakeLauncher Dev Version For Linux
         run: |
           pyinstaller main.py -D --icon=bread.ico --name BakeLauncher
 
@@ -116,20 +116,13 @@ jobs:
           git tag -f Latest  # Create or overwrite the 'Latest' tag
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} Latest --force  # Push the 'Latest' tag
 
-  create-release-and-upload-artifact:
-    runs-on: ubuntu-latest
-    needs: create-latest-tag
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Create Release for Latest Tag and Upload Artifacts
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            dist/BakeLauncher-Dev-KF112324.Linux
-            dist/BakeLauncher-Dev-KF112324.Windows
-            dist/BakeLauncher-Dev-KF112324.macOS
+            dist/BakeLauncher-Dev-KF112324.Linux  # Linux artifact
+            dist/BakeLauncher-Dev-KF112324.Windows  # Windows artifact
+            dist/BakeLauncher-Dev-KF112324.macOS  # macOS artifact
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
