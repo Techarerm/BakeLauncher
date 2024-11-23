@@ -12,6 +12,9 @@ on:
     paths:
       - '.github/workflows/dev.yml'
 
+permissions:
+  contents: write
+
 jobs:
   windows-build:
     runs-on: windows-latest
@@ -106,7 +109,9 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
 
-      - name: Create 'latest' tag
+      - name: Create 'Latest' tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git tag -f Latest
-          git push origin Latest --force
+          git tag -f Latest  # Renamed tag to 'Latest'
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} Latest --force  # Renamed tag to 'Latest'
