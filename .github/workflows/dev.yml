@@ -13,7 +13,7 @@ on:
       - '.github/workflows/dev.yml'
 
 permissions:
-  contents: write  # Grant write permissions to content (push tags and create releases)
+  contents: write
 
 jobs:
   windows-build:
@@ -115,40 +115,3 @@ jobs:
         run: |
           git tag -f Latest
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} Latest --force
-
-      - name: Download Linux Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: BakeLauncher-Dev-KF112324.Linux
-
-      - name: Download Windows Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: BakeLauncher-Dev-KF112324.Windows
-
-      - name: Download macOS Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: BakeLauncher-Dev-KF112324.macOS
-
-      - name: Prepare Dist Directory
-        run: |
-          mkdir -p dist
-          mv BakeLauncher-Dev-KF112324.* dist/
-
-      - name: Verify Dist Contents
-        run: |
-          echo "Listing files in 'dist' directory:"
-          ls -la dist/
-
-      - name: Create Release for 'Latest' Tag and Upload Artifacts
-        id: create_release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: Latest
-          files: |
-            dist/*
-          make_latest: true
-          fail_on_unmatched_files: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
