@@ -131,12 +131,15 @@ jobs:
         with:
           name: BakeLauncher-Dev-KF112324.macOS
 
-      - name: Verify Downloads and List Directory Contents
+      - name: Prepare Dist Directory
         run: |
-          echo "Current working directory:"
-          pwd
-          echo "Listing all files in the current directory:"
-          ls -la
+          mkdir -p dist
+          mv BakeLauncher-Dev-KF112324.* dist/
+
+      - name: Verify Dist Contents
+        run: |
+          echo "Listing files in 'dist' directory:"
+          ls -la dist/
 
       - name: Create Release for 'Latest' Tag and Upload Artifacts
         id: create_release
@@ -149,4 +152,3 @@ jobs:
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
