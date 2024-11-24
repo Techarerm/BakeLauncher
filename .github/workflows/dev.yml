@@ -119,17 +119,17 @@ jobs:
       - name: Download Linux Artifact
         uses: actions/download-artifact@v4
         with:
-          name: dist/BakeLauncher-Dev-KF112324.Linux
+          name: BakeLauncher-Dev-KF112324.Linux
 
       - name: Download Windows Artifact
         uses: actions/download-artifact@v4
         with:
-          name: dist/BakeLauncher-Dev-KF112324.Windows
+          name: BakeLauncher-Dev-KF112324.Windows
 
       - name: Download macOS Artifact
         uses: actions/download-artifact@v4
         with:
-          name: dist/BakeLauncher-Dev-KF112324.macOS
+          name: BakeLauncher-Dev-KF112324.macOS
 
       - name: Verify Downloads and List Directory Contents
         run: |
