@@ -259,69 +259,6 @@ def java_search():
         print("Failed to configure Java runtime path because JVM_Finder are not supported on your system!", color='red')
 
 
-def java_version_check(Main, version_id):
-    """
-    Check the Minecraft version requirements for Java version.
-    """
-    print(f"Trying to check the required Java version for this Minecraft version...", color='green')
-
-    # Get version_manifest_v2.json and list all versions
-    url = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
-    response = requests.get(url)
-    data = response.json()
-    version_list = data['versions']
-
-    # Find the URL for the given version_id
-    version_url = None
-    for v in version_list:
-        if v['id'] == version_id:
-            version_url = v['url']
-            break
-
-    if version_url is None:
-        print(f"{Main}: Invalid version ID", color='red')
-        return None
-
-    try:
-        # Get version data
-        version_response = requests.get(version_url)
-        version_data = version_response.json()
-
-        # Extract the Java version information
-        component, major_version = create_instance.get_java_version_info(version_data)
-        print(f"Required Java Component: {component}, Major Version: {major_version}", color='green')
-
-    except Exception as e:
-        # If it can't get support Java version, using Java 8(some old version will get this error)
-        print(f"{Main}: Error occurred while fetching version data: {e}", color='red')
-        print(f"Warning: BakeLauncher will using Java 8 instead original support version of Java.", color='yellow')
-        major_version = str("8")
-
-    Java_VERSION = "Java_" + str(major_version)
-    if Java_VERSION == "Java_8":
-        Java_VERSION = "Java_1.8"
-
-    try:
-        with open("data/Java_HOME.json", "r") as file:
-            data = json.load(file)
-
-        Java_path = data.get(Java_VERSION)
-        if Java_path:
-            print(f"Using Java {major_version}!", color='blue')
-            print(f"Java runtime path is: {Java_path}", color='blue')
-            return Java_path
-        else:
-            print(f"{Main}: Java version {Java_VERSION} not found in Java_HOME.json", color='red')
-            return None
-
-    except FileNotFoundError:
-        print(f"{Main}: Java_HOME.json file not found", color='red')
-        return None
-    except json.JSONDecodeError:
-        print(f"{Main}: Error decoding JSON from Java_HOME.json", color='red')
-        return None
-
-
 def initialize_jvm_config():
     print("Cleaning JVM config file...")
     if os.path.exists("data/Java_HOME.json"):

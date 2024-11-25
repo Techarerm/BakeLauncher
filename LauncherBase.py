@@ -15,6 +15,7 @@ ChangeLog = ("Changelog:\n"
 global_config = """[BakeLauncher Configuration]
 
 <Global>
+Debug = True
 DontPrintColor = false
 DisableClearOutput = false
 DefaultAccountID = 1
@@ -130,10 +131,10 @@ class LauncherBase:
 
     def __init__(self):
         # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-        self.launcher_version = 'Beta 0.9(Dev-KF112324)'
-        self.launcher_version_display = 'Beta 0.9 (Dev-KF112324)'
+        self.launcher_version = 'Beta 0.9(Dev-KA112524)'
+        self.launcher_version_display = 'Beta 0.9 (Dev-KA112524)'
         self.launcher_version_tag = "Dev"
-        self.launcher_internal_version = 'dev-beta-kf-112324'
+        self.launcher_internal_version = 'dev-beta-ka-112524'
         self.launcher_data_format = "dev-beta-0.9"
         self.PlatformSupportList = ["Windows", "Darwin", "Linux"]
         self.Platform = self.get_platform("platform")
@@ -141,6 +142,7 @@ class LauncherBase:
         self.LibrariesPlatform2nd = self.get_platform("libraries_2nd")
         self.LibrariesPlatform2ndOld = self.get_platform("libraries_2nd_old")
         self.Arch = self.get_platform("Arch")
+        self.Debug = False
         self.DontPrintColor = False  # Stop print colorful text
         self.DisableClearOutput = False  # Debug
         self.EndLoadFlag = False  # If load process failed(platform check failed), Set to True
@@ -219,6 +221,9 @@ class LauncherBase:
 
         with open(self.global_config_path, 'r') as file:
             for line in file:
+                if "Debug" in line:
+                    self.Debug = line.split('=')[1].strip().upper() == "TRUE"
+
                 if "DisableClearOutput" in line:
                     self.DisableClearOutput = line.split('=')[1].strip().upper() == "TRUE"
 
@@ -264,7 +269,6 @@ class LauncherBase:
                     except ValueError:
                         self.MaxReleaseVersionPerRow = 9
 
-
                 if "EnableExperimentalMultitasking" in line:
                     self.EnableExperimentalMultitasking = line.split('=')[1].strip().upper() == "TRUE"
 
@@ -272,21 +276,22 @@ class LauncherBase:
                     self.EnableExperimentalInteractiveSelectBar = line.split('=')[1].strip().upper() == "TRUE"
 
         if not self.NoPrintConfigInfo:
-            if self.DontPrintColor:
-                print_color("Colorful text has been disabled.", tag='Global')
-            if self.DisableClearOutput:
-                print_color("Clear Output has been disabled.", tag='Global')
-            if self.NoList:
-                print_color("Print list Has been disabled.", tag='Global')
-            if self.LauncherWorkDir is not None:
-                if not self.LauncherWorkDir == "None" or Base.LauncherWorkDir == "null":
-                    print_color("Launcher workDir has been set by exist config.", tag='Global')
-            if self.DontCheckInternetConnection:
-                print_color("Check internet connection has been disabled.", tag='Global')
-                self.DontCheckInternetConnection = True
-            if not isinstance(self.MaxInstancesPerRow, int):
-                print_color("MaxInstancesPerRow are not a valid number. Setting back to 20...", tag='Global')
-                self.MaxInstancesPerRow = 20
+            if self.Debug:
+                if self.DontPrintColor:
+                    print_color("Colorful text has been disabled.", tag='Global')
+                if self.DisableClearOutput:
+                    print_color("Clear Output has been disabled.", tag='Global')
+                if self.NoList:
+                    print_color("Print list Has been disabled.", tag='Global')
+                if self.LauncherWorkDir is not None:
+                    if not self.LauncherWorkDir == "None" or Base.LauncherWorkDir == "null":
+                        print_color("Launcher workDir has been set by exist config.", tag='Global')
+                if self.DontCheckInternetConnection:
+                    print_color("Check internet connection has been disabled.", tag='Global')
+                    self.DontCheckInternetConnection = True
+                if not isinstance(self.MaxInstancesPerRow, int):
+                    print_color("MaxInstancesPerRow are not a valid number. Setting back to 20...", tag='Global')
+                    self.MaxInstancesPerRow = 20
 
     def get_platform(self, mode):
         # Get "normal" platform name

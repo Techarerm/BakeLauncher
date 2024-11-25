@@ -1,9 +1,10 @@
 import os
 import time
+import json
 from json import JSONDecodeError
 from LauncherBase import Base, timer, print_custom as print
 from libs.__assets_grabber import assets_grabber
-from libs.jvm_tool import java_version_check, java_search
+from libs.jvm_tool import java_search
 from libs.__create_instance import create_instance
 from libs.__account_manager import account_manager
 from libs.launch_client import LaunchClient
@@ -14,6 +15,50 @@ def SelectMainClass(version_id):
     version_data = create_instance.get_version_data(version_id)
     main_class = version_data.get("mainClass")
     return main_class
+
+def java_version_check(version_id):
+    """
+    Check the Minecraft version requirements for Java version.
+    """
+
+    print(f"Trying to check the required Java version for this Minecraft version...", color='green')
+
+    try:
+        # Get version data
+        version_data = create_instance.get_version_data(version_id)
+
+        # Extract the Java version information
+        component, major_version = create_instance.get_java_version_info(version_data)
+        print(f"Required Java Component: {component}, Major Version: {major_version}", color='green')
+
+    except Exception as e:
+        # If it can't get support Java version, using Java 8(some old version will get this error)
+        print(f"Error occurred while fetching version data: {e}", color='red')
+        print(f"Warning: BakeLauncher will using Java 8 instead original support version of Java.", color='yellow')
+        major_version = str("8")
+
+    Java_VERSION = "Java_" + str(major_version)
+    if Java_VERSION == "Java_8":
+        Java_VERSION = "Java_1.8"
+
+    try:
+        with open("data/Java_HOME.json", "r") as file:
+            data = json.load(file)
+
+        Java_path = data.get(Java_VERSION)
+        if Java_path:
+            print(f"Get Java Path successfully! | Using Java {major_version}!", color='blue')
+            return Java_path
+        else:
+            print(f"Java version {Java_VERSION} not found in Java_HOME.json", color='red')
+            return None
+
+    except FileNotFoundError:
+        print(f"Java_HOME.json file not found", color='red')
+        return None
+    except json.JSONDecodeError:
+        print(f"Error decoding JSON from Java_HOME.json", color='red')
+        return None
 
 
 def macos_jvm_args_support(version_id):
@@ -66,7 +111,6 @@ def generate_libraries_paths(version, libraries_dir):
 def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, assetsIndex, uuid):
     version_data = create_instance.get_version_data(version_id)  # Fetch version data
     minecraftArguments = version_data.get("minecraftArguments", "")  # Get the arguments or an empty string
-    userCustomArgs = 0
     user_properties = "{}"
     user_type = "msa"  # Set user type to 'msa'
     # Replace placeholders in minecraftArguments with actual values
@@ -92,11 +136,6 @@ def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, 
         minecraft_args = f"{username} {access_token} --gameDir {minecraft_path} " \
                          f"--assetsDir {assets_dir} --assetIndex {assetsIndex}"
 
-    elif minecraftArguments.endswith("--tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker"):
-        # For classic Minecraft
-        minecraft_args = f"{username} {access_token} --gameDir {minecraft_path} " \
-                         f"--assetsDir {assets_dir} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker "
-
     elif minecraftArguments.endswith("${game_assets}"):
         minecraft_args = f"--username {username} --session {access_token} --version {version_id} --gameDir {minecraft_path} " \
                          f"--assetsDir {assets_dir} --assetIndex {assetsIndex}"
@@ -109,6 +148,14 @@ def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, 
         minecraft_args = f"--username {username} --version {version_id} --gameDir {minecraft_path} " \
                          f"--assetsDir {assets_dir} --assetIndex {assetsIndex} --uuid {uuid} " \
                          f"--accessToken {access_token} --userType {user_type}"
+
+    if "AlphaVanillaTweaker" in minecraftArguments or version_data.get("type") == "classic":
+        # For classic Minecraft
+        minecraft_args += " --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker"
+    elif "AlphaVanillaTweaker" in minecraftArguments or version_data.get("type") == "infdev":
+        minecraft_args += " --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker"
+    elif "AlphaVanillaTweaker" in minecraftArguments or version_data.get("type") == "indev":
+        minecraft_args += " --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker"
 
     return minecraft_args
 
@@ -139,6 +186,8 @@ def LaunchManager():
     print("LaunchManager: Which instances do you want to launch?")
     instance_name = input(":")
 
+    # Ignore some spaces on start or end of the name
+    instance_name = instance_name.strip()
     if str(instance_name).upper() == "EXIT":
         return
 
@@ -156,9 +205,17 @@ def LaunchManager():
 
     # Get instance's Minecraft version
     instance_info_path = os.path.join(Base.launcher_instances_dir, instance_name, "instance.bakelh.ini")
-    InfoStatus, minecraft_version = instance_manager.get_instance_info(instance_info_path, info_name="client_version",
-                                                                       ignore_not_found=True)
-
+    InfoStatus, use_legacy_manifest = instance_manager.get_instance_info(instance_info_path,
+                                                                         info_name="use_legacy_manifest",
+                                                                         ignore_not_found=True)
+    if use_legacy_manifest:
+        InfoStatus, minecraft_version = instance_manager.get_instance_info(instance_info_path,
+                                                                           info_name="real_minecraft_version",
+                                                                           ignore_not_found=True)
+    else:
+        InfoStatus, minecraft_version = instance_manager.get_instance_info(instance_info_path,
+                                                                           info_name="client_version",
+                                                                           ignore_not_found=True)
     if not InfoStatus:
         print("Warning: You are trying to launch a who built with an older version of BakeLauncher.", color='yellow')
         print("Old instances support will be drop soon. ", end='', color='red')
@@ -179,8 +236,8 @@ def LaunchManager():
         else:
             return "JVMConfigAreNotFound"
 
-    print("LaunchManager: Getting JVM Path...", color='c')
-    JavaPath = java_version_check(Main, minecraft_version)
+    print("Getting JVM Path...", color='c')
+    JavaPath = java_version_check(minecraft_version)
 
     # Check JavaPath is valid
     if JavaPath is None:
@@ -347,7 +404,7 @@ def LaunchManager():
         CustomGameArgs = " "
         CustomJVMArgs = None
 
-    if not CustomJVMArgs == None:
+    if not CustomJVMArgs is None:
         JVM_Args_WindowsSize = " "
         JVM_ArgsRAM = CustomJVMArgs
 

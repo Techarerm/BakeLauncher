@@ -69,8 +69,9 @@ def bake_bake():
 def extra_memu():
     if not Base.NoList:
         print("Extra list:")
-        print("1: Custom Args 2: Reset AccountData.json 3: Clear JVM config file 4:Clear ErrorMessage")
-        print("5: Convert Old Instance Structure 6: Auto-Convert Old Instance Structure 7: Exit")
+        print("1: Custom Args             4: Clear ErrorMessage ")
+        print("2: Reset AccountData.json  5: Convert Old Instance Structure")
+        print("3: Clear JVM config file   6: Auto-Convert Old Instance Structure")
     user_input = str(input(":"))
     while True:
         if user_input == "1":
@@ -121,7 +122,7 @@ def main_memu():
     if not Base.NoList:
         print("What would you like to do?")
         print("1. Launch Minecraft 2. AccountManager 3: Create Instance")
-        print("4: Configure Java 5: About 6: Extra 7: Exit Launcher")
+        print("4: Extra 5: About")
 
     try:
         user_input = str(input(":"))
@@ -140,15 +141,12 @@ def main_memu():
             os.chdir(root)
             back_to_memu()
         elif user_input == "4":
-            java_finder()
+            extra_memu()
             back_to_memu()
         elif user_input == "5":
             bake_bake()
             back_to_memu()
-        elif user_input == "6":
-            extra_memu()
-            back_to_memu()
-        elif user_input.upper() == "7" or user_input.upper() == "EXIT":
+        elif user_input.upper() == "EXIT":
             print("Exiting launcher...", color='green')
             print("Bye :)", color='blue')
             print(" ")

@@ -111,7 +111,7 @@ def create_new_client_thread(launch_command, title, PlatFormName, ConfigPath):
 def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
                  JVM_Args, JVM_ArgsWindowsSize, JVM_ArgsRAM, GameArgs, custom_game_args, instances_id,
                  EnableMultitasking):
-    WorkPath = os.getcwd()
+    work_instance_dir = os.getcwd()
     # Construct the Minecraft launch command with proper quoting
     minecraft_command = (
         f'{JVMExecutable} {JVM_Args} {JVM_ArgsWindowsSize} {JVM_ArgsRAM} '
@@ -126,6 +126,15 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
         f'-Djava.library.path="{NativesPath}" -cp "{libraries_paths_strings}" '
         f'{MainClass} {GameArgs} {custom_game_args}'
     )
+
+    # Debug jvm args
+    args = (
+        f'{cleaned_jvm_path} {JVM_Args} {JVM_ArgsWindowsSize} {JVM_ArgsRAM} '
+        f'-Djava.library.path="{NativesPath}" -cp "{libraries_paths_strings}" '
+        f'{MainClass} {GameArgs} {custom_game_args}'
+    )
+    # if Base.Debug:
+    # print(args)
 
     green = "\033[32m"
     blue = "\033[34m"
@@ -148,7 +157,7 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
     elif Base.Platform == 'Darwin':
         launch_command = [
             f'echo -ne "\033]0;{title}\007\n"',
-            f'cd {WorkPath}\n',
+            f'cd {work_instance_dir}\n',
             f'clear\n',
             f'printf "{light_yellow}BakeLauncher Version: {Base.launcher_version}{reset}\\n"',
             f'printf "{light_blue}Minecraft Log Output: {reset}\\n"',
@@ -186,13 +195,9 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
         with open("LaunchLoadCommandTemp.sh", "w+") as f:
             f.write(launch_command)
 
-    if EnableMultitasking == True:
-        # Set default terminal(linux)
-        if Base.Platform == "Linux":
-            DefaultTerminal = os.getenv("TERM")
-        else:
-            DefaultTerminal = ""
+    print("Baking Minecraft! :)", color='blue')
 
+    if EnableMultitasking:
         print("EnableExperimentalMultitasking is Enabled!", color='purple')
         client_process = multiprocessing.Process(
             target=create_new_client_thread,

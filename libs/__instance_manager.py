@@ -8,6 +8,8 @@ from textwrap import dedent
 
 class InstanceManager:
     def __init__(self):
+        self.real_minecraft_version = None
+        self.use_legacy_manifest = None
         self.name = None
         self.SelectedInstanceInstalled = None
         self.InstallVersion = False
@@ -67,7 +69,8 @@ class InstanceManager:
 
         # Get kwargs
         convert_by_legacy = kwargs.get('convert_by_legacy', False)
-
+        use_legacy_manifest = kwargs.get('use_legacy_manifest', False)
+        real_minecraft_version = kwargs.get('real_minecraft_version', client_version)
         if os.path.exists(selected_instance_ini):
             return True
 
@@ -84,6 +87,9 @@ class InstanceManager:
         instance_format = "{Base.launcher_data_format}"
         create_date = "{create_date}"
         convert_by_legacy = {convert_by_legacy}
+        # If your real_minecraft_version is not same as client_version. Maybe you are using a unofficial source Minecraft
+        real_minecraft_version = {real_minecraft_version}
+        use_legacy_manifest = {use_legacy_manifest}
 
         # Instance Structure
         game_folder = ".minecraft"  # Path to the main game folder
@@ -151,6 +157,16 @@ class InstanceManager:
                         key, value = line.split("=", 1)
                         self.CREATE_DATE = value.strip().strip('"')
 
+                    if line.startswith("real_minecraft_version"):
+                        # Extract the value after the equals sign
+                        key, value = line.split("=", 1)
+                        self.real_minecraft_version = value.strip().strip('"')
+                        self.real_minecraft_version = self.real_minecraft_version.strip("'")
+
+                    if line.startswith("use_legacy_manifest"):
+                        # Extract the value after the equals sign
+                        self.use_legacy_manifest = line.split('=')[1].strip().upper() == "TRUE"
+
         except Exception as e:
             print(f"Error reading file: {e}")
             print("Maybe you are using a instance who create by old version BakeLauncher.")
@@ -178,6 +194,10 @@ class InstanceManager:
                 return True, self.INSTANCE_FORMAT
             elif info_name == "create_date":
                 return True, self.CREATE_DATE
+            elif info_name == "use_legacy_manifest":
+                return True, self.use_legacy_manifest
+            elif info_name == "real_minecraft_version":
+                return True, self.real_minecraft_version
             else:
                 return False, "UnknownArgs"
 

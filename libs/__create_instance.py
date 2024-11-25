@@ -1,3 +1,5 @@
+import sys
+
 import requests
 import os
 import zipfile
@@ -61,7 +63,7 @@ def multi_thread_download(nested_urls_and_paths, name, max_workers=5, retries=1)
 
     downloaded_files = []
     failed_files = []
-
+    sys.stderr.flush()
     def download_with_retry(url, dest_path, retry_count):
         """Attempts to download a file with retries."""
         for attempt in range(retry_count + 1):
@@ -127,27 +129,64 @@ def multi_thread_download(nested_urls_and_paths, name, max_workers=5, retries=1)
 
 class Create_Instance:
     def __init__(self):
+        self.legacy_version_type = "classic"
+        self.legacy_version = False
         self.SelectedInstanceInstalled = False
         self.VersionManifestURl = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
+        self.LegacyVersionManifestURl = ("https://github.com/Techarerm/BakeLauncher-Library/raw/refs/heads/main/Legacy"
+                                         "%20Manifest/version_manifest_legacy.json")
+        self.AlphaManifestURl = ("https://github.com/Techarerm/BakeLauncher-Library/raw/refs/heads/main/Legacy"
+                                 "%20Manifest/version_manifest_alpha.json")
+        self.InfdevManifestURl = ("https://github.com/Techarerm/BakeLauncher-Library/raw/refs/heads/main/Legacy"
+                                  "%20Manifest/version_manifest_infdev.json")
+        self.IndevManifestURL = ("https://github.com/Techarerm/BakeLauncher-Library/raw/refs/heads/main/Legacy"
+                                 "%20Manifest/version_manifest_indev.json")
+        self.ClassicManifestURl = ("https://github.com/Techarerm/BakeLauncher-Library/raw/refs/heads/main/Legacy"
+                                   "%20Manifest/version_manifest_classic.json")
+        self.RubyDungMinecraftManifestURl = ("https://github.com/Techarerm/BakeLauncher-Library/raw/refs/heads/main"
+                                             "/Legacy%20Manifest/version_manifest_rd(old_alpha).json")
         self.version_id = None
         self.minecraft_version = ""
         # Working directory
         self.WorkDir = os.getcwd()
 
-    def get_version_data(self, version_id):
+    def get_version_url(self, minecraft_version, **kwargs):
+        legacy = kwargs.get("legacy", False)
+        if legacy:
+            response = requests.get(self.LegacyVersionManifestURl)
+        else:
+            response = requests.get(self.VersionManifestURl)
+        manifest = response.json()
+
+        version_info = next((v for v in manifest["versions"] if v["id"] == minecraft_version), None)
+        return version_info['url']
+
+    def get_version_data(self, version_id, **kwargs):
         """
         Get version_manifest_v2.json and find requires version of json data
         """
+        use_legacy_json = kwargs.get("use_legacy_json", False)
+
         response = requests.get(self.VersionManifestURl)
         data = response.json()
         version_list = data['versions']
 
-        # Find the URL for the given version_id
         version_url = None
         for v in version_list:
             if v['id'] == version_id:
                 version_url = v['url']
                 break
+
+        if version_url is None:
+            response = requests.get(self.LegacyVersionManifestURl)
+            data = response.json()
+            version_list = data['versions']
+
+            version_url = None
+            for v in version_list:
+                if v['id'] == version_id:
+                    version_url = v['url']
+                    break
 
         # If the version_id not in version_list, return None
         if version_url is None:
@@ -165,16 +204,106 @@ class Create_Instance:
             print("Failed to get version data. Cause by internet connect error or unknown issues.", color='red')
             return None
 
-    def get_version_list(self, mode):
+    def get_version_list(self, mode, **kwargs):
         # Get version_manifest_v2.json and list all versions (with version_id on the left)
+        global rows_all, version_list
+
+        def get_legacy_party(mode):
+            # Legacy Part
+            legacy_minecraft_response = requests.get(self.LegacyVersionManifestURl)
+            alpha_minecraft_response = requests.get(self.AlphaManifestURl)
+            infdev_minecraft_response = requests.get(self.InfdevManifestURl)
+            indev_manifest_response = requests.get(self.IndevManifestURL)
+            classic_minecraft_response = requests.get(self.ClassicManifestURl)
+            pre_classic_minecraft_response = requests.get(self.RubyDungMinecraftManifestURl)
+
+            legacy_data = legacy_minecraft_response.json()
+            alpha_data = alpha_minecraft_response.json()
+            infdev_data = infdev_minecraft_response.json()
+            indev_data = indev_manifest_response.json()
+            classic_data = classic_minecraft_response.json()
+            pre_classic_data = pre_classic_minecraft_response.json()
+
+            legacy_version_list = [version['id'] for version in legacy_data['versions']]  # Corrected key
+            alpha_version_list = [version['id'] for version in alpha_data['versions']]
+            infdev_version_list = [version['id'] for version in infdev_data['versions']]
+            indev_version_list = [version['id'] for version in indev_data['versions']]
+            classic_version_list = [version['id'] for version in classic_data['versions']]
+            pre_classic_version_list = [version['id'] for version in pre_classic_data['versions']]
+
+            format_legacy_version = '\n'.join([f"{index + 1}: {version}"
+                                               for index, version in enumerate(legacy_version_list)])
+
+            format_alpha_list = '\n'.join([f"{index + 1}: {version}"
+                                           for index, version in enumerate(alpha_version_list)])
+
+            format_infdev_list = '\n'.join([f"{index + 1}: {version}"
+                                            for index, version in enumerate(infdev_version_list)])
+
+            format_indev_list = '\n'.join([f"{index + 1}: {version}"
+                                           for index, version in enumerate(indev_version_list)])
+
+            format_classic_list = '\n'.join([f"{index + 1}: {version}"
+                                             for index, version in enumerate(classic_version_list)])
+
+            format_pre_classic_list = '\n'.join([f"{index + 1}: {version}"
+                                                 for index, version in enumerate(pre_classic_version_list)])
+
+            if mode == "format":
+                return (
+                format_legacy_version, format_alpha_list, format_infdev_list, format_indev_list, format_classic_list,
+                format_pre_classic_list)
+            elif mode == "version_list":
+                return (
+                legacy_version_list, alpha_version_list, infdev_version_list, indev_version_list, classic_version_list,
+                pre_classic_version_list)
+
+        legacy_party = kwargs.get('legacy_party', False)
+        if legacy_party:
+            (format_legacy_version, format_alpha_list, format_infdev_list, format_indev_list, format_classic_list,
+             format_pre_classic_list) = get_legacy_party("format")
+
+            (legacy_version_list, alpha_version_list, infdev_version_list, indev_version_list, classic_version_list,
+             pre_classic_version_list) = get_legacy_party("version_list")
+
+            if mode == "legacy_version_list":
+                rows_all = (len(format_legacy_version) + 50) // 40
+                version_list = legacy_version_list
+            elif mode == "alpha_list":
+                rows_all = (len(format_alpha_list) + 50) // 40
+                version_list = alpha_version_list
+            elif mode == "infdev_list":
+                rows_all = (len(format_infdev_list) + 50) // 40
+                version_list = infdev_version_list
+            elif mode == "indev_list":
+                rows_all = (len(format_indev_list) + 50) // 40
+                version_list = indev_version_list
+            elif mode == "classic_list":
+                rows_all = (len(format_classic_list) + 50) // 40
+                version_list = classic_version_list
+            elif mode == "pre_classic_list":
+                rows_all = (len(format_pre_classic_list) + 50) // 40
+                version_list = pre_classic_version_list
+
+            # New methods
+            print("Available version list:", color='purple')
+            for row in range(rows_all):
+                line = ""
+                for col in range(50):
+                    index = col * rows_all + row
+                    if index < len(version_list):
+                        line += f"{index + 1}: {version_list[index]:<20}\t"
+                print(line.strip())  # Print each row after building the line
+            print("This list may look really broken :)", color='blue')
+            return version_list
         response = requests.get(self.VersionManifestURl)
         data = response.json()
-        version_list = data['versions']
 
+        version_list = data['versions']
         all_available_version = [version['id'] for version in data['versions']]
         release_versions = [version['id'] for version in version_list if version['type'] == 'release']
 
-        # Legacy
+        # Legacy(list)
         formatted_versions = '\n'.join([f"{index + 1}: {version}"
                                         for index, version in enumerate(release_versions)])
 
@@ -210,16 +339,24 @@ class Create_Instance:
         elif mode == "legacy_all":
             print(formatted_versions_all)
             return all_available_version
+        elif mode == "legacy_minecraft":
+            print()
         else:
             return all_available_version
 
     def get_version_type(self, minecraft_version):
         response = requests.get(self.VersionManifestURl)
+        legacy_response = requests.get(self.LegacyVersionManifestURl)
         data = response.json()
-
+        legacy_data = legacy_response.json()
         for version in data["versions"]:
             if version["id"] == minecraft_version:
                 return version["type"]
+
+        for version in legacy_data["versions"]:
+            if version["id"] == minecraft_version:
+                return version["type"]
+
         return None
 
     @staticmethod
@@ -315,21 +452,31 @@ class Create_Instance:
             print(f"No native library found for key: {native_key}", color='yellow')
             return "NativeLibrariesNotFound"
 
-    def download_libraries(self, version_data, minecraft_version, install_dir):
+    def download_client(self, version_data, minecraft_version, install_dir):
+        version_dir = os.path.join(Base.launcher_instances_dir, install_dir)
+        libraries_dir = os.path.join(version_dir, "libraries")
+        os.makedirs(libraries_dir, exist_ok=True)
+
+        if not self.legacy_version:
+            # Download client.jar
+            client_info = version_data['downloads']['client']
+            client_url = client_info['url']
+        else:
+            legacy_url = self.get_version_url(minecraft_version, legacy=True)
+            legacy_url = "/".join(legacy_url.split("/")[:-1]) + "/"
+            client_url = f"{legacy_url}{minecraft_version}.jar"
+
+        client_dest = os.path.join(version_dir, 'libraries', 'net', 'minecraft', minecraft_version, "client.jar")
+        print(f"Downloading client.jar to {client_dest}...", color='green')
+        download_file(client_url, client_dest)
+
+    def download_libraries(self, version_data, install_dir):
         """
         Create instances/version_id/folder and download game files
         """
         version_dir = os.path.join(Base.launcher_instances_dir, install_dir)
         libraries_dir = os.path.join(version_dir, "libraries")
         os.makedirs(libraries_dir, exist_ok=True)
-
-        # Download client.jar
-        client_info = version_data['downloads']['client']
-        client_url = client_info['url']
-        client_dest = os.path.join(version_dir, 'libraries', 'net', 'minecraft', minecraft_version, "client.jar")
-        print(f"Downloading client.jar to {client_dest}...")
-        download_file(client_url, client_dest)
-
         # Download libraries
 
         # Waiting-Download-List
@@ -642,15 +789,32 @@ class Create_Instance:
                     print(f"An error occurred: {e}")
 
     def download_games_files(self, version_id, install_dir):
+        """
+        real_version (if the client type is not legacy, it is the same as client_version).
+        If the client is a legacy version, client_version and real_version are not the same(or same? if user using
+        rd-132211)
+
+        Why this spoof? Legacy archives place the client in a weird location (version data tag libraries don't have
+        the client URL). Additionally, some legacy version libraries have incomplete data. To address this,
+        BakeLauncher uses a similar library version as an alternative for these cases.
+
+        Why keep real_version in instance info? When the user launches Minecraft, the launcher manager calls
+        a function named "java_version_check" to get the java_version. If the client uses a spoofed version,
+        it might crash due to argument bugs. (However, legacy version data's "MinecraftArguments" are complete.)
+        """
         print("Loading version info...")
+        instance_info = os.path.join(install_dir, "instance.bakelh.ini")
+        Status, real_version = instance_manager.get_instance_info(instance_info, info_name='real_minecraft_version')
         version_data = self.get_version_data(version_id)
 
         if not os.path.exists(install_dir):
             os.makedirs(install_dir)
 
         # Download game file( libraries, .jar files...., and natives)
+        print("Downloading client...", color='blue')
+        self.download_client(version_data, real_version, install_dir)
         print("Downloading libraries...", color='blue')
-        self.download_libraries(version_data, version_id, install_dir)
+        self.download_libraries(version_data, install_dir)
         self.mac_os_libraries_bug_fix(install_dir)
         # Delay time to make old output don't print with new output
         time.sleep(0.5)
@@ -676,7 +840,26 @@ class Create_Instance:
         # Add waiting time(If assets download failed it will print it?)
         time.sleep(1.2)
 
-    def start_create_instance(self, minecraft_version):
+    def start_create_instance(self, require_version):
+        global instance_path, client_version
+        if self.legacy_version:
+            real_version = require_version
+            print(f" Version Type: {self.legacy_version_type}", color='green', tag='DEBUG')
+            if self.legacy_version_type == "alpha":
+                client_version = "a1.2.6"
+            elif self.legacy_version_type == "infdev":
+                client_version = "inf-20100618"
+            elif self.legacy_version_type == "indev":
+                client_version = "inf-20100618"
+            elif self.legacy_version_type == "classic":
+                client_version = "c0.30_01c"
+            elif self.legacy_version_type == "pre-classic":
+                client_version = "rd-160052"
+            print(f"Version Spoof Enable | RealVersion: {require_version} Spoof to Version : {client_version}", color='green', tag='DEBUG')
+        else:
+            client_version = require_version
+            real_version = require_version
+
         if not os.path.exists(Base.launcher_instances_dir):
             print("Instances directory does not exist. Please check your configuration.", color='red')
             return False, "InvalidInstancesDir"
@@ -699,7 +882,7 @@ class Create_Instance:
 
             # Generate instance path and get version type
             instance_path = os.path.join(Base.launcher_instances_dir, name)
-            version_type = self.get_version_type(minecraft_version)
+            version_type = self.get_version_type(real_version)
 
             # Check if instance already exists
             if os.path.exists(instance_path):
@@ -715,41 +898,46 @@ class Create_Instance:
                 user_input = input(":").strip().upper()
 
                 if user_input == "Y":
-                    print(f'Renaming and creating instance at "{new_instance_path}"', color='green')
-                    instance_manager.create_instance_data(
-                        instance_name=os.path.basename(new_instance_path),
-                        client_version=minecraft_version,
-                        version_type=version_type,
-                        is_vanilla=True,
-                        modify_status=False,
-                        mod_loader_name=None,
-                        mod_loader_version=None,
-                    )
-                    self.download_games_files(minecraft_version, new_instance_path)
-                    return True, "InstanceCreated"
+                    instance_path = new_instance_path
                 else:
                     print("Please choose a different name.", color='red')
                     continue
-            else:
-                print(f'Creating instance at "{instance_path}"', color='green')
+
+            print(f'Creating instance at "{instance_path}"', color='green')
+            print(real_version)
+            if self.legacy_version:
                 instance_manager.create_instance_data(
-                    instance_name=name,
-                    client_version=minecraft_version,
+                    instance_name=os.path.basename(instance_path),
+                    client_version=client_version,
                     version_type=version_type,
                     is_vanilla=True,
                     modify_status=False,
                     mod_loader_name=None,
                     mod_loader_version=None,
+                    real_minecraft_version=real_version,
+                    use_legacy_manifest=True
                 )
-                self.download_games_files(minecraft_version, instance_path)
-                return True, "InstanceCreated"
+                self.download_games_files(client_version, instance_path)
+            else:
+                instance_manager.create_instance_data(
+                    instance_name=os.path.basename(instance_path),
+                    client_version=client_version,
+                    version_type=version_type,
+                    is_vanilla=True,
+                    modify_status=False,
+                    mod_loader_name=None,
+                    mod_loader_version=None,
+                    real_minecraft_version=real_version,
+                )
+                self.download_games_files(client_version, instance_path)
+            return True, "InstanceCreated"
 
     def reinstall_instances(self):
         # if the instances list is not exist, return Status=False and client_version=ErrorMessage
-        print("The instance you want to install must have been converted to the new format!", color='red')  # legacy part
+        print("The instance you want to install must have been converted to the new format!",
+              color='red')  # legacy part
         Status, client_version, instance_path = instance_manager.select_instance(
             "Which instance you want to reinstall?", client_version=True)
-
 
         if not Status:
             print(f"Failed to get select instance. Cause by error {client_version}", color='red')
@@ -846,7 +1034,6 @@ class Create_Instance:
                 print(f"Failed to create instance. Error: {e}", color='red')
                 return
 
-
         def download_with_regular_minecraft_version():
             selected_version = False
             version_list = self.get_version_list("normal")
@@ -882,10 +1069,36 @@ class Create_Instance:
                 print("Oops! Invalid input :( Please enter Minecraft version.")
                 download_with_regular_minecraft_version()
 
+        def download_legacy_minecraft():
+            while True:
+                ClearOutput()
+                print("Warning: This method most of data are unofficial(not release from mojang)", color='red')
+                print("Legacy list may take over 1 min to generate it.", color='yellow')
+                legacy_list = self.get_version_list("legacy_version_list", legacy_party=True)
+                print("Please enter you want to download Minecraft version.", color='blue')
+                download_version = str(input(":"))
+                if download_version.strip().lower() in legacy_list:
+                    try:
+                        self.legacy_version = True
+                        self.legacy_version_id = download_version
+                        self.legacy_version_type = self.get_version_type(download_version)
+                        self.start_create_instance(download_version)
+                        return True
+                    except Exception as e:
+                        print(f"Failed to create instance. Cause by error {e}", color='red')
+                        time.sleep(7)
+
+                if download_version.strip().lower() == "exit":
+                    return True
+
+                print(f"You type Minecraft version {download_version} are not found :(",
+                      color='red')
+
         print("Which method you wanna use?", color='green')
         print("1: List all available versions and download", color='green')
         print("2: Type regular Minecraft version and download(include snapshot)", color='blue')
-        print("3: Reinstall instance", color='cyan')
+        print("3: Download Legacy Minecraft", color='yellow')
+        print("4: Reinstall instance", color='cyan')
 
         try:
             user_input = str(input(":"))
@@ -898,6 +1111,8 @@ class Create_Instance:
             elif user_input == "2":
                 download_with_regular_minecraft_version()
             elif user_input == "3":
+                download_legacy_minecraft()
+            elif user_input == "4":
                 self.reinstall_instances()
             else:
                 print("Unknown options :( Please try again.", color='red')
