@@ -144,7 +144,7 @@ class LauncherBase:
         self.launcher_version = 'Beta 0.9(Dev-KB112624)'
         self.launcher_version_display = 'Beta 0.9 (Dev-KB112624)'
         self.launcher_version_tag = "Dev"
-        self.launcher_internal_version = 'dev-beta-kb-112624'
+        self.launcher_internal_version = 'dev-beta-kb-112624-b'
         self.launcher_data_format = "dev-beta-0.9"
         self.PlatformSupportList = ["Windows", "Darwin", "Linux"]
         self.Platform = self.get_platform("platform")
@@ -220,12 +220,13 @@ class LauncherBase:
 
         Status, Message = self.check_internet_connect()
 
-        if self.DefaultAccountID is None:
-            print_color("Warning: Your config file are corrupted :( Do you want to reconfigure it?", color='yellow')
-            user_input = str(input('Y/N :'))
-            if user_input.upper() == "Y":
-                initialize_config(overwrite=True)
-                self.load_setting()
+        if os.path.exists("data/config.bakelh.cfg"):
+            if self.DefaultAccountID is None:
+                print_color("Warning: Your config file are corrupted :( Do you want to reconfigure it?", color='yellow')
+                user_input = str(input('Y/N :'))
+                if user_input.upper() == "Y":
+                    initialize_config(overwrite=True)
+                    self.load_setting()
 
         if not Status:
             return False, Message
