@@ -34,6 +34,8 @@ NoList = false
 <LaunchManager>
 Create a new terminal when launching Minecraft. The new terminal will not be killed when the main stop working.
 EnableExperimentalMultitasking = true
+DefaultGameScreenWidth = 1280
+DefaultGameScreenHeight = 720
 
 # Memu setting
 # Set maximum number of instances name can be printed in one line
@@ -67,6 +69,7 @@ MaxVersionPerRow =
 
 # If a same version is already installed in the runtimes folder, reinstall it(but bypass ask user)
 OverwriteJVMIfExist = False
+DoNotAskJVMExist = False
 UsingLegacyDownloadOutput = False
 Version = None
 """
@@ -86,8 +89,15 @@ def print_custom(*args, **kwargs):
         print(*args)
 
 
-def initialize_config():
+def initialize_config(**kwargs):
     print_custom("Can't find config! Creating...", color='yellow')
+    overwrite = kwargs.get('overwrite', False)
+    if overwrite:
+        with open(global_config_path, "w") as config:
+            config.write(global_config)
+        print("Global config has been reset.")
+        return
+
     if not os.path.exists("data"):
         os.makedirs("data")
     if not os.path.exists(global_config_path):
@@ -131,10 +141,10 @@ class LauncherBase:
 
     def __init__(self):
         # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-        self.launcher_version = 'Beta 0.9(Dev-KA112524)'
-        self.launcher_version_display = 'Beta 0.9 (Dev-KA112524)'
+        self.launcher_version = 'Beta 0.9(Dev-KB112624)'
+        self.launcher_version_display = 'Beta 0.9 (Dev-KB112624)'
         self.launcher_version_tag = "Dev"
-        self.launcher_internal_version = 'dev-beta-ka-112524'
+        self.launcher_internal_version = 'dev-beta-kb-112624'
         self.launcher_data_format = "dev-beta-0.9"
         self.PlatformSupportList = ["Windows", "Darwin", "Linux"]
         self.Platform = self.get_platform("platform")
@@ -145,6 +155,7 @@ class LauncherBase:
         self.Debug = False
         self.DontPrintColor = False  # Stop print colorful text
         self.DisableClearOutput = False  # Debug
+        self.DefaultAccountID = None
         self.EndLoadFlag = False  # If load process failed(platform check failed), Set to True
         self.MainMemuResetFlag = False  # Set to true by check_account_data_are_valid
         self.NoList = False  # Make main_memu not print the list
@@ -152,7 +163,10 @@ class LauncherBase:
         self.AutoOpenOptions = None  # Select option
         self.EnableExperimentalMultitasking = False
         self.EnableExperimentalInteractiveSelectBar = True
+        self.DefaultGameScreenHeight = 720
+        self.DefaultGameScreenWidth = 1280
         self.OverwriteJVMIfExist = False
+        self.DoNotAskJVMExist = False
         self.UsingLegacyDownloadOutput = False
         self.LauncherWorkDir = None  # Setting from config file
         self.NoPrintConfigInfo = False
@@ -170,17 +184,14 @@ class LauncherBase:
     def Initialize(self):
         global DontPrintColor
 
-        if self.EndLoadFlag:
-            print("Launcher /")
-            return
-
         # Load config
         if not os.path.exists("data/config.bakelh.cfg"):
             initialize_config()
         else:
             self.load_setting()
 
-        # Check workdir(If launcher running in a non-ASCII path)(Also
+        # Check workdir(If launcher running in a non-ASCII path)(Seems like it patched when BakeLauncher added
+        # instance_info support?)
         try:
             if self.LauncherWorkDir is not None and self.LauncherWorkDir != "None":
                 os.chdir(self.LauncherWorkDir)
@@ -208,6 +219,14 @@ class LauncherBase:
             os.system(f'echo -ne "\033]0;BakeLauncher {Base.launcher_version}\007"')
 
         Status, Message = self.check_internet_connect()
+
+        if self.DefaultAccountID is None:
+            print_color("Warning: Your config file are corrupted :( Do you want to reconfigure it?", color='yellow')
+            user_input = str(input('Y/N :'))
+            if user_input.upper() == "Y":
+                initialize_config(overwrite=True)
+                self.load_setting()
+
         if not Status:
             return False, Message
 
@@ -224,6 +243,13 @@ class LauncherBase:
                 if "Debug" in line:
                     self.Debug = line.split('=')[1].strip().upper() == "TRUE"
 
+                if "DefaultAccountID" in line:
+                    self.DefaultAccountID = line.split('=')[1].strip().strip('"').strip("'")
+                    try:
+                        self.DefaultAccountID = int(self.DefaultAccountID)
+                    except ValueError:
+                        self.DefaultAccountID = None
+
                 if "DisableClearOutput" in line:
                     self.DisableClearOutput = line.split('=')[1].strip().upper() == "TRUE"
 
@@ -235,6 +261,9 @@ class LauncherBase:
 
                 if "OverwriteJVMIfExist" in line:
                     self.OverwriteJVMIfExist = line.split('=')[1].strip().upper() == "TRUE"
+
+                if "DoNotAskJVMExist" in line:
+                    self.DoNotAskJVMExist = line.split('=')[1].strip().upper() == "TRUE"
 
                 if "UsingLegacyDownloadOutput" in line:
                     self.UsingLegacyDownloadOutput = line.split('=')[1].strip().upper() == "TRUE"
@@ -271,6 +300,20 @@ class LauncherBase:
 
                 if "EnableExperimentalMultitasking" in line:
                     self.EnableExperimentalMultitasking = line.split('=')[1].strip().upper() == "TRUE"
+
+                if "DefaultGameScreenWidth" in line:
+                    self.DefaultGameScreenWidth = line.split('=')[1].strip().strip('"').strip("'")
+                    try:
+                        self.DefaultGameScreenWidth = int(self.DefaultGameScreenWidth)
+                    except ValueError:
+                        self.DefaultGameScreenWidth = 1280
+
+                if "DefaultGameScreenHeight" in line:
+                    self.DefaultGameScreenHeight = line.split('=')[1].strip().strip('"').strip("'")
+                    try:
+                        self.DefaultGameScreenHeight = int(self.DefaultGameScreenHeight)
+                    except ValueError:
+                        self.DefaultGameScreenHeight = 720
 
                 if "EnableExperimentalInteractiveSelectBar" in line:
                     self.EnableExperimentalInteractiveSelectBar = line.split('=')[1].strip().upper() == "TRUE"

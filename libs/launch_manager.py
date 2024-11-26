@@ -16,6 +16,7 @@ def SelectMainClass(version_id):
     main_class = version_data.get("mainClass")
     return main_class
 
+
 def java_version_check(version_id):
     """
     Check the Minecraft version requirements for Java version.
@@ -38,7 +39,7 @@ def java_version_check(version_id):
         major_version = str("8")
 
     Java_VERSION = "Java_" + str(major_version)
-    if Java_VERSION == "Java_8":
+    if Java_VERSION == "Java_8": 
         Java_VERSION = "Java_1.8"
 
     try:
@@ -81,13 +82,12 @@ def macos_jvm_args_support(version_id):
     return None, " "  # Return None if the argument is not found
 
 
-def generate_libraries_paths(version, libraries_dir):
-    global client_jar_path
+def generate_libraries_paths(client_version, libraries_dir):
     jar_paths_string = ""
-    client_jar_path = f"libraries/net/minecraft/{version}/client.jar"
+    client_jar_path = os.path.join(libraries_dir, "net", "minecraft", client_version, "client.jar")
 
     # Traverse the libraries directory
-    print("Generating dependent libraries path for " + version + " of Minecraft...", color="green")
+    print(f"Generating dependent libraries path for {client_version} of Minecraft...", color="green")
     for root, dirs, files in os.walk(libraries_dir):
         for file in files:
             if file.endswith('.jar') and not file.startswith("client.jar"):
@@ -108,7 +108,7 @@ def generate_libraries_paths(version, libraries_dir):
     return jar_paths_string
 
 
-def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, assetsIndex, uuid):
+def GetGameArgs(version_id, username, access_token, game_dir, assets_dir, assetsIndex, uuid):
     version_data = create_instance.get_version_data(version_id)  # Fetch version data
     minecraftArguments = version_data.get("minecraftArguments", "")  # Get the arguments or an empty string
     user_properties = "{}"
@@ -117,7 +117,7 @@ def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, 
     minecraft_args = minecraftArguments \
         .replace("${auth_player_name}", username) \
         .replace("${auth_session}", access_token) \
-        .replace("${game_directory}", minecraft_path) \
+        .replace("${game_directory}", game_dir) \
         .replace("${assets_root}", assets_dir) \
         .replace("${version_name}", version_id) \
         .replace("${assets_index_name}", assetsIndex) \
@@ -128,29 +128,33 @@ def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, 
 
     if "--userProperties" in minecraftArguments:
         print("This version of Minecraft requires --userProperties!", color='green')
-        # Properly replace ${user_properties} or add user properties if not present
+        minecraft_args = f"--username {username} --version {version_id} --gameDir {game_dir} " \
+                         f"--assetsDir {assets_dir} --assetIndex {assetsIndex} --accessToken {access_token} " \
+                         f"--userProperties {user_properties}"
+
+    elif version_data.get("type") == "old-alpha":
+        minecraft_args = f"{username} {access_token} --gameDir {game_dir} --assetsDir {assets_dir}"
 
     # Handle special case where ${auth_player_name} and ${auth_session} are at the beginning
     elif minecraftArguments.startswith("${auth_player_name} ${auth_session}"):
         # Prepend the username and access token as per the special case
-        minecraft_args = f"{username} {access_token} --gameDir {minecraft_path} " \
+        minecraft_args = f"{username} {access_token} --gameDir {game_dir} " \
                          f"--assetsDir {assets_dir} --assetIndex {assetsIndex}"
 
     elif minecraftArguments.endswith("${game_assets}"):
-        minecraft_args = f"--username {username} --session {access_token} --version {version_id} --gameDir {minecraft_path} " \
+        minecraft_args = f"--username {username} --session {access_token} --version {version_id} --gameDir {game_dir} " \
                          f"--assetsDir {assets_dir} --assetIndex {assetsIndex}"
 
     elif minecraftArguments.startswith("--username") and minecraftArguments.endswith("${auth_access_token}"):
-        minecraft_args = f"--username {username} --version {version_id} --gameDir {minecraft_path} " \
+        minecraft_args = f"--username {username} --version {version_id} --gameDir {game_dir} " \
                          f"--assetsDir {assets_dir} --assetIndex {assetsIndex} --accessToken {access_token}"
 
     else:
-        minecraft_args = f"--username {username} --version {version_id} --gameDir {minecraft_path} " \
+        minecraft_args = f"--username {username} --version {version_id} --gameDir {game_dir} " \
                          f"--assetsDir {assets_dir} --assetIndex {assetsIndex} --uuid {uuid} " \
                          f"--accessToken {access_token} --userType {user_type}"
 
     if "AlphaVanillaTweaker" in minecraftArguments or version_data.get("type") == "classic":
-        # For classic Minecraft
         minecraft_args += " --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker"
     elif "AlphaVanillaTweaker" in minecraftArguments or version_data.get("type") == "infdev":
         minecraft_args += " --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker"
@@ -161,7 +165,6 @@ def GetGameArgs(version_id, username, access_token, minecraft_path, assets_dir, 
 
 
 def LaunchManager():
-    Main = "LaunchManager"
     global CustomGameArgs, CustomJVMArgs, JVM_Args_HeapDump, JVM_Args_WindowsSize, JVM_ArgsRAM, EnableMultitasking, \
         CustomLaunchStatus, account_data, username, access_token, uuid, DemoFlag
 
@@ -174,7 +177,7 @@ def LaunchManager():
     # Get instances list and check it
     instances_list = os.listdir('instances')
     if len(instances_list) == 0:
-        print("LaunchManager: No instances are available to launch :(", color='red')
+        print("No instances are available to launch :(", color='red')
         print("Try to using DownloadTool to download the Minecraft!")
         timer(4)
         return "NoInstancesAreAvailable"
@@ -183,7 +186,7 @@ def LaunchManager():
     Status, Message = instance_manager.instance_list()
     if not Status:
         return Message
-    print("LaunchManager: Which instances do you want to launch?")
+    print("Which instances do you want to launch?")
     instance_name = input(":")
 
     # Ignore some spaces on start or end of the name
@@ -226,11 +229,11 @@ def LaunchManager():
     if os.path.isfile('data/Java_HOME.json'):
         print("Found exist Java Path config!", color='blue')
     else:
-        print("LaunchManager: Can't find exist Java Path config :(", color='red')
+        print("Can't find exist Java Path config :(", color='red')
         print("Want create it now ? Y/N", color='green')
         user_input = input(":")
         if user_input.upper() == "Y":
-            print("LaunchManager: Calling java_search..")
+            print("Calling java_search..")
             os.chdir(Base.launcher_root_dir)
             java_search()
         else:
@@ -241,7 +244,7 @@ def LaunchManager():
 
     # Check JavaPath is valid
     if JavaPath is None:
-        print("LaunchManager:Get JavaPath failed! Cause by None path!", color='red')
+        print("Get JavaPath failed! Cause by None path!", color='red')
         print("Please download third version of Minecraft support Java(In DownloadTool)!")
         timer(5)
         return "FailedToCheckJavaPath"
@@ -294,7 +297,7 @@ def LaunchManager():
             DemoFlag = False
 
     except JSONDecodeError or ValueError:
-        print("LaunchManager: Failed to launch Minecraft :( Cause by invalid AccountData", color='red')
+        print("Failed to launch Minecraft :( Cause by invalid AccountData", color='red')
         return
 
     # Check EnableMultitasking Support
@@ -308,7 +311,7 @@ def LaunchManager():
                         EnableMultitasking = True
                     break
     except FileNotFoundError:
-        print("LaunchManager: No config.bakelh.cfg found :0", color='yellow')
+        print("No config.bakelh.cfg found :0", color='yellow')
 
     # Sdt work path to instances
     os.chdir(instance_dir)
@@ -321,8 +324,9 @@ def LaunchManager():
     JVM_Args_HeapDump = r"-XX:HeapDumpPath=MojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump"
 
     # Set this to prevent the windows too small
-    JVM_Args_WindowsSize = (r"-Dorg.lwjgl.opengl.Window.undecorated=false -Dorg.lwjgl.opengl.Display.width=1280 "
-                            r"-Dorg.lwjgl.opengl.Display.height=720")
+    JVM_Args_WindowsSize = (rf"-Dorg.lwjgl.opengl.Window.undecorated=false "
+                            rf"-Dorg.lwjgl.opengl.Display.width={Base.DefaultGameScreenWidth} "
+                            rf"-Dorg.lwjgl.opengl.Display.height={Base.DefaultGameScreenHeight}")
 
     # Check natives are available to use
     print("Checking natives...", color='green')
@@ -330,7 +334,7 @@ def LaunchManager():
         if not len(os.listdir(".minecraft/natives")) == 0:
             print("Natives are available! (if it unzip correctly)", color='green')
         else:
-            print("LaunchManager: Natives are not available or it unzip not correctly :(", color='red')
+            print("Natives are not available or it unzip not correctly :(", color='red')
             print("Please download now you launch instances version(it will recreate it)",
                   color='yellow')
             print("If you still get this error please report this issue to GitHub!", color='green')
@@ -338,8 +342,7 @@ def LaunchManager():
             os.chdir(Base.launcher_root_dir)
             return "NativesAreNotAvailable"
     else:
-        timer(8)
-        print("LaunchManager: Natives are not available or it unzip not correctly :(", color='red')
+        print("Natives are not available or it unzip not correctly :(", color='red')
         print("Please download now you launch instances version(it will recreate it)", color='yellow')
         print("If you still get this error please report this issue to GitHub!", color='green')
         time.sleep(4)
@@ -350,7 +353,10 @@ def LaunchManager():
     NativesPath = ".minecraft/natives"
 
     # Get librariesPath(Example: /path/LWJGL-1.0.jar:/path/Hopper-1.2.jar:/path/client.jar)
+    InjectJARPath = None
     libraries_paths_strings = generate_libraries_paths(minecraft_version, "libraries")
+
+    # Inject jar file to launch chain
 
     # Get MainClass Name And Set Args(-cp "libraries":client.jar net.minecraft.client.main.Main or
     # net.minecraft.launchwrapper.Launch(old))
@@ -387,6 +393,8 @@ def LaunchManager():
                           color='blue')
                     continue
 
+                if "InjectJARPath" in line:
+                    InjectJARPath = line.split('=')[1].strip().strip('"').strip("'")
         # Check if CustomJVMArgs(or CustomGameArgs) is None or has a length of 0 (ignoring spaces)
         if CustomJVMArgs is None or len(CustomJVMArgs.strip()) == 0:
             print("CustomJVMArgs is empty or not provided, ignoring...", color='yellow')
@@ -404,9 +412,12 @@ def LaunchManager():
         CustomGameArgs = " "
         CustomJVMArgs = None
 
-    if not CustomJVMArgs is None:
+    if CustomJVMArgs is not None:
         JVM_Args_WindowsSize = " "
         JVM_ArgsRAM = CustomJVMArgs
+
+    if InjectJARPath is not None:
+        libraries_paths_strings += InjectJARPath
 
     if DemoFlag:
         if "-demo" not in CustomGameArgs:

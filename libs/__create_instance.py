@@ -129,6 +129,7 @@ def multi_thread_download(nested_urls_and_paths, name, max_workers=5, retries=1)
 
 class Create_Instance:
     def __init__(self):
+        self.version_spoof_status = None
         self.legacy_version_type = "classic"
         self.legacy_version = False
         self.SelectedInstanceInstalled = False
@@ -211,29 +212,32 @@ class Create_Instance:
         def get_legacy_party(mode):
             # Legacy Part
             legacy_minecraft_response = requests.get(self.LegacyVersionManifestURl)
+            """
             alpha_minecraft_response = requests.get(self.AlphaManifestURl)
             infdev_minecraft_response = requests.get(self.InfdevManifestURl)
             indev_manifest_response = requests.get(self.IndevManifestURL)
             classic_minecraft_response = requests.get(self.ClassicManifestURl)
             pre_classic_minecraft_response = requests.get(self.RubyDungMinecraftManifestURl)
-
+            """
             legacy_data = legacy_minecraft_response.json()
+            """
             alpha_data = alpha_minecraft_response.json()
             infdev_data = infdev_minecraft_response.json()
             indev_data = indev_manifest_response.json()
             classic_data = classic_minecraft_response.json()
             pre_classic_data = pre_classic_minecraft_response.json()
-
-            legacy_version_list = [version['id'] for version in legacy_data['versions']]  # Corrected key
+            """
+            legacy_version_list = [version['id'] for version in legacy_data['versions']]
+            """
             alpha_version_list = [version['id'] for version in alpha_data['versions']]
             infdev_version_list = [version['id'] for version in infdev_data['versions']]
             indev_version_list = [version['id'] for version in indev_data['versions']]
             classic_version_list = [version['id'] for version in classic_data['versions']]
             pre_classic_version_list = [version['id'] for version in pre_classic_data['versions']]
-
+            """
             format_legacy_version = '\n'.join([f"{index + 1}: {version}"
                                                for index, version in enumerate(legacy_version_list)])
-
+            """
             format_alpha_list = '\n'.join([f"{index + 1}: {version}"
                                            for index, version in enumerate(alpha_version_list)])
 
@@ -248,27 +252,22 @@ class Create_Instance:
 
             format_pre_classic_list = '\n'.join([f"{index + 1}: {version}"
                                                  for index, version in enumerate(pre_classic_version_list)])
-
+            """
             if mode == "format":
-                return (
-                format_legacy_version, format_alpha_list, format_infdev_list, format_indev_list, format_classic_list,
-                format_pre_classic_list)
+                return format_legacy_version
             elif mode == "version_list":
-                return (
-                legacy_version_list, alpha_version_list, infdev_version_list, indev_version_list, classic_version_list,
-                pre_classic_version_list)
+                return legacy_version_list
 
         legacy_party = kwargs.get('legacy_party', False)
         if legacy_party:
-            (format_legacy_version, format_alpha_list, format_infdev_list, format_indev_list, format_classic_list,
-             format_pre_classic_list) = get_legacy_party("format")
+            format_legacy_version = get_legacy_party("format")
 
-            (legacy_version_list, alpha_version_list, infdev_version_list, indev_version_list, classic_version_list,
-             pre_classic_version_list) = get_legacy_party("version_list")
+            legacy_version_list = get_legacy_party("version_list")
 
             if mode == "legacy_version_list":
                 rows_all = (len(format_legacy_version) + 50) // 40
                 version_list = legacy_version_list
+            """
             elif mode == "alpha_list":
                 rows_all = (len(format_alpha_list) + 50) // 40
                 version_list = alpha_version_list
@@ -284,6 +283,7 @@ class Create_Instance:
             elif mode == "pre_classic_list":
                 rows_all = (len(format_pre_classic_list) + 50) // 40
                 version_list = pre_classic_version_list
+            """
 
             # New methods
             print("Available version list:", color='purple')
@@ -718,6 +718,10 @@ class Create_Instance:
             if os.path.exists(install_path):
                 shutil.rmtree(install_path)
 
+        if Base.DoNotAskJVMExist and os.path.exists(install_path):
+            print("Bypassing reinstall JVM...", color='green', tag='INFO')
+            return True, "BypassInstallJVM"
+
         if os.path.exists(install_path):
             print("Warning: A same version of Java runtime has been installed.", color='yellow')
             print("Do you want to reinstall it? Y/N")
@@ -802,15 +806,14 @@ class Create_Instance:
         a function named "java_version_check" to get the java_version. If the client uses a spoofed version,
         it might crash due to argument bugs. (However, legacy version data's "MinecraftArguments" are complete.)
         """
+        # In this function, version id is spoof version(if minecraft version is legacy)
         print("Loading version info...")
         instance_info = os.path.join(install_dir, "instance.bakelh.ini")
+        # Get real_version(to download client)
         Status, real_version = instance_manager.get_instance_info(instance_info, info_name='real_minecraft_version')
         version_data = self.get_version_data(version_id)
 
-        if not os.path.exists(install_dir):
-            os.makedirs(install_dir)
-
-        # Download game file( libraries, .jar files...., and natives)
+        # Download game file( libraries, .jar files...)
         print("Downloading client...", color='blue')
         self.download_client(version_data, real_version, install_dir)
         print("Downloading libraries...", color='blue')
@@ -840,32 +843,46 @@ class Create_Instance:
         # Add waiting time(If assets download failed it will print it?)
         time.sleep(1.2)
 
-    def start_create_instance(self, require_version):
-        global instance_path, client_version
+    def version_spoof(self, require_version):
+        global client_version, spoof_enable
         if self.legacy_version:
             real_version = require_version
             print(f" Version Type: {self.legacy_version_type}", color='green', tag='DEBUG')
             if self.legacy_version_type == "alpha":
                 client_version = "a1.2.6"
+                self.version_spoof_status = True
             elif self.legacy_version_type == "infdev":
                 client_version = "inf-20100618"
+                self.version_spoof_status = True
             elif self.legacy_version_type == "indev":
                 client_version = "inf-20100618"
+                self.version_spoof_status = True
             elif self.legacy_version_type == "classic":
                 client_version = "c0.30_01c"
+                self.version_spoof_status = True
             elif self.legacy_version_type == "pre-classic":
                 client_version = "rd-160052"
-            print(f"Version Spoof Enable | RealVersion: {require_version} Spoof to Version : {client_version}", color='green', tag='DEBUG')
+                self.version_spoof_status = True
+            if self.version_spoof_status:
+                print(f"Version Spoof Enable | RealVersion: {require_version} Spoof to Version : {client_version}", color='green', tag='DEBUG')
         else:
             client_version = require_version
             real_version = require_version
+        return client_version, real_version
 
+    def start_create_instance(self, require_version):
+        global instance_path, client_version
+
+        # Check version
+        client_version, real_version = self.version_spoof(require_version)
+        print(client_version, real_version)
         if not os.path.exists(Base.launcher_instances_dir):
-            print("Instances directory does not exist. Please check your configuration.", color='red')
-            return False, "InvalidInstancesDir"
+            os.makedirs(Base.launcher_instances_dir)
 
-        print("Installed instance list:", color='green')
-        self.instance_list()
+        instances_dir = os.listdir(Base.launcher_instances_dir)
+        if len(instances_dir) == 0:
+            print("Installed instance list:", color='green')
+            self.instance_list()
 
         while True:
             # Prompt for instance name
@@ -904,7 +921,6 @@ class Create_Instance:
                     continue
 
             print(f'Creating instance at "{instance_path}"', color='green')
-            print(real_version)
             if self.legacy_version:
                 instance_manager.create_instance_data(
                     instance_name=os.path.basename(instance_path),
@@ -947,8 +963,11 @@ class Create_Instance:
             print("Exiting...", color='green')
             return True
 
-        instance_name = instance_path
-        shutil.rmtree(instance_name)
+        instance_info = os.path.join(instance_path, "instance.bakelh.ini")
+        Status, real_version = instance_manager.get_instance_info(instance_info, info_name="real_minecraft_version")
+        Status, instance_name = instance_manager.get_instance_info(instance_info, info_name="instance_name")
+        if not real_version == client_version:
+            self.legacy_version = True
 
         print(f"Reinstalling instance name {instance_name}...", color='green')
         print(f"Client Version: {client_version} Instance Path: {instance_path}", color='green', tag='DEBUG')
@@ -1079,9 +1098,11 @@ class Create_Instance:
                 download_version = str(input(":"))
                 if download_version.strip().lower() in legacy_list:
                     try:
-                        self.legacy_version = True
                         self.legacy_version_id = download_version
                         self.legacy_version_type = self.get_version_type(download_version)
+                        if not self.legacy_version_type == "old_alpha":
+                            # except some official version
+                            self.legacy_version = True
                         self.start_create_instance(download_version)
                         return True
                     except Exception as e:
