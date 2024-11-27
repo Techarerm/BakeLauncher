@@ -1061,6 +1061,7 @@ class Create_Instance:
                 self.start_create_instance(minecraft_version)
             except Exception as e:
                 print(f"Failed to create instance. Error: {e}", color='red')
+                time.sleep(5)
                 return
 
         def download_with_regular_minecraft_version():
@@ -1086,6 +1087,7 @@ class Create_Instance:
                 if selected_version:
                     ClearOutput()
                     print("Creating instance....", color='green')
+                    self.legacy_version = False
                     self.start_create_instance(regular_version_input)
                 else:
                     # idk this thing would happen or not :)  , just leave it and see what happen....
