@@ -250,9 +250,9 @@ def java_search():
             print("Minecraft Java version requirement list:")
             print("1.0~1.16 - Java 8")
             print("Download Link: https://www.java.com/download/manual.jsp")
-            print("1.17~1.20 - Java 17")
+            print("1.17~1.20.4 - Java 17")
             print("Download Link: https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html")
-            print("1.21~1.22 - Java 21")
+            print("1.20.5~Latest - Java 21")
             print("Download Link: https://www.oracle.com/java/technologies/downloads/#java21")
             print("Back to main menu.....")
     else:

@@ -129,6 +129,7 @@ def multi_thread_download(nested_urls_and_paths, name, max_workers=5, retries=1)
 
 class Create_Instance:
     def __init__(self):
+        self.client_version = None
         self.version_spoof_status = None
         self.legacy_version_type = "classic"
         self.legacy_version = False
@@ -566,6 +567,16 @@ class Create_Instance:
             unzip_status = False
             print("No natives file found.", color='yellow')
         if unzip_status:
+            for root, dirs, files in os.walk(natives_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    dest_path = os.path.join(natives_dir, file)
+
+                    if os.path.exists(dest_path):
+                        base, ext = os.path.splitext(file)
+                        dest_path = os.path.join(natives_dir, f"{base}_copy{ext}")
+
+                    shutil.move(file_path, dest_path)
             print("Unzip Natives successfully!", color='blue')
         else:
             print("Warring: You may get some error you download libraries. Please re-download this version of"
@@ -954,7 +965,6 @@ class Create_Instance:
               color='red')  # legacy part
         Status, client_version, instance_path = instance_manager.select_instance(
             "Which instance you want to reinstall?", client_version=True)
-
         if not Status:
             print(f"Failed to get select instance. Cause by error {client_version}", color='red')
             return False
@@ -964,17 +974,16 @@ class Create_Instance:
             return True
 
         instance_info = os.path.join(instance_path, "instance.bakelh.ini")
-        Status, real_version = instance_manager.get_instance_info(instance_info, info_name="real_minecraft_version")
+        Status, use_legacy_manifest = instance_manager.get_instance_info(instance_info, info_name="use_legacy_manifest")
         Status, instance_name = instance_manager.get_instance_info(instance_info, info_name="instance_name")
-        if not real_version == client_version:
+        if use_legacy_manifest:
             self.legacy_version = True
+        else:
+            self.legacy_version = False
 
         print(f"Reinstalling instance name {instance_name}...", color='green')
         print(f"Client Version: {client_version} Instance Path: {instance_path}", color='green', tag='DEBUG')
-        try:
-            self.download_games_files(client_version, instance_path)
-        except Exception as e:
-            print(f"An error occurred when reinstall instance: {e}")
+        self.download_games_files(client_version, instance_path)
 
     def create_instance(self):
         def download_minecraft_with_version_id(list_type=None):
@@ -1048,6 +1057,7 @@ class Create_Instance:
 
             print("Creating instance...", color='green')
             try:
+                self.legacy_version = False
                 self.start_create_instance(minecraft_version)
             except Exception as e:
                 print(f"Failed to create instance. Error: {e}", color='red')
@@ -1097,17 +1107,13 @@ class Create_Instance:
                 print("Please enter you want to download Minecraft version.", color='blue')
                 download_version = str(input(":"))
                 if download_version.strip().lower() in legacy_list:
-                    try:
-                        self.legacy_version_id = download_version
-                        self.legacy_version_type = self.get_version_type(download_version)
-                        if not self.legacy_version_type == "old_alpha":
-                            # except some official version
-                            self.legacy_version = True
-                        self.start_create_instance(download_version)
-                        return True
-                    except Exception as e:
-                        print(f"Failed to create instance. Cause by error {e}", color='red')
-                        time.sleep(7)
+                    self.legacy_version_id = download_version
+                    self.legacy_version_type = self.get_version_type(download_version)
+                    if not self.legacy_version_type == "old_alpha":
+                        # except some official version
+                        self.legacy_version = True
+                    self.start_create_instance(download_version)
+                    return True
 
                 if download_version.strip().lower() == "exit":
                     return True
