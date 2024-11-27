@@ -9,7 +9,8 @@ from libs.__account_manager import account_manager
 from LauncherBase import Base, ChangeLog, ClearOutput, bake_game, print_custom as print
 from libs.launch_manager import LaunchManager
 from libs.__create_instance import create_instance
-from libs.jvm_tool import java_finder, initialize_jvm_config
+from libs.__duke_explorer import Duke
+from libs.jvm_tool import initialize_jvm_config, java_finder
 from libs.args_manager import argsman
 from libs.__instance_manager import instance_manager
 
@@ -72,6 +73,9 @@ def extra_memu():
         print("1: Custom Args             4: Clear ErrorMessage ")
         print("2: Reset AccountData.json  5: Convert Old Instance Structure")
         print("3: Clear JVM config file   6: Auto-Convert Old Instance Structure")
+        print("7: Search Java Runtimes(Duke)")
+        print("--------------------------Obsolete functions--------------------------------")
+        print("7: Search Java Runtimes")
     user_input = str(input(":"))
     while True:
         if user_input == "1":
@@ -98,7 +102,13 @@ def extra_memu():
         elif user_input == "6":
             instance_manager.legacy_instances_convert(automatic_convert=True)
             return
-        elif user_input.upper() == "7" or user_input.upper() == "EXIT":
+        elif user_input.upper() == "7":
+            Duke.duke_finder()
+            return
+        elif user_input.upper() == "8":
+            java_finder()
+            return
+        elif user_input.upper() == "9" or user_input.upper() == "EXIT":
             return
         else:
             print("Unknown options :O", color='red')

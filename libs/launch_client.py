@@ -207,7 +207,7 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
         client_process.start()
     else:
         print("EnableExperimentalMultitasking is Disabled!", color='green')
-        print('"BakeLauncher One Thread Launch Mode"', color='green')
+        print('"Launch Mode: Legacy', color='green')
         if Base.Platform == "Windows":
             subprocess.run(minecraft_command_one_thread, shell=True)
             print("Minecraft has stopped running! (Thread terminated)", color='green')

@@ -27,8 +27,6 @@ DontCheckInternetConnection = true
 # Automatic open you want option when launcher load MainMemu
 AutomaticOpenOptions = false
 Option = None
-
-# 
 NoList = false
 
 <LaunchManager>
@@ -40,8 +38,6 @@ DefaultGameScreenHeight = 720
 # Memu setting
 # Set maximum number of instances name can be printed in one line
 MaxInstancesPerRow = 20
-
-EnableExperimentalInteractiveSelectBar = true
 
 # Automatic launch you want to launch instances
 AutomaticLaunch = false
@@ -141,10 +137,10 @@ class LauncherBase:
 
     def __init__(self):
         # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-        self.launcher_version = 'Beta 0.9(Dev-KB112624)'
-        self.launcher_version_display = 'Beta 0.9 (Dev-KB112624)'
+        self.launcher_version = 'Beta 0.9(Dev-KC112724)'
+        self.launcher_version_display = 'Beta 0.9 (Dev-KC112724)'
         self.launcher_version_tag = "Dev"
-        self.launcher_internal_version = 'dev-beta-kb-112624-b'
+        self.launcher_internal_version = 'dev-beta-kc-112724'
         self.launcher_data_format = "dev-beta-0.9"
         self.PlatformSupportList = ["Windows", "Darwin", "Linux"]
         self.Platform = self.get_platform("platform")
@@ -162,7 +158,6 @@ class LauncherBase:
         self.AutomaticOpenOptions = False  # Start selected option when load main_memu
         self.AutoOpenOptions = None  # Select option
         self.EnableExperimentalMultitasking = False
-        self.EnableExperimentalInteractiveSelectBar = True
         self.DefaultGameScreenHeight = 720
         self.DefaultGameScreenWidth = 1280
         self.OverwriteJVMIfExist = False
@@ -194,18 +189,20 @@ class LauncherBase:
         # instance_info support?)
         try:
             if self.LauncherWorkDir is not None and self.LauncherWorkDir != "None":
-                os.chdir(self.LauncherWorkDir)
-                print_color(f'Launcher workDir now is "{self.LauncherWorkDir}"', color='green')
-                self.launcher_root_dir = self.LauncherWorkDir
+                if len(self.LauncherWorkDir) > 0:
+                    os.chdir(self.LauncherWorkDir)
+                    print(f'Launcher workDir now is "{self.LauncherWorkDir}"')
+                    self.launcher_root_dir = self.LauncherWorkDir
+                else:
+                    print_color("Invalid LauncherWorkDir!", tag='Warning')
+                    print_color("Stopped change workDir!", tag='INFO')
             else:
                 os.chdir(self.launcher_root_dir)
 
         except UnicodeEncodeError:
-            print_color("Warning: The launcher is running in a directory with non-ASCII characters.", color='yellow')
-            print_color("You may get failed to launch when you enable EnableExperimentalMultitasking support.",
-                        color='yellow')
-            print_color("This bug has been confirmed if the user are using Windows(other systems are unverified).",
-                        color='yellow')
+            print_color("Warning: The launcher is running in a directory with non-ASCII characters.", tag='Warning')
+            print_color("You may get failed to launch when you enable EnableExperimentalMultitasking support.")
+            print_color("This bug has been confirmed if the user are using Windows(other systems are unverified).")
             continue_load = str(input("Enter Y to ignore this warning: "))
             if not continue_load.upper() == "Y":
                 return False, "WorkDirUnicodeEncodeError"
@@ -221,8 +218,11 @@ class LauncherBase:
         Status, Message = self.check_internet_connect()
 
         if os.path.exists("data/config.bakelh.cfg"):
-            if self.DefaultAccountID is None:
-                print_color("Warning: Your config file are corrupted :( Do you want to reconfigure it?", color='yellow')
+            with open("data/config.bakelh.cfg", "r", encoding="utf-8") as file:
+                cfg_data = file.read()  # Read the content of the file
+                cfg_length = len(cfg_data)
+            if cfg_length < 10:
+                print_color("Warning: Your config file are corrupted :( Do you want to reconfigure it?")
                 user_input = str(input('Y/N :'))
                 if user_input.upper() == "Y":
                     initialize_config(overwrite=True)
@@ -316,8 +316,6 @@ class LauncherBase:
                     except ValueError:
                         self.DefaultGameScreenHeight = 720
 
-                if "EnableExperimentalInteractiveSelectBar" in line:
-                    self.EnableExperimentalInteractiveSelectBar = line.split('=')[1].strip().upper() == "TRUE"
 
         if not self.NoPrintConfigInfo:
             if self.Debug:

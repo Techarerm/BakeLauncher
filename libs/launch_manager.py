@@ -4,7 +4,7 @@ import json
 from json import JSONDecodeError
 from LauncherBase import Base, timer, print_custom as print
 from libs.__assets_grabber import assets_grabber
-from libs.jvm_tool import java_search
+from libs.__duke_explorer import Duke
 from libs.__create_instance import create_instance
 from libs.__account_manager import account_manager
 from libs.launch_client import LaunchClient
@@ -38,20 +38,16 @@ def java_version_check(version_id):
         print(f"Warning: BakeLauncher will using Java 8 instead original support version of Java.", color='yellow')
         major_version = str("8")
 
-    Java_VERSION = "Java_" + str(major_version)
-    if Java_VERSION == "Java_8": 
-        Java_VERSION = "Java_1.8"
-
     try:
         with open("data/Java_HOME.json", "r") as file:
             data = json.load(file)
 
-        Java_path = data.get(Java_VERSION)
+        Java_path = data.get(str(major_version))
         if Java_path:
             print(f"Get Java Path successfully! | Using Java {major_version}!", color='blue')
             return Java_path
         else:
-            print(f"Java version {Java_VERSION} not found in Java_HOME.json", color='red')
+            print(f"Java version {major_version} not found in Java_HOME.json", color='red')
             return None
 
     except FileNotFoundError:
@@ -233,9 +229,9 @@ def LaunchManager():
         print("Want create it now ? Y/N", color='green')
         user_input = input(":")
         if user_input.upper() == "Y":
-            print("Calling java_search..")
+            print("Calling duke...")
             os.chdir(Base.launcher_root_dir)
-            java_search()
+            Duke.duke_finder()
         else:
             return "JVMConfigAreNotFound"
 
@@ -286,15 +282,7 @@ def LaunchManager():
         access_token = account_data['AccessToken']
 
         if username == "Player" or username == "BakeLauncherLocalUser":
-            print("Warning: You are currently using a temporary user profile. "
-                  "This means you can only play Minecraft in demo mode :)", color='yellow')
-            return_check = input("If you understand this, press 'Y' to continue launching: ")
-            if not return_check.upper() == "Y":
-                return
-            else:
-                DemoFlag = True
-        else:
-            DemoFlag = False
+            return "AccountDataInvalid"
 
     except JSONDecodeError or ValueError:
         print("Failed to launch Minecraft :( Cause by invalid AccountData", color='red')
@@ -418,12 +406,6 @@ def LaunchManager():
 
     if InjectJARPath is not None:
         libraries_paths_strings += InjectJARPath
-
-    if DemoFlag:
-        if "-demo" not in CustomGameArgs:
-            CustomGameArgs += " -demo"
-        if "DemoUser" not in CustomLaunchStatus:
-            CustomLaunchStatus += ";DemoUser"
 
     # Set instances_id(for multitasking process title)
     instances_id = f"Minecraft {minecraft_version}"

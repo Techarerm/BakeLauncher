@@ -19,12 +19,23 @@ class BakeLauncher:
     """
 
     def __init__(self):
-
+        self.StartStatus = False
+        self.Message = None
         # Load LauncherBase
-        StartStatus, Message = Base.Initialize()
+        try:
+            self.StartStatus, self.Message = Base.Initialize()
+        except Exception as e:
+            ClearOutput()
+            tb = traceback.format_exc()  # Full traceback as a string
+            function_name = traceback.extract_tb(e.__traceback__)[-1].name
+            print(f"BakeLauncher has crashed :( Caused by failed to load Base.", color='red')
+            print(f"Crash at function name Base.{function_name}()")
+            print(f"Error {e}")
+            print(f"Detailed traceback:\n{tb}")
+            self.generate_crash_log(tb, function_name, e, BaseInitialized=False)
 
         # Start launcher process if loading base pass
-        if StartStatus:
+        if self.StartStatus:
             try:
                 self.main()
             except Exception as e:
@@ -36,10 +47,11 @@ class BakeLauncher:
                 print(f"Crash at function name {function_name}")
                 print(f"Error {e}")
                 print(f"Detailed traceback:\n{tb}")
-                self.generate_crash_log(tb, function_name, e)
+                self.generate_crash_log(tb, function_name, e, BaseInitialized=True)
         else:
             print("Init Error :(", colo='red')
-            print(f"Can't init BakeLauncher. Cause by error: {Message}")
+            print("If BakeLauncher crashes while loading Base. You can try deleting the invalid profile, this may "
+                  "help resolve the issue")
 
         print("BakeLauncher thread terminated!")
         input("Press any key to continue...")
@@ -57,12 +69,12 @@ class BakeLauncher:
         main_memu()
 
     @staticmethod
-    def generate_crash_log(tb, crash_function, e):
+    def generate_crash_log(tb, crash_function, e, BaseInitialized):
         crash_log = textwrap.dedent(f"""\
         [BakeLauncher Crash Log]
         
         Launcher Version: {Base.launcher_version}
-        BaseInitialized = Yes
+        BaseInitialized = {BaseInitialized}
         
         Date: {datetime.datetime.now()}
         Crash at function name: {crash_function}
