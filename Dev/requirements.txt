@@ -6,4 +6,3 @@ pyinstaller==6.10.0
 psutil==5.9.8
 tqdm==4.66.5
 ping3==4.0.8
-bs4==4.12.3
