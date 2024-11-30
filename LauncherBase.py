@@ -4,6 +4,10 @@ import platform
 from print_color import print as print_color
 from ping3 import ping
 
+dev_version = "KF113024"  # If version type is release set it blank
+version_type = "Dev"
+major_version = "0.9"
+
 BetaWarningMessage = ("You are running beta version of BakeLauncher.\n"
                       "This is an 'Experimental' version with potential instability.\n"
                       "Please run it only if you know what you are doing.\n")
@@ -115,7 +119,7 @@ def ClearOutput():
         return
 
 
-def timer(seconds):
+def timer(message, seconds):
     for remaining in range(seconds, 0, -1):
         # Determine the color based on the remaining time
         if remaining <= 4:
@@ -124,7 +128,7 @@ def timer(seconds):
             c = "white"  # White
 
         # Print the remaining time with color and overwrite previous output
-        print_custom(f"Back to main menu...{remaining} \033[0m", end='\r', color=c)
+        print_custom(f"{message}...{remaining} \033[0m", end='\r', color=c)
 
         # Wait for 1 second
         time.sleep(1)
@@ -137,11 +141,23 @@ class LauncherBase:
 
     def __init__(self):
         # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
-        self.launcher_version = 'Beta 0.9(Dev-KC112724)'
-        self.launcher_version_display = 'Beta 0.9 (Dev-KC112724)'
-        self.launcher_version_tag = "Dev"
-        self.launcher_internal_version = 'dev-beta-kc-112724'
-        self.launcher_data_format = "dev-beta-0.9"
+        if version_type == "Dev":
+            self.launcher_version = f"Beta {major_version}({version_type}-{dev_version})"
+            self.launcher_version_type = "Dev"
+            self.launcher_internal_version = f'dev-beta-{major_version}-{dev_version}'
+            self.launcher_version_display = f"Beta {major_version} ({version_type}-{dev_version})"
+        else:
+            if len(dev_version) != 0:
+                self.launcher_version = f"Beta {major_version}({dev_version})"
+                self.launcher_version_type = "Pre-Release"
+                self.launcher_internal_version = f'beta-{major_version}-pre-release'
+                self.launcher_version_display = f"Beta {major_version} ({dev_version})"
+            else:
+                self.launcher_version = f"Beta {major_version}"
+                self.launcher_version_type = "Release"
+                self.launcher_internal_version = f'beta-{major_version}-release'
+                self.launcher_version_display = self.launcher_version
+        self.launcher_data_format = "dev-beta-0.9-2"
         self.PlatformSupportList = ["Windows", "Darwin", "Linux"]
         self.Platform = self.get_platform("platform")
         self.LibrariesPlatform = self.get_platform("libraries")
@@ -173,6 +189,8 @@ class LauncherBase:
         self.InternetConnected = False
         self.launcher_root_dir = os.getcwd()
         self.launcher_instances_dir = os.path.join(self.launcher_root_dir, "instances")
+        self.launcher_tmp_dir = os.path.join(self.launcher_root_dir, "tmp")
+        self.launcher_tmp_session = os.path.join(self.launcher_root_dir, "tmp", "in.session")
         self.global_config_path = os.path.join(self.launcher_root_dir, "data/config.bakelh.cfg")
         self.PingServerHostList = ["8.8.8.8", "210.2.4.8", "1.1.1.1"]
 
@@ -216,6 +234,12 @@ class LauncherBase:
             os.system(f'echo -ne "\033]0;BakeLauncher {Base.launcher_version}\007"')
 
         Status, Message = self.check_internet_connect()
+
+        # Create tmp folder
+        if not os.path.exists(self.launcher_tmp_dir):
+            os.makedirs(self.launcher_tmp_dir)
+            with open(self.launcher_tmp_session, "w"):
+                pass
 
         if os.path.exists("data/config.bakelh.cfg"):
             with open("data/config.bakelh.cfg", "r", encoding="utf-8") as file:
@@ -315,7 +339,6 @@ class LauncherBase:
                         self.DefaultGameScreenHeight = int(self.DefaultGameScreenHeight)
                     except ValueError:
                         self.DefaultGameScreenHeight = 720
-
 
         if not self.NoPrintConfigInfo:
             if self.Debug:
@@ -451,6 +474,40 @@ class LauncherBase:
 
 
 Base = LauncherBase()
+
+
+def bake_bake():
+    print_color("POWERED BY BAKE!", color="yellow")
+    print_color("BakeLauncher " + Base.launcher_version, color='yellow')
+    print_color("Contact Me :) TedKai/@Techarerm", color="blue")
+    print_color("Source code: https://github.com/Techarerm/BakeLauncher", color='yellow')
+    if "Dev" in Base.launcher_version:
+        print_color("This bread isn't baked yet?", color='blue')
+    elif "Beta" in Base.launcher_version:
+        print_color("Almost done? (Just wait...like 1 years?)", color='blue')
+    print_color(" ")
+    print_color(ChangeLog, color='cyan')
+    print_color("Type 'exit' to back to main memu.", color='green')
+    type_time = 1
+    while True:
+        user_input = str(input("BakeLauncher> "))
+
+        if user_input.upper() == "EXIT":
+            return True
+
+        if "BAKE" in user_input.upper():
+            bake_game()
+            return True
+
+        if type_time == 1:
+            print(f"?{user_input}")
+            type_time += 1
+        elif type_time == 2:
+            print(f"!{user_input}")
+            type_time += 1
+        elif type_time == 3:
+            print(f"???{user_input}")
+            type_time = 1
 
 
 def bake_game():

@@ -53,6 +53,10 @@ class BakeLauncher:
             print("If BakeLauncher crashes while loading Base. You can try deleting the invalid profile, this may "
                   "help resolve the issue")
 
+        # Clean up session file
+        if os.path.exists(Base.launcher_tmp_session):
+            os.remove(Base.launcher_tmp_session)
+
         print("BakeLauncher thread terminated!")
         input("Press any key to continue...")
 
@@ -74,6 +78,8 @@ class BakeLauncher:
         [BakeLauncher Crash Log]
         
         Launcher Version: {Base.launcher_version}
+        Version Type: {Base.launcher_version_type}
+        Internal Name: {Base.launcher_internal_version}
         BaseInitialized = {BaseInitialized}
         
         Date: {datetime.datetime.now()}

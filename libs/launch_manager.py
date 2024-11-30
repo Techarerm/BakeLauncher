@@ -1,68 +1,27 @@
 import os
+import shutil
 import time
-import json
 from json import JSONDecodeError
 from LauncherBase import Base, timer, print_custom as print
 from libs.__assets_grabber import assets_grabber
 from libs.__duke_explorer import Duke
-from libs.__create_instance import create_instance
 from libs.__account_manager import account_manager
 from libs.launch_client import LaunchClient
 from libs.__instance_manager import instance_manager
+from libs.utils import get_version_data
 
 
 def SelectMainClass(version_id):
-    version_data = create_instance.get_version_data(version_id)
+    version_data = get_version_data(version_id)
     main_class = version_data.get("mainClass")
     return main_class
-
-
-def java_version_check(version_id):
-    """
-    Check the Minecraft version requirements for Java version.
-    """
-
-    print(f"Trying to check the required Java version for this Minecraft version...", color='green')
-
-    try:
-        # Get version data
-        version_data = create_instance.get_version_data(version_id)
-
-        # Extract the Java version information
-        component, major_version = create_instance.get_java_version_info(version_data)
-        print(f"Required Java Component: {component}, Major Version: {major_version}", color='green')
-
-    except Exception as e:
-        # If it can't get support Java version, using Java 8(some old version will get this error)
-        print(f"Error occurred while fetching version data: {e}", color='red')
-        print(f"Warning: BakeLauncher will using Java 8 instead original support version of Java.", color='yellow')
-        major_version = str("8")
-
-    try:
-        with open("data/Java_HOME.json", "r") as file:
-            data = json.load(file)
-
-        Java_path = data.get(str(major_version))
-        if Java_path:
-            print(f"Get Java Path successfully! | Using Java {major_version}!", color='blue')
-            return Java_path
-        else:
-            print(f"Java version {major_version} not found in Java_HOME.json", color='red')
-            return None
-
-    except FileNotFoundError:
-        print(f"Java_HOME.json file not found", color='red')
-        return None
-    except json.JSONDecodeError:
-        print(f"Error decoding JSON from Java_HOME.json", color='red')
-        return None
 
 
 def macos_jvm_args_support(version_id):
     """
     Check if the version data includes the -XstartOnFirstThread argument for macOS.
     """
-    version_data = create_instance.get_version_data(version_id)
+    version_data = get_version_data(version_id)
     jvm_args_list = version_data.get("arguments", {}).get("jvm", [])
 
     for jvm_entry in jvm_args_list:
@@ -82,6 +41,9 @@ def generate_libraries_paths(client_version, libraries_dir):
     jar_paths_string = ""
     client_jar_path = os.path.join(libraries_dir, "net", "minecraft", client_version, "client.jar")
 
+    # Set to track already added ASM versions (version number should be unique)
+    added_asm_versions = set()
+
     # Traverse the libraries directory
     print(f"Generating dependent libraries path for {client_version} of Minecraft...", color="green")
     for root, dirs, files in os.walk(libraries_dir):
@@ -89,7 +51,19 @@ def generate_libraries_paths(client_version, libraries_dir):
             if file.endswith('.jar') and not file.startswith("client.jar"):
                 # Skip adding client.jar to jar_paths_string
                 relative_path = os.path.relpath(os.path.join(root, file), start=libraries_dir)
-                full_path = os.path.join("libraries", relative_path)
+                full_path = os.path.join(".minecraft", "libraries", relative_path)
+
+                # Check if this is an ASM library
+                if 'asm' in file:
+                    # Extract the version from the file name (assuming version format is in the jar filename)
+                    version = file.split('-')[1]
+                    if version in added_asm_versions:
+                        # Skip this ASM jar if the version is already added
+                        print(f"Skipping duplicate ASM library: {file}")
+                        continue
+                    else:
+                        # Mark this version as added
+                        added_asm_versions.add(version)
 
                 # Append the path to the jar_paths_string with the correct separator
                 if Base.Platform == "Windows":
@@ -105,7 +79,7 @@ def generate_libraries_paths(client_version, libraries_dir):
 
 
 def GetGameArgs(version_id, username, access_token, game_dir, assets_dir, assetsIndex, uuid):
-    version_data = create_instance.get_version_data(version_id)  # Fetch version data
+    version_data = get_version_data(version_id)  # Fetch version data
     minecraftArguments = version_data.get("minecraftArguments", "")  # Get the arguments or an empty string
     user_properties = "{}"
     user_type = "msa"  # Set user type to 'msa'
@@ -162,7 +136,7 @@ def GetGameArgs(version_id, username, access_token, game_dir, assets_dir, assets
 
 def LaunchManager():
     global CustomGameArgs, CustomJVMArgs, JVM_Args_HeapDump, JVM_Args_WindowsSize, JVM_ArgsRAM, EnableMultitasking, \
-        CustomLaunchStatus, account_data, username, access_token, uuid, DemoFlag
+        CustomLaunchStatus, account_data, username, access_token, uuid, DemoFlag, ModLoaderClass
 
     CustomLaunchStatus = ""
 
@@ -236,7 +210,7 @@ def LaunchManager():
             return "JVMConfigAreNotFound"
 
     print("Getting JVM Path...", color='c')
-    JavaPath = java_version_check(minecraft_version)
+    JavaPath = Duke.java_version_check(minecraft_version)
 
     # Check JavaPath is valid
     if JavaPath is None:
@@ -342,10 +316,11 @@ def LaunchManager():
 
     # Get librariesPath(Example: /path/LWJGL-1.0.jar:/path/Hopper-1.2.jar:/path/client.jar)
     InjectJARPath = None
-    libraries_paths_strings = generate_libraries_paths(minecraft_version, "libraries")
-
+    if os.path.exists("libraries"):
+        print("Moving libraries folder to .minecraft...")
+        shutil.move("libraries", ".minecraft")
+    libraries_paths_strings = generate_libraries_paths(minecraft_version, ".minecraft/libraries")
     # Inject jar file to launch chain
-
     # Get MainClass Name And Set Args(-cp "libraries":client.jar net.minecraft.client.main.Main or
     # net.minecraft.launchwrapper.Launch(old))
     main_class = SelectMainClass(minecraft_version)
@@ -360,29 +335,19 @@ def LaunchManager():
     GameArgs = GetGameArgs(minecraft_version, username, access_token, gameDir, assets_dir, assetsIndex, uuid)
 
     # Now it available :)
+    instance_custom_config = os.path.join(instance_dir, "instance.bakelh.cfg")
     if os.path.exists("instance.bakelh.cfg"):
         print("Found instance config :D", color='blue')
         print('Loading custom config...', color='green')
 
-        with open("instance.bakelh.cfg", 'r') as file:
-            for line in file:
-                # Check for CustomGameArgs
-                if "CustomGameArgs" in line:
-                    # Extract everything after '=' and strip leading/trailing whitespace
-                    CustomGameArgs = line.split('=', 1)[1].strip()  # Use maxsplit to capture the whole value
-                    print(f"Added custom game args to launch chain: '{CustomGameArgs}'", color='blue')
-                    continue
+        CustomJVMArgs = instance_manager.read_custom_config(instance_custom_config, "CustomJVMArgs")
 
-                # Check for CustomJVMArgs
-                if "CustomJVMArgs" in line:
-                    # Extract everything after '=' and strip leading/trailing whitespace
-                    CustomJVMArgs = line.split('=', 1)[1].strip()  # Use maxsplit to capture the whole value
-                    print(f"Added custom args to launch chain: '{CustomJVMArgs}'",
-                          color='blue')
-                    continue
+        CustomGameArgs = instance_manager.read_custom_config(instance_custom_config, "CustomGameArgs")
 
-                if "InjectJARPath" in line:
-                    InjectJARPath = line.split('=')[1].strip().strip('"').strip("'")
+        InjectJARPath = instance_manager.read_custom_config(instance_custom_config, "InjectJARPath")
+
+        ModLoaderClass = instance_manager.read_custom_config(instance_custom_config, "ModLoaderClass")
+
         # Check if CustomJVMArgs(or CustomGameArgs) is None or has a length of 0 (ignoring spaces)
         if CustomJVMArgs is None or len(CustomJVMArgs.strip()) == 0:
             print("CustomJVMArgs is empty or not provided, ignoring...", color='yellow')
@@ -396,6 +361,13 @@ def LaunchManager():
         else:
             # Check point for debug
             CustomLaunchStatus += ";WithCustomGameArg"
+
+        if ModLoaderClass is None or len(ModLoaderClass.strip()) == 0:
+            print("ModLoaderClass is empty or not provided, ignoring...", color='yellow')
+            ModLoaderClass = None  # Replace Custom Args to a spaces(if is empty)
+        else:
+            print(ModLoaderClass)
+            main_class = ModLoaderClass
     else:
         CustomGameArgs = " "
         CustomJVMArgs = None

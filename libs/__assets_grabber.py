@@ -4,7 +4,7 @@ import requests
 from tqdm import tqdm
 from LauncherBase import Base, print_custom as print
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
+from libs.utils import get_version_data
 
 class assets_grabber:
     def __init__(self):
@@ -13,38 +13,8 @@ class assets_grabber:
         self.minecraft_version = "1.20"
         self.version_data = []
 
-    def get_version_data(self, version_id):
-        """
-        Get version_manifest_v2.json and find requires version of json data
-        """
-        response = requests.get(self.manifest_url)
-        data = response.json()
-        version_list = data['versions']
-
-        # Find the URL for the given version_id
-        version_url = None
-        for v in version_list:
-            if v['id'] == version_id:
-                version_url = v['url']
-                break
-
-        # If the version_id not in version_list, return None
-        if version_url is None:
-            print(f"Unable to find same as requires version id: {version_id} in the version_manifest.", color='red')
-            print("Failed to get version data. Cause by unknown Minecraft version.", color='red')
-            return None
-
-        try:
-            # Get version data
-            version_response = requests.get(version_url)
-            version_data = version_response.json()
-            return version_data
-        except Exception as e:
-            print(f"Error occurred while fetching version data: {e}", color='red')
-            print("Failed to get version data. Cause by internet connect error or unknown issues.", color='red')
-            return None
-
-    def grab_asset_index_file(self, version_data, save_dir):
+    @staticmethod
+    def grab_asset_index_file(version_data, save_dir):
         """
         Get assets index url from version data
         """
@@ -63,7 +33,7 @@ class assets_grabber:
             color='blue')
         return response.json()
 
-    def get_assets_index_data(self, version_data, version_id, instance_path):
+    def get_assets_index_data(self, version_data, instance_path):
         """
         Get the assets index version from the version_data and save it to a JSON file
         LaunchManager needs this when launching Minecraft (To set assetsIndex)
@@ -96,24 +66,7 @@ class assets_grabber:
             return assetsIndex_version
 
         except FileNotFoundError:
-            # Trying to fix use old version BakeLaunch didn't save assetsIndex to .minecraft(It will ask user to fix it)
-            print("LaunchManager: Oops! Can't getting assetsIndex :O", color='red')
-            print("LaunchManager: Trying to fix it.....", color='green')
-            version_data = self.get_version_data(version_id)
-            self.get_assets_index_data(version_data, version_id)
-            print("LaunchManager: Fixed assetsIndex config successful!", color='blue')
-            try:
-                with open('.minecraft/assets_index.json', 'r') as file:
-                    data = json.load(file)
-                assetsIndex_version = data['id']
-                return assetsIndex_version
-
-            except FileNotFoundError:
-                # Trying to fix use old version BakeLaunch didn't save assetsIndex to .minecraft(It will ask user to
-                # fix it)
-                print("LaunchManager: Still can't fix it :(", color='red')
-                return None
-
+            print("Failed to get assetsIndex version. Cause by FileNotFoundError.", color='red')
     def download_asset_file(self, asset_name, asset_info, objects_dir):
 
         asset_hash = asset_info['hash']
@@ -241,7 +194,7 @@ class assets_grabber:
 
     def assets_file_grabber(self, version_id, instance_dir):
         # Get version data
-        version_data = self.get_version_data(version_id)
+        version_data = get_version_data(version_id)
 
         # Set select instance, game_folder(.minecraft), assets_index_json, save_dir path
         game_folder = os.path.join(instance_dir, ".minecraft")
@@ -291,8 +244,8 @@ class assets_grabber:
 
         # Is for LaunchManager to get assets index version
         if not os.path.exists(assets_index_json):
-            version_data = self.get_version_data(version_id)
-            self.get_assets_index_data(version_data, version_id, instance_dir)
+            version_data = get_version_data(version_id)
+            self.get_assets_index_data(version_data, instance_dir)
 
         # Read assets index version(prepare to check if this version of minecraft are using old assets?)
         try:

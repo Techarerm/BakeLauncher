@@ -1,9 +1,13 @@
 import os
+import shutil
+import subprocess
 import time
+import json
 from LauncherBase import Base, print_color as print
 import requests
 from datetime import datetime
 import textwrap
+from libs.utils import download_file
 
 
 class InstanceManager:
@@ -14,6 +18,7 @@ class InstanceManager:
         self.SelectedInstanceInstalled = None
         self.InstallVersion = False
         self.VersionManifestURl = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
+        self.fabric_installer_version_list = "https://meta.fabricmc.net/v2/versions/installer"
 
         # Instance Info
         self.INSTANCE_NAME = None
@@ -54,25 +59,100 @@ class InstanceManager:
         else:
             return None
 
+    @staticmethod
+    def create_custom_config(config_file_path):
+        print("Creating custom config...", color='green')
+        default_data = textwrap.dedent("""\
+        [BakeLauncher Instance Custom Config]
+        
+        ModLoaderClass =
+        CustomJVMArgs = 
+        CustomGameArgs = 
+        InjectJARFile = 
+        InjectJARPath = 
+
+        """)
+        with open(config_file_path, 'w') as config_file:
+            config_file.write(default_data)
+
+    @staticmethod
+    def read_custom_config(config_file_path, item):
+        with open(config_file_path, "r") as file:  # Open the file in read mode
+            lines = file.readlines()  # Read all lines into a list
+
+        for line in lines:
+            line = line.strip()  # Strip leading/trailing whitespace and newline characters
+            # Check if the item is in the line and the line contains '=' (key-value pair)
+            if item in line and '=' in line:
+                # Split the line at '=' and get the value part, then strip any extra spaces
+                data = line.split('=')[1].strip()  # Strip again in case there are spaces around the value
+                return data  # Return the cleaned data
+
+        return None  # Return None if the item is not found
+
+    @staticmethod
+    def write_custom_config(custom_config_path, item, data):
+        global custom_item
+        item = str(item)
+        if item.lower() == "jvmargs":
+            custom_item = "CustomJVMArgs"
+        elif item.lower() == "gameargs":
+            custom_item = "CustomGameArgs"
+        elif item.lower() == "injectjarpath":
+            custom_item = "InjectJARPath"
+        elif item.lower() == "modloderclass":
+            custom_item = "ModLoaderClass"
+
+        with open(custom_config_path, 'r') as file:
+            lines = file.readlines()
+            for i in range(len(lines)):
+                if custom_item in lines[i]:
+                    # Use the new or existing account ID
+                    lines[i] = f'{custom_item} = {data}\n'
+                    found = True
+        with open(custom_config_path, 'w') as file:
+            file.writelines(lines)
+        if found:
+            return True
+        else:
+            return False
+
     def create_instance_data(self, instance_name, client_version, version_type, is_vanilla, modify_status,
                              mod_loader_name, mod_loader_version, **kwargs):
+
+        # Setting some path and create date
         selected_instance_dir = os.path.join(Base.launcher_instances_dir, instance_name)
         selected_instance_ini = os.path.join(selected_instance_dir, "instance.bakelh.ini")
         create_date = datetime.now()
         print("Instance Info Path: ", selected_instance_ini, color='green', tag='DEBUG')
         print("Instance Dir: ", selected_instance_dir, color='green', tag='DEBUG')
 
+        # Check selected_instance_dir status
         if not os.path.exists(selected_instance_dir):
             os.makedirs(selected_instance_dir)
         else:
             self.SelectedInstanceInstalled = True
 
         # Get kwargs
+
+        # If user using method name "Convert Old Instance Structure" to upgrade instance to new structure, set it to
+        # True
         convert_by_legacy = kwargs.get('convert_by_legacy', False)
+
+        # If create instance info version is legacy_version Minecraft,
         use_legacy_manifest = kwargs.get('use_legacy_manifest', False)
+
+        # "REAL" version(a reason for not using client_version to get Minecraft version is Legacy Minecraft instance
+        # info client_version is spoof version(check create_instance>version_spoof)
         real_minecraft_version = kwargs.get('real_minecraft_version', client_version)
 
+        # Get java major version
+        java_major_version = kwargs.get('java_major_version', None)
+
+        # Avoid to overwrite old data
         if os.path.exists(selected_instance_ini):
+            print("Could not create new instance info. Cause by instance info already exists.", tag_color='red',
+                  tag='Warning')
             return True
 
         instance_info = textwrap.dedent(f"""\
@@ -83,6 +163,7 @@ class InstanceManager:
             # Instance Info
             instance_name = "{instance_name}"
             client_version = "{client_version}"
+            support_java_version = "{java_major_version}"
             type = "{version_type}"
             launcher_version = "{Base.launcher_internal_version}"
             instance_format = "{Base.launcher_data_format}"
@@ -110,10 +191,31 @@ class InstanceManager:
         with open(selected_instance_ini, "w+") as ini_file:
             ini_file.write(instance_info)
 
+    def load_custom_config(self, custom_config_path, item, item_name):
+        if not os.path.exists(custom_config_path):
+            self.create_custom_config(custom_config_path)
+        with open(custom_config_path, 'r') as config_file:
+            lines = config_file.readlines()
+            for line in lines:
+                if item in line:
+                    item = line.split('=', 1)[1].strip()
+                    if len(item) > 0:
+                        print(f"Found exist {item_name}:\n"
+                              f" {item}", color='purple')
+
     def get_instance_info(self, instance_info_path, **kwargs):
+        """
+        Args list:
+        instance_info_path: Path to the instance info file.
+        info_name: Get selected instance information data(not found return False and None)
+        # If info_name is not found return True, {All available data}...
+        ignore_not_found: Legacy stuff(don't print instance info file not found error)
+        """
+
         info_name = kwargs.get('info_name', None)
         ignore_not_found = kwargs.get('ignore_not_found')
 
+        #
         if not os.path.exists(instance_info_path):
             if not ignore_not_found:
                 print("Failed to get instance info. Cause by instance info file not found.")
@@ -183,7 +285,7 @@ class InstanceManager:
                     print(f"Warning: info name {info} is None", color='yellow')
         else:
             if info_name == "instance_name":
-                return True, self.INSTANCE_FORMAT
+                return True, self.INSTANCE_NAME
             elif info_name == "client_version":
                 return True, self.CLIENT_VERSION
             elif info_name == "type":
@@ -203,18 +305,6 @@ class InstanceManager:
 
         return (True, self.INSTANCE_NAME, self.CLIENT_VERSION, self.VERSION_TYPE, self.LAUNCHER_VERSION,
                 self.INSTANCE_FORMAT, self.CREATE_DATE)
-
-    @staticmethod
-    def create_config(path):
-        config_path = os.path.join(path, "instance.bakelh.cfg")
-        if not os.path.exists(config_path):
-            print("Can't find instance config file! Creating...", color='green')
-            default_data = (
-                '[BakeLauncher Instance Config]\n\n<Global>\n# Please DO NOT edit this file!\n\nVersion = '
-                '\nCustomJVMArgs = \nCustomGameArgs = \n'
-            )
-            with open(config_path, 'w') as config_file:
-                config_file.write(default_data)
 
     @staticmethod
     def instance_list(**kwargs):
@@ -308,8 +398,6 @@ class InstanceManager:
             else:
                 print(f"Type instance name {instance_name} are not found :(", color='red')
 
-    from print_color import print_color as print
-
     def legacy_instances_convert(self, **kwargs):
         """
         This method will be deleted in the next update.
@@ -350,7 +438,6 @@ class InstanceManager:
                 print("Exiting...", color='green')
                 return
 
-
             version_type = self.get_instance_type(self.CLIENT_VERSION)
 
             # Asking for renaming
@@ -386,10 +473,11 @@ class InstanceManager:
 
         else:
             print("This method does not support renaming instances!", color='red')
+            print(f"Searching legacy instances in dir {Base.launcher_instances_dir}...")
             try:
                 Status, instances_list_legacy = self.instance_list(only_return_legacy_list=True)
                 if len(instances_list_legacy) == 0:
-                    print("No instances found :(", color='red')
+                    print("No instances legacy found :(", color='red')
                     time.sleep(2)
                     return
                 if not Status:
@@ -402,6 +490,5 @@ class InstanceManager:
                     convert_process(instance_name, instance_name, version_type)
             except Exception as e:
                 print(f"Error Message {e}", color='red')
-
 
 instance_manager = InstanceManager()

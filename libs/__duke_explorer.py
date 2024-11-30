@@ -2,7 +2,10 @@ import os
 import subprocess
 import re
 import json
+import time
 from LauncherBase import Base, print_custom as print
+from libs.__create_instance import create_instance
+from libs.utils import get_version_data
 
 
 class DukeCute:
@@ -138,6 +141,58 @@ class DukeCute:
 
         except Exception as e:
             print(f"Error: Failed to write JSON data due to {e}", color='red')
+
+    @staticmethod
+    def java_version_check(version_id):
+        """
+        Check the Minecraft version requirements for Java version.
+        """
+
+        print(f"Trying to check the required Java version for this Minecraft version...", color='green')
+
+        try:
+            # Get version data
+            version_data = get_version_data(version_id)
+
+            # Extract the Java version information
+            component, major_version = create_instance.get_java_version_info(version_data)
+            print(f"Required Java Component: {component}, Major Version: {major_version}", color='green')
+
+        except Exception as e:
+            # If it can't get support Java version, using Java 8(some old version will get this error)
+            print(f"Error occurred while fetching version data: {e}", color='red')
+            print(f"Warning: BakeLauncher will using Java 8 instead original support version of Java.", color='yellow')
+            major_version = str("8")
+
+        try:
+            with open("data/Java_HOME.json", "r") as file:
+                data = json.load(file)
+
+            Java_path = data.get(str(major_version))
+            if Java_path:
+                print(f"Get Java Path successfully! | Using Java {major_version}!", color='blue')
+                return Java_path
+            else:
+                print(f"Java version {major_version} not found in Java_HOME.json", color='red')
+                return None
+
+        except FileNotFoundError:
+            print(f"Java_HOME.json file not found", color='red')
+            return None
+        except json.JSONDecodeError:
+            print(f"Error decoding JSON from Java_HOME.json", color='red')
+            return None
+
+    @staticmethod
+    def initialize_jvm_config():
+        print("Cleaning JVM config file...")
+        if os.path.exists("data/Java_HOME.json"):
+            os.remove("data/Java_HOME.json")
+            print("JVM config file has been removed.", color='blue')
+            time.sleep(2)
+        else:
+            print("Failed to remove JVM config file. Cause by config file not found.", color='red')
+            time.sleep(2)
 
 
 Duke = DukeCute()

@@ -13,6 +13,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from LauncherBase import Base, ClearOutput, print_custom as print
 from libs.__assets_grabber import assets_grabber_manager
 from libs.__instance_manager import instance_manager
+from libs.utils import get_version_data, download_file
 from tqdm import tqdm
 
 
@@ -23,31 +24,6 @@ def extract_zip(zip_path, extract_to):
         print(f"Extracted {zip_path} to {extract_to}")
     except zipfile.BadZipFile as e:
         print(f"Error extracting {zip_path}: {e}", color='red')
-
-
-def download_file(url, dest_path):
-    """
-    Downloads a file from a URL and saves it to dest_path.
-    """
-    try:
-        response = requests.get(url, stream=True)
-        response.raise_for_status()
-
-        # Create the directory if it doesn't exist
-        dest_dir = os.path.dirname(dest_path)
-        if dest_dir:
-            os.makedirs(dest_dir, exist_ok=True)
-
-        # Write the file to dest_path
-        with open(dest_path, 'wb') as file:
-            for chunk in response.iter_content(chunk_size=8192):
-                file.write(chunk)
-        if Base.UsingLegacyDownloadOutput:
-            print(f"Download successful: {dest_path}")
-        return True  # Indicate success
-    except requests.exceptions.RequestException as e:
-        print(f"Failed to download {url}: {e}")
-        return False  # Indicate failure
 
 
 def multi_thread_download(nested_urls_and_paths, name, max_workers=5, retries=1):
@@ -64,6 +40,7 @@ def multi_thread_download(nested_urls_and_paths, name, max_workers=5, retries=1)
     downloaded_files = []
     failed_files = []
     sys.stderr.flush()
+
     def download_with_retry(url, dest_path, retry_count):
         """Attempts to download a file with retries."""
         for attempt in range(retry_count + 1):
@@ -129,7 +106,11 @@ def multi_thread_download(nested_urls_and_paths, name, max_workers=5, retries=1)
 
 class Create_Instance:
     def __init__(self):
-        self.client_version = None
+
+        self.fabric_loader_version = None
+        self.fabric_loader_dest = None
+        self.client_version = ""
+        self.libraries_path = ""
         self.version_spoof_status = None
         self.legacy_version_type = "classic"
         self.legacy_version = False
@@ -162,49 +143,6 @@ class Create_Instance:
 
         version_info = next((v for v in manifest["versions"] if v["id"] == minecraft_version), None)
         return version_info['url']
-
-    def get_version_data(self, version_id, **kwargs):
-        """
-        Get version_manifest_v2.json and find requires version of json data
-        """
-        use_legacy_json = kwargs.get("use_legacy_json", False)
-
-        response = requests.get(self.VersionManifestURl)
-        data = response.json()
-        version_list = data['versions']
-
-        version_url = None
-        for v in version_list:
-            if v['id'] == version_id:
-                version_url = v['url']
-                break
-
-        if version_url is None:
-            response = requests.get(self.LegacyVersionManifestURl)
-            data = response.json()
-            version_list = data['versions']
-
-            version_url = None
-            for v in version_list:
-                if v['id'] == version_id:
-                    version_url = v['url']
-                    break
-
-        # If the version_id not in version_list, return None
-        if version_url is None:
-            print(f"Unable to find same as requires version id: {version_id} in the version_manifest.", color='red')
-            print("Failed to get version data. Cause by unknown Minecraft version.", color='red')
-            return None
-
-        try:
-            # Get version data
-            version_response = requests.get(version_url)
-            version_data = version_response.json()
-            return version_data
-        except Exception as e:
-            print(f"Error occurred while fetching version data: {e}", color='red')
-            print("Failed to get version data. Cause by internet connect error or unknown issues.", color='red')
-            return None
 
     def get_version_list(self, mode, **kwargs):
         # Get version_manifest_v2.json and list all versions (with version_id on the left)
@@ -455,7 +393,7 @@ class Create_Instance:
 
     def download_client(self, version_data, minecraft_version, install_dir):
         version_dir = os.path.join(Base.launcher_instances_dir, install_dir)
-        libraries_dir = os.path.join(version_dir, "libraries")
+        libraries_dir = os.path.join(version_dir, ".minecraft", "libraries")
         os.makedirs(libraries_dir, exist_ok=True)
 
         if not self.legacy_version:
@@ -467,16 +405,25 @@ class Create_Instance:
             legacy_url = "/".join(legacy_url.split("/")[:-1]) + "/"
             client_url = f"{legacy_url}{minecraft_version}.jar"
 
-        client_dest = os.path.join(version_dir, 'libraries', 'net', 'minecraft', minecraft_version, "client.jar")
+        client_dest = os.path.join(version_dir, ".minecraft", 'libraries', 'net', 'minecraft', minecraft_version,
+                                   "client.jar")
         print(f"Downloading client.jar to {client_dest}...", color='green')
         download_file(client_url, client_dest)
+
+    def download_fabric_loader(self, libraries_path, loader_version):
+        print("Downloading fabric loader...", color='yellow')
+        fabric_loader_dest = os.path.join(libraries_path, "net", "fabricmc", "fabric-loader",
+                                               f"fabric_loader_{loader_version}.jar")
+        fabric_loader_url = (f"https://maven.fabricmc.net/net/fabricmc/fabric-loader/"
+                                  f"{loader_version}/fabric-loader-{loader_version}.jar")
+        download_file(fabric_loader_url, fabric_loader_dest)
 
     def download_libraries(self, version_data, install_dir):
         """
         Create instances/version_id/folder and download game files
         """
         version_dir = os.path.join(Base.launcher_instances_dir, install_dir)
-        libraries_dir = os.path.join(version_dir, "libraries")
+        libraries_dir = os.path.join(version_dir, ".minecraft", "libraries")
         os.makedirs(libraries_dir, exist_ok=True)
         # Download libraries
 
@@ -523,6 +470,45 @@ class Create_Instance:
         time.sleep(1)
         self.download_natives(libraries, libraries_dir)
 
+    def download_fabric_libraries(self, libraries, libraries_path, client_version):
+        if not os.path.exists(libraries_path):
+            os.makedirs(libraries_path)
+
+        download_queue = []
+
+        for lib in libraries:
+            group_id, artifact_id, version = lib["name"].split(":")
+
+            # Create directory structure (use '/' for URL paths)
+            group_path = group_id.replace(".", "/")  # Convert groupId to folder structure using "/"
+            library_path = os.path.join(libraries_path, group_path, artifact_id, version)
+
+            # Ensure the target folder exists
+            os.makedirs(library_path, exist_ok=True)
+
+            # Construct the download URL using the corrected path
+            url = f"https://maven.fabricmc.net/{group_path}/{artifact_id}/{version}/{artifact_id}-{version}.jar"
+
+            # Full path where the JAR will be saved
+            destination = os.path.join(library_path, f"{artifact_id}-{version}.jar")
+
+            # Download the library
+            fabric_lib_url_and_dest = [
+                (url, destination)
+            ]
+            download_queue.append(fabric_lib_url_and_dest)
+
+        multi_thread_download(download_queue, "libraries")
+
+        print("Downloading intermediary...", color='green')
+        self.client_version = client_version
+        self.libraries_path = libraries_path
+        intermediary_url = (f"https://maven.fabricmc.net/net/fabricmc/intermediary/"
+                            f"{self.client_version}/intermediary-{self.client_version}.jar")
+        intermediary_dest = os.path.join(self.libraries_path, "net", "fabric", "intermediary", self.client_version,
+                                              f"intermediary-{self.client_version}.jar")
+        download_file(intermediary_url, intermediary_dest)
+
     def unzip_natives(self, instance_name):
         global unzip_status
 
@@ -531,15 +517,16 @@ class Create_Instance:
             PlatformName = 'macos'
 
         instance_dir = os.path.join(Base.launcher_instances_dir, instance_name)
-        natives_dir = os.path.join(instance_dir, ".minecraft", "natives")
-        if not os.path.exists(natives_dir):
-            os.mkdir(natives_dir)
+        instance_natives_dir = os.path.join(instance_dir, ".minecraft", "natives")
+        instance_libraries_dir = os.path.join(instance_dir, ".minecraft", "libraries")
+        if not os.path.exists(instance_natives_dir):
+            os.mkdir(instance_natives_dir)
 
         os.chdir(instance_dir)
         # Find all natives and unzip
         jar_files = []
 
-        for root, dirs, files in os.walk('libraries'):
+        for root, dirs, files in os.walk(instance_libraries_dir):
             for file in files:
                 if file.endswith(f"natives-{Base.LibrariesPlatform2nd}.jar"):
                     jar_files.append(os.path.join(root, file))
@@ -567,16 +554,24 @@ class Create_Instance:
             unzip_status = False
             print("No natives file found.", color='yellow')
         if unzip_status:
-            for root, dirs, files in os.walk(natives_dir):
+            # Move all file to natives_dir
+            for root, dirs, files in os.walk(instance_natives_dir):
                 for file in files:
                     file_path = os.path.join(root, file)
-                    dest_path = os.path.join(natives_dir, file)
+                    dest_path = os.path.join(instance_natives_dir, file)
 
                     if os.path.exists(dest_path):
                         base, ext = os.path.splitext(file)
-                        dest_path = os.path.join(natives_dir, f"{base}_copy{ext}")
+                        dest_path = os.path.join(instance_natives_dir, f"{base}_copy{ext}")
 
                     shutil.move(file_path, dest_path)
+
+            # After moving all files, optionally remove now-empty subdirectories
+            for root, dirs, files in os.walk(instance_natives_dir, topdown=False):
+                for d in dirs:
+                    dir_path = os.path.join(root, d)
+                    if not os.listdir(dir_path):  # If the directory is empty
+                        os.rmdir(dir_path)
             print("Unzip Natives successfully!", color='blue')
         else:
             print("Warring: You may get some error you download libraries. Please re-download this version of"
@@ -690,7 +685,7 @@ class Create_Instance:
         java_manifest_url = 'https://launchermeta.mojang.com/v1/products/java-runtime/2ec0cc96c44e5a76b9c8b7c39df7210883d12871/all.json'
 
         # Get version data
-        selected_version_data = assets_grabber_manager.get_version_data(minecraft_version)
+        selected_version_data = get_version_data(minecraft_version)
 
         # Get Java Version Info(from selected version's data)
         component, major_version = self.get_java_version_info(selected_version_data)
@@ -793,7 +788,8 @@ class Create_Instance:
     def mac_os_libraries_bug_fix(instance_name):
         # Patch for some idiot version bug
         if Base.Platform == "Darwin":
-            directory = os.path.join(Base.launcher_instances_dir, f"{instance_name}", "libraries", "ca", "weblite",
+            directory = os.path.join(Base.launcher_instances_dir, f"{instance_name}", ".minecraft",
+                                     "libraries", "ca", "weblite",
                                      "1.0.0")
             if not os.path.exists(directory):
                 os.makedirs(directory)  # Create intermediate directories if needed
@@ -804,25 +800,12 @@ class Create_Instance:
                     print(f"An error occurred: {e}")
 
     def download_games_files(self, version_id, install_dir):
-        """
-        real_version (if the client type is not legacy, it is the same as client_version).
-        If the client is a legacy version, client_version and real_version are not the same(or same? if user using
-        rd-132211)
-
-        Why this spoof? Legacy archives place the client in a weird location (version data tag libraries don't have
-        the client URL). Additionally, some legacy version libraries have incomplete data. To address this,
-        BakeLauncher uses a similar library version as an alternative for these cases.
-
-        Why keep real_version in instance info? When the user launches Minecraft, the launcher manager calls
-        a function named "java_version_check" to get the java_version. If the client uses a spoofed version,
-        it might crash due to argument bugs. (However, legacy version data's "MinecraftArguments" are complete.)
-        """
         # In this function, version id is spoof version(if minecraft version is legacy)
         print("Loading version info...")
         instance_info = os.path.join(install_dir, "instance.bakelh.ini")
         # Get real_version(to download client)
         Status, real_version = instance_manager.get_instance_info(instance_info, info_name='real_minecraft_version')
-        version_data = self.get_version_data(version_id)
+        version_data = get_version_data(version_id)
 
         # Download game file( libraries, .jar files...)
         print("Downloading client...", color='blue')
@@ -856,6 +839,19 @@ class Create_Instance:
 
     def version_spoof(self, require_version):
         global client_version, spoof_enable
+        """
+        real_version (if the client type is not legacy, it is the same as client_version).
+        If the client is a legacy version, client_version and real_version are not the same(or same? if user using
+        rd-132211)
+
+        Why this spoof? Legacy archives place the client in a weird location (version data tag libraries don't have
+        the client URL). Additionally, some legacy version libraries have incomplete data. To address this,
+        BakeLauncher uses a similar library version as an alternative for these cases.
+
+        Why keep real_version in instance info? When the user launches Minecraft, the launcher manager calls
+        a function named "java_version_check" to get the java_version. If the client uses a spoofed version,
+        it might crash due to argument bugs. (However, legacy version data's "MinecraftArguments" are complete.)
+        """
         if self.legacy_version:
             real_version = require_version
             print(f" Version Type: {self.legacy_version_type}", color='green', tag='DEBUG')
@@ -875,7 +871,8 @@ class Create_Instance:
                 client_version = "rd-160052"
                 self.version_spoof_status = True
             if self.version_spoof_status:
-                print(f"Version Spoof Enable | RealVersion: {require_version} Spoof to Version : {client_version}", color='green', tag='DEBUG')
+                print(f"Version Spoof Enable | RealVersion: {require_version} Spoof to Version : {client_version}",
+                      color='green', tag='DEBUG')
         else:
             client_version = require_version
             real_version = require_version
@@ -886,7 +883,6 @@ class Create_Instance:
 
         # Check version
         client_version, real_version = self.version_spoof(require_version)
-        print(client_version, real_version)
         if not os.path.exists(Base.launcher_instances_dir):
             os.makedirs(Base.launcher_instances_dir)
 
@@ -982,8 +978,117 @@ class Create_Instance:
             self.legacy_version = False
 
         print(f"Reinstalling instance name {instance_name}...", color='green')
-        print(f"Client Version: {client_version} Instance Path: {instance_path}", color='green', tag='DEBUG')
+        print(f"Client Version: {client_version} Instance Dir: {instance_path}", color='green', tag='DEBUG')
         self.download_games_files(client_version, instance_path)
+
+    def install_fabric_loader(self, instance_path):
+        def get_fabric_loader_support_for_minecraft(client_version):
+            url = f"https://meta.fabricmc.net/v2/versions/loader/{client_version}"
+
+            # Get the list of all loader versions
+            response = requests.get(url)
+            if response.status_code != 200:
+                print(f"Failed to retrieve data: {response.status_code}")
+                return
+
+            loader_data = response.json()
+
+            # Collect the available Fabric loader versions
+            loader_versions = []
+            for loader in loader_data:
+                loader_version = loader.get('loader', {}).get('version', '')
+                if loader_version:  # Add only non-empty versions
+                    loader_versions.append(loader_version)
+
+            if not loader_versions:
+                print("No loader versions available.")
+                return
+
+            # Display available versions to the user
+            print(f"Available Fabric loader versions for Minecraft version {client_version}:")
+            for idx, version in enumerate(loader_versions, start=1):
+                print(f"{idx}. {version}")
+
+            # Prompt the user to select a version
+            try:
+                choice = int(input(f"Select a Fabric loader version (1-{len(loader_versions)}): "))
+                if 1 <= choice <= len(loader_versions):
+                    selected_version = loader_versions[choice - 1]
+                    print(f"You selected Fabric loader version: {selected_version}")
+                    return selected_version
+                else:
+                    print("Invalid choice. Please select a valid number.")
+            except ValueError:
+                print("Invalid input. Please enter a number.")
+
+        # Setting some variable
+        instance_libraries = os.path.join(instance_path, ".minecraft", "libraries")
+        os.chdir(instance_path)
+
+        if not os.path.exists(instance_libraries):
+            print("Libraries are not found. Trying to move it...", color='yellow')
+            try:
+                shutil.move("libraries", ".minecraft")
+            except Exception as e:
+                print(f"Failed to move libraries to .minecraft folder. Cause by error {e}", color='red')
+
+        instance_info = os.path.join(instance_path, "instance.bakelh.ini")
+        Status, client_version = instance_manager.get_instance_info(instance_info, info_name="client_version")
+        game_dir = os.path.join(instance_path, ".minecraft")
+        if not os.path.exists(game_dir):
+            os.makedirs(game_dir)
+
+        if not Status:
+            print("Failed to get instance client version.", color='red')
+            return
+
+        # Start install process
+        loader_version = get_fabric_loader_support_for_minecraft(client_version)
+
+        url = f"https://meta.fabricmc.net/v2/versions/loader/{client_version}/{loader_version}"
+        response = requests.get(url)
+        fabric_data = response.json()
+
+        if "launcherMeta" not in fabric_data:
+            print("Failed to download fabric loader :( Cause by fetch data are not valid.", color='red')
+            return
+
+        libraries_data = fabric_data["launcherMeta"]["libraries"]["common"]
+        print("Downloading Fabric loader...", color='green')
+        self.download_fabric_loader(instance_libraries, loader_version)
+        self.download_fabric_libraries(libraries_data, instance_libraries, client_version)
+
+        print("Confining Fabric setting...", color='green')
+        instance_cfg = os.path.join(instance_path, "instance.bakelh.cfg")
+        instance_manager.create_custom_config(instance_cfg)
+
+        instance_manager.write_custom_config(instance_cfg, "modloderclass"
+                                             , "net.fabricmc.loader.impl.launch.knot.KnotClient")
+
+        print("Install Fabric loader successfully!", color='blue')
+
+    def install_mode_loader(self):
+        print("Warning: This function is in testing. Not sure all method will working fine.", color='red')
+        Status, client_version, instance_path = instance_manager.select_instance(
+            "Which instance is you want to install mode loader?", client_version=True)
+
+        if Status is None:
+            print("Failed to get instance path.", color='red')
+            return
+
+        while True:
+            print("Mode Loader List:", color='blue')
+            print("1: Fabric", color='yellow')
+
+            user_input = str(input("Which loader is you want to install?"))
+
+            if user_input == "1":
+                self.install_fabric_loader(instance_path)
+                return True
+            elif user_input.upper() == "EXIT":
+                return True
+            else:
+                print("Unknown Options :(", color='red')
 
     def create_instance(self):
         def download_minecraft_with_version_id(list_type=None):
@@ -1057,7 +1162,6 @@ class Create_Instance:
 
             print("Creating instance...", color='green')
             try:
-                self.legacy_version = False
                 self.start_create_instance(minecraft_version)
             except Exception as e:
                 print(f"Failed to create instance. Error: {e}", color='red')
@@ -1087,7 +1191,6 @@ class Create_Instance:
                 if selected_version:
                     ClearOutput()
                     print("Creating instance....", color='green')
-                    self.legacy_version = False
                     self.start_create_instance(regular_version_input)
                 else:
                     # idk this thing would happen or not :)  , just leave it and see what happen....
@@ -1123,12 +1226,16 @@ class Create_Instance:
                 print(f"You type Minecraft version {download_version} are not found :(",
                       color='red')
 
+        # Restore environment
+        self.legacy_version = False
+        self.legacy_version_type = None
+
         print("Which method you wanna use?", color='green')
         print("1: List all available versions and download", color='green')
         print("2: Type regular Minecraft version and download(include snapshot)", color='blue')
         print("3: Download Legacy Minecraft", color='yellow')
         print("4: Reinstall instance", color='cyan')
-
+        print("5: Install Mod Loder(Exp)", color='purple')
         try:
             user_input = str(input(":"))
             if user_input.upper() == "EXIT":
@@ -1143,6 +1250,8 @@ class Create_Instance:
                 download_legacy_minecraft()
             elif user_input == "4":
                 self.reinstall_instances()
+            elif user_input == "5":
+                self.install_mode_loader()
             else:
                 print("Unknown options :( Please try again.", color='red')
                 self.create_instance()

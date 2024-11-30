@@ -40,7 +40,7 @@ jobs:
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
-          name: BakeLauncher-Dev-KC112724.Windows
+          name: BakeLauncher-Dev-KF113024.Windows
           path: dist/
 
   macos-build:
@@ -67,7 +67,7 @@ jobs:
       - name: Upload APP
         uses: actions/upload-artifact@v4
         with:
-          name: BakeLauncher-Dev-KC112724.macOS
+          name: BakeLauncher-Dev-KF113024.macOS
           path: dist/
 
   linux-build:
@@ -94,7 +94,7 @@ jobs:
       - name: Upload Linux binary
         uses: actions/upload-artifact@v4
         with:
-          name: BakeLauncher-Dev-KC112724.Linux
+          name: BakeLauncher-Dev-KF113024.Linux
           path: dist/
 
   create-latest-tag:

@@ -231,8 +231,36 @@ class AuthManager:
                 if 'DefaultAccountID' in lines[i]:
                     # Use the new or existing account ID
                     lines[i] = f'DefaultAccountID = {account_id}\n'
+                    found = True
         with open("data/config.bakelh.cfg", 'w') as file:
             file.writelines(lines)
+        if found:
+            return True
+        else:
+            return False
+
+    def get_default_account_id(self):
+        config_file = os.path.join(Base.launcher_root_dir, "data", "config.bakelh.cfg")
+        if not os.path.exists(config_file):
+            initialize_config()
+
+        with open("data/config.bakelh.cfg", 'r') as file:
+            for line in file:
+                if "DefaultAccountID" in line:
+                    id = line.split('=')[1].strip()
+                    try:
+                        id = int(id)
+                        found = True
+                    except ValueError:
+                        print("Failed to get DefaultAccountID. Config file is invalid." ,color='red')
+                    break
+
+
+        if found:
+            return True, id
+        else:
+            print("Warning: DefaultAccountID are not in config!", color='yellow')
+            return False, None
 
     def login_process(self):
         print("Please login your account in your web browser.", color='c')
@@ -420,35 +448,25 @@ class AuthManager:
     def login_status(self):
         """
         Check login status.
-        Avoid Minecraft crash on auth... However, if the token expires, it will still crash on launch :)
         """
         global id
-        username = "Player"  # Initialize username to avoid UnboundLocalError
-        try:
-            with open("data/config.bakelh.cfg", 'r') as file:
-                for line in file:
-                    if "DefaultAccountID" in line:
-                        id = line.split('=')[1].strip()  # Extract the value if found
-                        break  # Stop after finding the ID
-        except FileNotFoundError:
-            print("Cannot find config.bakelh.cfg in the folder name 'data'.", color='red')
-            initialize_config()
-            id = 1
+        Status, account_id = self.get_default_account_id()
 
-        if id is None:
-            print("DefaultAccountID are not found. Is your config corrupted?")
+        if not Status:
+            print("DefaultAccountID are not found. Is your config corrupted?", color='yellow')
+            print("Using exist launcher account...", tag='INFO')
             initialize_config()
-            id = 1
+            account_id = 1
 
         if os.path.exists('data/AccountData.json'):
-            Status, account_data = self.get_account_data_use_accountid(int(id))
+            Status, account_data = self.get_account_data_use_accountid(account_id)
             if account_data is None:
                 print(
                     f"Can't find id '{id}' in the account data ! Change to use local "
                     "account...",
                     color='yellow')
-                id = 1
-                Status, account_data = self.get_account_data_use_accountid(int(id))
+                account_id = 1
+                Status, account_data = self.get_account_data_use_accountid(account_id)
             username = account_data['Username']  # Set username here
             if account_data['Username'] == "None":
                 print("Login Status: Not logged in :(", color='red')
@@ -458,7 +476,7 @@ class AuthManager:
                 print("Login Status: Not logged in :(", color='red')
                 print("Please log in to your account or switch to a different account.", color='red')
             else:
-                Status, message = self.check_account_data_are_valid(id)
+                Status, message = self.check_account_data_are_valid(account_id)
                 # When MainMemuResetFlag = True(After refreshing the token it will be set to True) stop print login
                 # message(until main_memu set MainMemuResetFlag = False)
                 if Base.MainMemuResetFlag:
