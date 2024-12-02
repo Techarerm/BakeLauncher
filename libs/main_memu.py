@@ -1,6 +1,6 @@
 """
-BakeLaunch Main Memu
-(Main memu has been separated from main since Beta 0.7(Pre-hg30824)
+BakeLauncher Main Memu
+(Main memu has been separated from main since Beta 0.7(Pre-HG30824)
 """
 
 import os
@@ -85,14 +85,15 @@ def extra_memu():
 def main_memu():
     while True:
         print('"BakeLauncher Main Menu"', color='blue')
-        print("Version: " + Base.launcher_version_display, color='green')
+        print(f"Version: {Base.launcher_version_display}", color='green')
 
         # Check login status
         account_manager.login_status()
         if Base.MainMemuResetFlag:
             ClearOutput()
             Base.MainMemuResetFlag = False
-            return
+            main_memu()
+            return True
 
         # Return error message(if it find)
         error_return("", "Read")
