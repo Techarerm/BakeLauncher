@@ -1,15 +1,24 @@
 import os
+import shutil
 import time
 import platform
-from print_color import print as print_color
 from ping3 import ping
+from modules.print_colorx.print_color import print as print_color
 
-dev_version = "KF113024"  # If version type is release set it blank
+# Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
+# dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
+# Example = "LB041224" Years: 2024 Month: 12 Date: 04
+dev_version = "LA091224"  # If version type is release set it blank
 version_type = "Dev"
 major_version = "0.9"
 
 BetaWarningMessage = ("You are running beta version of BakeLauncher.\n"
                       "This is an 'Experimental' version with potential instability.\n"
+                      "=========================I'm a line==============================\n"
+                      "In Pre-0.9, launcher are unstable. If you want to get a stable Dev version.\n"
+                      "Go to Github Actions and find version Dev-KB112624(Download Build version for you :).\n"
+                      "Is the last one not support installation of mod loaders (but it is indeed stable and supports"
+                      " the new instance structure).\n"
                       "Please run it only if you know what you are doing.\n")
 
 ChangeLog = ("Changelog:\n"
@@ -25,13 +34,15 @@ DisableClearOutput = false
 DefaultAccountID = 1
 LauncherWorkDir = "None"
 PingServerIP = "None"
-DontCheckInternetConnection = true
+BypassLoginStatusCheck = false
+NoInternetConnectionCheck = true
 
 <MainMemu>
 # Automatic open you want option when launcher load MainMemu
 AutomaticOpenOptions = false
 Option = None
 NoList = false
+QuickLaunch = False
 
 <LaunchManager>
 Create a new terminal when launching Minecraft. The new terminal will not be killed when the main stop working.
@@ -46,6 +57,9 @@ MaxInstancesPerRow = 20
 # Automatic launch you want to launch instances
 AutomaticLaunch = false
 InstancesName = None
+
+# Under testing
+QuickLaunchInstancesName = None
 
 # Use old libraries.cfg
 UseCustomLibrariesCFG = false
@@ -78,7 +92,6 @@ Version = None
 DontPrintColor = False
 DisableClearOutput = False
 NoList = False
-global_config_path = os.path.join("data/config.bakelh.cfg")
 
 
 def print_custom(*args, **kwargs):
@@ -93,15 +106,14 @@ def initialize_config(**kwargs):
     print_custom("Can't find config! Creating...", color='yellow')
     overwrite = kwargs.get('overwrite', False)
     if overwrite:
-        with open(global_config_path, "w") as config:
-            config.write(global_config)
+        with open(Base.global_config_path, "w") as config:
+            config.write(Base.global_config_path)
         print("Global config has been reset.")
         return
-
     if not os.path.exists("data"):
         os.makedirs("data")
-    if not os.path.exists(global_config_path):
-        with open(global_config_path, "w") as config:
+    if not os.path.exists(Base.global_config_path):
+        with open(Base.global_config_path, "w") as config:
             config.write(global_config)
 
 
@@ -138,9 +150,13 @@ def timer(message, seconds):
 
 
 class LauncherBase:
-
+    """
+    BakeLauncher's Base
+    A good Launcher must have a good foundation.
+    .....
+    """
     def __init__(self):
-        # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
+        # Set version
         if version_type == "Dev":
             self.launcher_version = f"Beta {major_version}({version_type}-{dev_version})"
             self.launcher_version_type = "Dev"
@@ -157,6 +173,7 @@ class LauncherBase:
                 self.launcher_version_type = "Release"
                 self.launcher_internal_version = f'beta-{major_version}-release'
                 self.launcher_version_display = self.launcher_version
+        # Other stuff(for create instance, platform check...)
         self.launcher_data_format = "dev-beta-0.9-2"
         self.PlatformSupportList = ["Windows", "Darwin", "Linux"]
         self.Platform = self.get_platform("platform")
@@ -164,39 +181,56 @@ class LauncherBase:
         self.LibrariesPlatform2nd = self.get_platform("libraries_2nd")
         self.LibrariesPlatform2ndOld = self.get_platform("libraries_2nd_old")
         self.Arch = self.get_platform("Arch")
+        # ============================I'm a line==============================
+        # Flag and list(Set by launcher)
+        self.EndLoadFlag = False  # If load process failed(platform check failed), Set to True
+        self.MainMemuResetFlag = False  # Set to true by check_account_data_are_valid
+        self.InternetConnected = False
+        self.ErrorMessageList = []
+        # ============================I'm a line==============================
+        # Config file stuff
+        # Global stuff
         self.Debug = False
         self.DontPrintColor = False  # Stop print colorful text
         self.DisableClearOutput = False  # Debug
         self.DefaultAccountID = None
-        self.EndLoadFlag = False  # If load process failed(platform check failed), Set to True
-        self.MainMemuResetFlag = False  # Set to true by check_account_data_are_valid
+        self.LauncherWorkDir = None  # Setting from config file
+        self.NoPrintConfigInfo = False
+        self.NoInternetConnectionCheck = False
+        self.PingServerIP = None
+        self.BypassLoginStatusCheck = False
+        # main_memu stuff
         self.NoList = False  # Make main_memu not print the list
         self.AutomaticOpenOptions = False  # Start selected option when load main_memu
         self.AutoOpenOptions = None  # Select option
+        # LaunchManager stuff
+        self.AutomaticLaunch = False
+        self.QuickLaunch = None
+        self.QuickInstancesName = None
+        self.MaxInstancesPerRow = 20
         self.EnableExperimentalMultitasking = False
         self.DefaultGameScreenHeight = 720
         self.DefaultGameScreenWidth = 1280
+        self.JVMUsageRamSizeMinLimit = 2048
+        self.JVMUsageRamSizeMax = 4096
+        # Create Instance stuff
         self.OverwriteJVMIfExist = False
         self.DoNotAskJVMExist = False
         self.UsingLegacyDownloadOutput = False
-        self.LauncherWorkDir = None  # Setting from config file
-        self.NoPrintConfigInfo = False
-        self.PingServerIP = None
-        self.MaxInstancesPerRow = 20
-        self.MaxVersionPerRow = 40
-        self.MaxReleaseVersionPerRow = 9
-        self.DontCheckInternetConnection = False
-        self.InternetConnected = False
-        self.launcher_root_dir = os.getcwd()
-        self.launcher_instances_dir = os.path.join(self.launcher_root_dir, "instances")
-        self.launcher_tmp_dir = os.path.join(self.launcher_root_dir, "tmp")
-        self.launcher_tmp_session = os.path.join(self.launcher_root_dir, "tmp", "in.session")
-        self.global_config_path = os.path.join(self.launcher_root_dir, "data/config.bakelh.cfg")
-        self.PingServerHostList = ["8.8.8.8", "210.2.4.8", "1.1.1.1"]
+        self.MaxVersionPerRow = 40  # Not working
+        self.MaxReleaseVersionPerRow = 9  # Not working
+        # ============================I'm a line==============================
+        # Other stuff
+        self.launcher_root_dir = os.getcwd()  # Set launcher root dir
+        self.launcher_instances_dir = os.path.join(self.launcher_root_dir, "instances")  # instances
+        self.launcher_tmp_dir = os.path.join(self.launcher_root_dir, "tmp")  # tmp(still under testing)
+        self.launcher_tmp_session = os.path.join(self.launcher_root_dir, "tmp", "in.session")  # session file
+        self.global_config_path = os.path.join(self.launcher_root_dir, "data/config.bakelh.cfg")  # config(global)
+        self.account_data_path = os.path.join(self.launcher_root_dir, "data/AccountData.json")
+        self.PingServerHostList = ["8.8.8.8", "210.2.4.8", "1.1.1.1"]  # Test internet Connection
 
     def Initialize(self):
-        global DontPrintColor
-
+        # Initialize Launcher "Base"
         # Load config
         if not os.path.exists("data/config.bakelh.cfg"):
             initialize_config()
@@ -208,9 +242,12 @@ class LauncherBase:
         try:
             if self.LauncherWorkDir is not None and self.LauncherWorkDir != "None":
                 if len(self.LauncherWorkDir) > 0:
-                    os.chdir(self.LauncherWorkDir)
-                    print(f'Launcher workDir now is "{self.LauncherWorkDir}"')
-                    self.launcher_root_dir = self.LauncherWorkDir
+                    try:
+                        os.chdir(self.LauncherWorkDir)
+                        print(f'Launcher workDir now is "{self.LauncherWorkDir}"')
+                        self.launcher_root_dir = self.LauncherWorkDir
+                    except Exception as e:
+                        print_color(f"Failed to change workDir :( Cause by error {e}", tag='ERROR', color='red')
                 else:
                     print_color("Invalid LauncherWorkDir!", tag='Warning')
                     print_color("Stopped change workDir!", tag='INFO')
@@ -218,6 +255,7 @@ class LauncherBase:
                 os.chdir(self.launcher_root_dir)
 
         except UnicodeEncodeError:
+            # ???(Interesting thing is I even don't know which update patched it.)
             print_color("Warning: The launcher is running in a directory with non-ASCII characters.", tag='Warning')
             print_color("You may get failed to launch when you enable EnableExperimentalMultitasking support.")
             print_color("This bug has been confirmed if the user are using Windows(other systems are unverified).")
@@ -235,12 +273,32 @@ class LauncherBase:
 
         Status, Message = self.check_internet_connect()
 
+        if not Status:
+            return False, Message
+
         # Create tmp folder
+        # In pre-0.9, I'm trying to add temp folder for some functions(like mod loader installer).
+        # But I have no luck when feature "add check tmp folder status" :(
+        # Check if any other launchers are already running...
         if not os.path.exists(self.launcher_tmp_dir):
             os.makedirs(self.launcher_tmp_dir)
+
+        if not os.path.exists(Base.launcher_tmp_session):
             with open(self.launcher_tmp_session, "w"):
                 pass
+        # else:
+            # print_color("A launcher already running on your computer. Please close it and try again.", tag="Warning")
+            # time.sleep(2)
 
+        # Clean up tmp folder
+        if len(Base.launcher_tmp_dir) != 0:
+            try:
+                shutil.rmtree(self.launcher_tmp_dir)
+            except Exception as e:
+                print(f"Failed to clean tmp folder. Cause by error {e}")
+            os.makedirs(self.launcher_tmp_dir, exist_ok=True)
+
+        # Check config file status
         if os.path.exists("data/config.bakelh.cfg"):
             with open("data/config.bakelh.cfg", "r", encoding="utf-8") as file:
                 cfg_data = file.read()  # Read the content of the file
@@ -271,9 +329,11 @@ class LauncherBase:
                 if "DefaultAccountID" in line:
                     self.DefaultAccountID = line.split('=')[1].strip().strip('"').strip("'")
                     try:
+                        # Convert it to integer(if failed set it to 1
                         self.DefaultAccountID = int(self.DefaultAccountID)
                     except ValueError:
-                        self.DefaultAccountID = None
+                        self.ErrorMessageList.append("DefaultAccountIDNotAnInteger")
+                        self.DefaultAccountID = 1
 
                 if "DisableClearOutput" in line:
                     self.DisableClearOutput = line.split('=')[1].strip().upper() == "TRUE"
@@ -283,6 +343,16 @@ class LauncherBase:
 
                 if "NoList" in line:
                     self.NoList = line.split('=')[1].strip().upper() == "TRUE"
+
+                if "AutomaticOpenOptions" in line:
+                    self.AutomaticOpenOptions = line.split('=')[1].strip().upper() == "TRUE"
+
+                if "AutoOpenOptions" in line:
+                    if self.AutomaticOpenOptions:
+                        self.AutoOpenOptions = line.split('=')[1].strip().strip('"').strip("'")
+
+                if "QuickLaunch" in line:
+                    self.QuickLaunch = line.split('=')[1].strip().upper() == "TRUE"
 
                 if "OverwriteJVMIfExist" in line:
                     self.OverwriteJVMIfExist = line.split('=')[1].strip().upper() == "TRUE"
@@ -299,14 +369,18 @@ class LauncherBase:
                 if "PingServerIP" in line:
                     self.PingServerIP = line.split('=')[1].strip().strip('"').strip("'")
 
-                if "DontCheckInternetConnection" in line:
-                    self.DontCheckInternetConnection = line.split('=')[1].strip().upper() == "TRUE"
+                if "NoInternetConnectionCheck" in line:
+                    self.NoInternetConnectionCheck = line.split('=')[1].strip().upper() == "TRUE"
+
+                if "BypassLoginStatusCheck" in line:
+                    self.BypassLoginStatusCheck = line.split('=')[1].strip().upper() == "TRUE"
 
                 if "MaxInstancesPerRow" in line:
                     self.MaxInstancesPerRow = line.split('=')[1].strip().strip('"').strip("'")
                     try:
                         self.MaxInstancesPerRow = int(self.MaxInstancesPerRow)
                     except ValueError:
+                        self.ErrorMessageList.append("MaxInstancesPerRowNotAnInteger")
                         self.MaxInstancesPerRow = 20
 
                 if "MaxVersionPerRow" in line:
@@ -314,6 +388,7 @@ class LauncherBase:
                     try:
                         self.MaxVersionPerRow = int(self.MaxVersionPerRow)
                     except ValueError:
+                        self.ErrorMessageList.append("MaxVersionPerRowNotAnInteger")
                         self.MaxVersionPerRow = 40
 
                 if "MaxReleaseVersionPerRow" in line:
@@ -321,10 +396,20 @@ class LauncherBase:
                     try:
                         self.MaxReleaseVersionPerRow = int(self.MaxReleaseVersionPerRow)
                     except ValueError:
+                        self.ErrorMessageList.append("MaxReleaseVersionPerRowNotAnInteger")
                         self.MaxReleaseVersionPerRow = 9
 
                 if "EnableExperimentalMultitasking" in line:
                     self.EnableExperimentalMultitasking = line.split('=')[1].strip().upper() == "TRUE"
+
+                if "AutomaticLaunch" in line:
+                    self.AutomaticLaunch = line.split('=')[1].strip().upper() == "TRUE"
+
+                if "QuickInstancesName" in line:
+                    self.QuickInstancesName = line.split('=')[1].strip().strip('"').strip("'")
+                    if self.QuickInstancesName is None or self.QuickInstancesName == "None":
+                        self.QuickLaunch = False
+                        self.AutomaticLaunch = False
 
                 if "DefaultGameScreenWidth" in line:
                     self.DefaultGameScreenWidth = line.split('=')[1].strip().strip('"').strip("'")
@@ -340,6 +425,20 @@ class LauncherBase:
                     except ValueError:
                         self.DefaultGameScreenHeight = 720
 
+                if "JVMUsageRamSizeMinLimit" in line:
+                    self.JVMUsageRamSizeMinLimit = line.split('=')[1].strip().strip('"').strip("'")
+                    try:
+                        self.JVMUsageRamSizeMinLimit = int(self.JVMUsageRamSizeMinLimit)
+                    except ValueError:
+                        self.JVMUsageRamSizeMinLimit = 2048
+
+                if "JVMUsageRamSizeMax" in line:
+                    self.JVMUsageRamSizeMax = line.split('=')[1].strip().strip('"').strip("'")
+                    try:
+                        self.JVMUsageRamSizeMax = int(self.JVMUsageRamSizeMax)
+                    except ValueError:
+                        self.JVMUsageRamSizeMax = 4096
+
         if not self.NoPrintConfigInfo:
             if self.Debug:
                 if self.DontPrintColor:
@@ -351,9 +450,9 @@ class LauncherBase:
                 if self.LauncherWorkDir is not None:
                     if not self.LauncherWorkDir == "None" or Base.LauncherWorkDir == "null":
                         print_color("Launcher workDir has been set by exist config.", tag='Global')
-                if self.DontCheckInternetConnection:
+                if self.NoInternetConnectionCheck:
                     print_color("Check internet connection has been disabled.", tag='Global')
-                    self.DontCheckInternetConnection = True
+                    self.NoInternetConnectionCheck = True
                 if not isinstance(self.MaxInstancesPerRow, int):
                     print_color("MaxInstancesPerRow are not a valid number. Setting back to 20...", tag='Global')
                     self.MaxInstancesPerRow = 20
@@ -433,7 +532,7 @@ class LauncherBase:
         else:
             host = "InternalList"
 
-        if Base.DontCheckInternetConnection:
+        if Base.NoInternetConnectionCheck:
             return True, "BypassCheckInternetConnection"
 
         if host == "InternalList":

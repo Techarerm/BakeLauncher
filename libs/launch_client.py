@@ -24,27 +24,34 @@ def create_new_client_thread(launch_command, title, PlatFormName, ConfigPath):
     FailedToLaunch = False
     Base.NoPrintConfigInfo = True
     Base.load_setting(CfgPath=ConfigPath)
+
     if not Base.DontPrintColor:
         print("Please check the launcher already created a new terminal.", color='purple')
         print("If it didn't create it please check the output and report it to GitHub!", color='green')
     else:
         print("Please check the launcher already created a new terminal.")
         print("If it didn't create it please check the output and report it to GitHub!")
+
     if PlatFormName == 'Windows':
+        # Create the temp batch file
         with tempfile.NamedTemporaryFile(delete=False, suffix='.bat') as command:
             command.write(f"@echo off\n".encode())
             command.write(f'title {title}\n'.encode())
             command.write(f"{launch_command}\n".encode())
+            command.write("del %~f0\n".encode())
             command.write("pause\n".encode())
-            command.write("exit\n".encode())
             final_command = command.name
+
         try:
+            # Launch the process
             print("Creating launch thread...")
-            process = subprocess.Popen(['cmd.exe', '/c', 'start', 'cmd.exe', '/k', final_command],
-                                       shell=True,
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE,
-                                       stdin=subprocess.PIPE)
+            process = subprocess.Popen(
+                ['cmd.exe', '/c', 'start', 'cmd.exe', '/k', final_command],
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                stdin=subprocess.PIPE
+            )
         except Exception as e:
             FailedToLaunch = True
             print(f"Error in Windows process: {e}")
@@ -109,12 +116,12 @@ def create_new_client_thread(launch_command, title, PlatFormName, ConfigPath):
 
 
 def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
-                 JVM_Args, JVM_ArgsWindowsSize, JVM_ArgsRAM, GameArgs, custom_game_args, instances_id,
+                 JVMArgs, GameArgs, custom_game_args, instances_id,
                  EnableMultitasking):
     work_instance_dir = os.getcwd()
     # Construct the Minecraft launch command with proper quoting
     minecraft_command = (
-        f'{JVMExecutable} {JVM_Args} {JVM_ArgsWindowsSize} {JVM_ArgsRAM} '
+        f'{JVMExecutable} {JVMArgs} '
         f'-Djava.library.path="{NativesPath}" -cp "{libraries_paths_strings}" '
         f'{MainClass} {GameArgs} {custom_game_args}'
     )
@@ -122,14 +129,14 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
     # Is for launch using one thread method
     cleaned_jvm_path = JVMExecutable.replace(" ", "")
     minecraft_command_one_thread = (
-        f'{cleaned_jvm_path} {JVM_Args} {JVM_ArgsWindowsSize} {JVM_ArgsRAM} '
+        f'{cleaned_jvm_path} {JVMExecutable} {JVMArgs} '
         f'-Djava.library.path="{NativesPath}" -cp "{libraries_paths_strings}" '
         f'{MainClass} {GameArgs} {custom_game_args}'
     )
 
     # Debug jvm args
     args = (
-        f'{cleaned_jvm_path} {JVM_Args} {JVM_ArgsWindowsSize} {JVM_ArgsRAM} '
+        f'{cleaned_jvm_path} {JVMExecutable} {JVMArgs} '
         f'-Djava.library.path="{NativesPath}" -cp "{libraries_paths_strings}" '
         f'{MainClass} {GameArgs} {custom_game_args}'
     )
@@ -152,7 +159,7 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
             f'echo {light_blue}Minecraft Log Output: {reset}',
             'echo ================================================',
             f'{minecraft_command}',
-            f'echo {green}LaunchManager: Minecraft has stopped running! (Thread terminated){reset}'
+            f'echo {green}Minecraft has stopped running! (Thread terminated){reset}'
         ]
     elif Base.Platform == 'Darwin':
         launch_command = [
@@ -163,7 +170,7 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
             f'printf "{light_blue}Minecraft Log Output: {reset}\\n"',
             'echo "==============================================="',
             f'{minecraft_command}',
-            f'printf "{green}LaunchManager: Minecraft has stopped running! (Thread terminated){reset}\\n"',
+            f'printf "{green}Minecraft has stopped running! (Thread terminated){reset}\\n"',
             f'exit\n'
         ]
     elif Base.Platform == "Linux":
@@ -173,7 +180,7 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
             f'echo -e {light_blue}"Minecraft Log Output: "{reset}',
             'echo "==============================================="',
             f'{minecraft_command}',
-            f'echo -e {green}"LaunchManager: Minecraft has stopped running! (Thread terminated)"{reset}]\n'
+            f'echo -e {green}"Minecraft has stopped running! (Thread terminated)"{reset}]\n'
         ]
     else:
         launch_command = [
@@ -181,7 +188,7 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
             f'echo -e "Minecraft Log Output: "',
             'echo "==============================================="',
             f'{minecraft_command}',
-            f'echo -e "LaunchManager: Minecraft has stopped running! (Thread terminated)"\n'
+            f'echo -e "Minecraft has stopped running! (Thread terminated)"\n'
         ]
 
     # Join the commands with newline characters for the batch file

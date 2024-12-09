@@ -4,6 +4,8 @@ Main
 CheckArch(Call LauncherBase)>GetPlatformName>Load Main_Memu>Ended
 """
 import multiprocessing
+import argparse
+import time
 import traceback
 import textwrap
 import datetime
@@ -28,7 +30,7 @@ class BakeLauncher:
             ClearOutput()
             tb = traceback.format_exc()  # Full traceback as a string
             function_name = traceback.extract_tb(e.__traceback__)[-1].name
-            print(f"BakeLauncher has crashed :( Caused by failed to load Base.", color='red')
+            print(f"BakeLauncher has crashed :( Caused by failed to load Base.", color='lightred')
             print(f"Crash at function name Base.{function_name}()")
             print(f"Error {e}")
             print(f"Detailed traceback:\n{tb}")
@@ -43,7 +45,7 @@ class BakeLauncher:
                 ClearOutput()
                 tb = traceback.format_exc()  # Full traceback as a string
                 function_name = traceback.extract_tb(e.__traceback__)[-1].name
-                print(f"BakeLauncher has crashed :( Caused by an error in function '{function_name}': {e}", color='red')
+                print(f"BakeLauncher has crashed :( Caused by an error in function '{function_name}': {e}", color='lightred')
                 print(f"Crash at function name {function_name}")
                 print(f"Error {e}")
                 print(f"Detailed traceback:\n{tb}")
@@ -62,11 +64,13 @@ class BakeLauncher:
 
     def main(self):
         # DEBUG for platform check
-        print(f"BakeLauncher: Launcher is running on platform: {Base.Platform}", color='blue')
+        print(f"BakeLauncher: Launcher is running on platform: {Base.Platform}", color='lightblue')
         ClearOutput()
 
         # Print BetaWarningMessage
         print(BetaWarningMessage, color='yellow')
+        if Base.Debug:
+            time.sleep(5)
         ClearOutput()
 
         # Load main menu

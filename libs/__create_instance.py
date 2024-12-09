@@ -1,107 +1,18 @@
+import subprocess
 import sys
-
 import requests
 import os
 import zipfile
 import time
-import datetime
 import hashlib
 import shutil
-from datetime import datetime
-from textwrap import dedent
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from LauncherBase import Base, ClearOutput, print_custom as print
 from libs.__assets_grabber import assets_grabber_manager
 from libs.__instance_manager import instance_manager
-from libs.utils import get_version_data, download_file
+from libs.__duke_explorer import Duke
+from libs.Utils.utils import get_version_data, download_file, multi_thread_download, extract_zip
+from libs.Modification.mod_installer import mod_installer
 from tqdm import tqdm
-
-
-def extract_zip(zip_path, extract_to):
-    try:
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-            zip_ref.extractall(extract_to)
-        print(f"Extracted {zip_path} to {extract_to}")
-    except zipfile.BadZipFile as e:
-        print(f"Error extracting {zip_path}: {e}", color='red')
-
-
-def multi_thread_download(nested_urls_and_paths, name, max_workers=5, retries=1):
-    """
-    Downloads multiple files using multiple threads with retry attempts.
-    nested_urls_and_paths should be a nested list where each element is a list containing a tuple of (url, dest_path).
-    """
-    # Flatten the nested list into a single list of (url, dest_path) tuples
-    urls_and_paths = [item for sublist in nested_urls_and_paths for item in sublist]
-
-    # Calculate the total number of files to download (half the length of the list)
-    total_files = len(urls_and_paths)
-
-    downloaded_files = []
-    failed_files = []
-    sys.stderr.flush()
-
-    def download_with_retry(url, dest_path, retry_count):
-        """Attempts to download a file with retries."""
-        for attempt in range(retry_count + 1):
-            success = download_file(url, dest_path)  # Replace with your download logic
-            if success:
-                return True
-            print(f"Retry {attempt + 1} for {url}")
-        failed_files.append((url, dest_path))  # Track failed downloads
-        return False
-
-    def futures_download(future_to_url, total_files):
-        if Base.UsingLegacyDownloadOutput:
-            for future in as_completed(future_to_url):
-                url, dest_path = future_to_url[future]
-                try:
-                    success = future.result()
-                    if success:
-                        downloaded_files.append(dest_path)
-                    else:
-                        failed_files.append((url, dest_path))  # Track final failure
-                except Exception as exc:
-                    print(f"Error downloading {url}: {exc}")
-                    failed_files.append((url, dest_path))
-        else:
-            with tqdm(total=total_files, desc=f"Downloading {name}", unit="file", colour='cyan') as pbar_download:
-                for future in future_to_url:
-                    url, dest_path = future_to_url[future]
-                    try:
-                        success = future.result()  # Wait for the future to complete
-                        if success:
-                            downloaded_files.append(dest_path)
-                    except Exception as exc:
-                        print(f"Error downloading {url}: {exc}")
-                    # Update the progress bar correctly
-                    pbar_download.update(1)
-
-    # Initial download attempt with a progress bar
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Wrap the futures in tqdm to create a progress bar
-        future_to_url = {
-            executor.submit(download_with_retry, url, dest_path, retries): (url, dest_path)
-            for url, dest_path in urls_and_paths
-        }
-
-        futures_download(future_to_url, total_files)
-
-    # Retry failed downloads
-    if failed_files:
-        print("\nRetrying failed downloads...")
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_url = {
-                executor.submit(download_with_retry, url, dest_path, retries): (url, dest_path)
-                for url, dest_path in failed_files
-            }
-            failed_files.clear()  # Clear the list to track final failures
-
-            futures_download(future_to_url, total_files)
-
-    if failed_files:
-        print("Files that failed after retries:", failed_files)
-    return downloaded_files, failed_files
 
 
 class Create_Instance:
@@ -410,14 +321,6 @@ class Create_Instance:
         print(f"Downloading client.jar to {client_dest}...", color='green')
         download_file(client_url, client_dest)
 
-    def download_fabric_loader(self, libraries_path, loader_version):
-        print("Downloading fabric loader...", color='yellow')
-        fabric_loader_dest = os.path.join(libraries_path, "net", "fabricmc", "fabric-loader",
-                                               f"fabric_loader_{loader_version}.jar")
-        fabric_loader_url = (f"https://maven.fabricmc.net/net/fabricmc/fabric-loader/"
-                                  f"{loader_version}/fabric-loader-{loader_version}.jar")
-        download_file(fabric_loader_url, fabric_loader_dest)
-
     def download_libraries(self, version_data, install_dir):
         """
         Create instances/version_id/folder and download game files
@@ -469,45 +372,6 @@ class Create_Instance:
         print("Downloading natives...", color='green')
         time.sleep(1)
         self.download_natives(libraries, libraries_dir)
-
-    def download_fabric_libraries(self, libraries, libraries_path, client_version):
-        if not os.path.exists(libraries_path):
-            os.makedirs(libraries_path)
-
-        download_queue = []
-
-        for lib in libraries:
-            group_id, artifact_id, version = lib["name"].split(":")
-
-            # Create directory structure (use '/' for URL paths)
-            group_path = group_id.replace(".", "/")  # Convert groupId to folder structure using "/"
-            library_path = os.path.join(libraries_path, group_path, artifact_id, version)
-
-            # Ensure the target folder exists
-            os.makedirs(library_path, exist_ok=True)
-
-            # Construct the download URL using the corrected path
-            url = f"https://maven.fabricmc.net/{group_path}/{artifact_id}/{version}/{artifact_id}-{version}.jar"
-
-            # Full path where the JAR will be saved
-            destination = os.path.join(library_path, f"{artifact_id}-{version}.jar")
-
-            # Download the library
-            fabric_lib_url_and_dest = [
-                (url, destination)
-            ]
-            download_queue.append(fabric_lib_url_and_dest)
-
-        multi_thread_download(download_queue, "libraries")
-
-        print("Downloading intermediary...", color='green')
-        self.client_version = client_version
-        self.libraries_path = libraries_path
-        intermediary_url = (f"https://maven.fabricmc.net/net/fabricmc/intermediary/"
-                            f"{self.client_version}/intermediary-{self.client_version}.jar")
-        intermediary_dest = os.path.join(self.libraries_path, "net", "fabric", "intermediary", self.client_version,
-                                              f"intermediary-{self.client_version}.jar")
-        download_file(intermediary_url, intermediary_dest)
 
     def unzip_natives(self, instance_name):
         global unzip_status
@@ -653,16 +517,6 @@ class Create_Instance:
         return True, "DownloadFinished"
 
     @staticmethod
-    def get_java_version_info(version_data):
-        try:
-            java_version_info = version_data['javaVersion']
-            component = java_version_info['component']
-            major_version = java_version_info['majorVersion']
-            return component, major_version
-        except KeyError:
-            raise Exception("Failed to find the javaVersion information in the version data.")
-
-    @staticmethod
     def find_selected_java_version_manifest_url(manifest_data, component, major_version):
         if Base.LibrariesPlatform == 'windows':
             JavaPlatformName = 'windows-x64'
@@ -688,7 +542,7 @@ class Create_Instance:
         selected_version_data = get_version_data(minecraft_version)
 
         # Get Java Version Info(from selected version's data)
-        component, major_version = self.get_java_version_info(selected_version_data)
+        component, major_version = Duke.get_java_version_info(selected_version_data)
         print(f"Required Java Component: {component}, Major Version: {major_version}", color='green', tag='DEBUG')
 
         # Get java manifest
@@ -981,115 +835,6 @@ class Create_Instance:
         print(f"Client Version: {client_version} Instance Dir: {instance_path}", color='green', tag='DEBUG')
         self.download_games_files(client_version, instance_path)
 
-    def install_fabric_loader(self, instance_path):
-        def get_fabric_loader_support_for_minecraft(client_version):
-            url = f"https://meta.fabricmc.net/v2/versions/loader/{client_version}"
-
-            # Get the list of all loader versions
-            response = requests.get(url)
-            if response.status_code != 200:
-                print(f"Failed to retrieve data: {response.status_code}")
-                return
-
-            loader_data = response.json()
-
-            # Collect the available Fabric loader versions
-            loader_versions = []
-            for loader in loader_data:
-                loader_version = loader.get('loader', {}).get('version', '')
-                if loader_version:  # Add only non-empty versions
-                    loader_versions.append(loader_version)
-
-            if not loader_versions:
-                print("No loader versions available.")
-                return
-
-            # Display available versions to the user
-            print(f"Available Fabric loader versions for Minecraft version {client_version}:")
-            for idx, version in enumerate(loader_versions, start=1):
-                print(f"{idx}. {version}")
-
-            # Prompt the user to select a version
-            try:
-                choice = int(input(f"Select a Fabric loader version (1-{len(loader_versions)}): "))
-                if 1 <= choice <= len(loader_versions):
-                    selected_version = loader_versions[choice - 1]
-                    print(f"You selected Fabric loader version: {selected_version}")
-                    return selected_version
-                else:
-                    print("Invalid choice. Please select a valid number.")
-            except ValueError:
-                print("Invalid input. Please enter a number.")
-
-        # Setting some variable
-        instance_libraries = os.path.join(instance_path, ".minecraft", "libraries")
-        os.chdir(instance_path)
-
-        if not os.path.exists(instance_libraries):
-            print("Libraries are not found. Trying to move it...", color='yellow')
-            try:
-                shutil.move("libraries", ".minecraft")
-            except Exception as e:
-                print(f"Failed to move libraries to .minecraft folder. Cause by error {e}", color='red')
-
-        instance_info = os.path.join(instance_path, "instance.bakelh.ini")
-        Status, client_version = instance_manager.get_instance_info(instance_info, info_name="client_version")
-        game_dir = os.path.join(instance_path, ".minecraft")
-        if not os.path.exists(game_dir):
-            os.makedirs(game_dir)
-
-        if not Status:
-            print("Failed to get instance client version.", color='red')
-            return
-
-        # Start install process
-        loader_version = get_fabric_loader_support_for_minecraft(client_version)
-
-        url = f"https://meta.fabricmc.net/v2/versions/loader/{client_version}/{loader_version}"
-        response = requests.get(url)
-        fabric_data = response.json()
-
-        if "launcherMeta" not in fabric_data:
-            print("Failed to download fabric loader :( Cause by fetch data are not valid.", color='red')
-            return
-
-        libraries_data = fabric_data["launcherMeta"]["libraries"]["common"]
-        print("Downloading Fabric loader...", color='green')
-        self.download_fabric_loader(instance_libraries, loader_version)
-        self.download_fabric_libraries(libraries_data, instance_libraries, client_version)
-
-        print("Confining Fabric setting...", color='green')
-        instance_cfg = os.path.join(instance_path, "instance.bakelh.cfg")
-        instance_manager.create_custom_config(instance_cfg)
-
-        instance_manager.write_custom_config(instance_cfg, "modloderclass"
-                                             , "net.fabricmc.loader.impl.launch.knot.KnotClient")
-
-        print("Install Fabric loader successfully!", color='blue')
-
-    def install_mode_loader(self):
-        print("Warning: This function is in testing. Not sure all method will working fine.", color='red')
-        Status, client_version, instance_path = instance_manager.select_instance(
-            "Which instance is you want to install mode loader?", client_version=True)
-
-        if Status is None:
-            print("Failed to get instance path.", color='red')
-            return
-
-        while True:
-            print("Mode Loader List:", color='blue')
-            print("1: Fabric", color='yellow')
-
-            user_input = str(input("Which loader is you want to install?"))
-
-            if user_input == "1":
-                self.install_fabric_loader(instance_path)
-                return True
-            elif user_input.upper() == "EXIT":
-                return True
-            else:
-                print("Unknown Options :(", color='red')
-
     def create_instance(self):
         def download_minecraft_with_version_id(list_type=None):
             """
@@ -1236,25 +981,26 @@ class Create_Instance:
         print("3: Download Legacy Minecraft", color='yellow')
         print("4: Reinstall instance", color='cyan')
         print("5: Install Mod Loder(Exp)", color='purple')
-        try:
-            user_input = str(input(":"))
-            if user_input.upper() == "EXIT":
-                print("Exiting....", color='green')
-                return
+        user_input = str(input(":"))
+        if user_input.upper() == "EXIT":
+            print("Exiting....", color='green')
+            return
 
-            if user_input == "1":
-                download_minecraft_with_version_id()
-            elif user_input == "2":
-                download_with_regular_minecraft_version()
-            elif user_input == "3":
-                download_legacy_minecraft()
-            elif user_input == "4":
-                self.reinstall_instances()
-            elif user_input == "5":
-                self.install_mode_loader()
-            else:
-                print("Unknown options :( Please try again.", color='red')
-                self.create_instance()
+        if user_input == "1":
+            download_minecraft_with_version_id()
+        elif user_input == "2":
+            download_with_regular_minecraft_version()
+        elif user_input == "3":
+            download_legacy_minecraft()
+        elif user_input == "4":
+            self.reinstall_instances()
+        elif user_input == "5":
+            mod_installer.install_mode_loader()
+        else:
+            print("Unknown options :( Please try again.", color='red')
+            self.create_instance()
+        try:
+            print("")
         except ValueError:
             # Back to main avoid crash(when user type illegal thing)
             print("BakeLaunch: Oops! Invalid option :O  Please enter a number.", color='red')

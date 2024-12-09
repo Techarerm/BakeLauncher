@@ -4,8 +4,7 @@ import re
 import json
 import time
 from LauncherBase import Base, print_custom as print
-from libs.__create_instance import create_instance
-from libs.utils import get_version_data
+from libs.Utils.utils import get_version_data
 
 
 class DukeCute:
@@ -142,26 +141,30 @@ class DukeCute:
         except Exception as e:
             print(f"Error: Failed to write JSON data due to {e}", color='red')
 
-    @staticmethod
-    def java_version_check(version_id):
+    def java_version_check(self, version_id, **kwargs):
         """
         Check the Minecraft version requirements for Java version.
         """
 
+        JAVA8 = kwargs.get("JAVA8", False)
         print(f"Trying to check the required Java version for this Minecraft version...", color='green')
 
-        try:
-            # Get version data
-            version_data = get_version_data(version_id)
+        if not JAVA8:
+            try:
+                # Get version data
+                version_data = get_version_data(version_id)
 
-            # Extract the Java version information
-            component, major_version = create_instance.get_java_version_info(version_data)
-            print(f"Required Java Component: {component}, Major Version: {major_version}", color='green')
+                # Extract the Java version information
+                component, major_version = self.get_java_version_info(version_data)
+                print(f"Required Java Component: {component}, Major Version: {major_version}", color='green')
 
-        except Exception as e:
-            # If it can't get support Java version, using Java 8(some old version will get this error)
-            print(f"Error occurred while fetching version data: {e}", color='red')
-            print(f"Warning: BakeLauncher will using Java 8 instead original support version of Java.", color='yellow')
+            except Exception as e:
+                # If it can't get support Java version, using Java 8(some old version will get this error)
+                print(f"Error occurred while fetching version data: {e}", color='red')
+                print(f"Warning: BakeLauncher will using Java 8 instead original support version of Java.",
+                      color='yellow')
+                major_version = str("8")
+        else:
             major_version = str("8")
 
         try:
@@ -182,6 +185,15 @@ class DukeCute:
         except json.JSONDecodeError:
             print(f"Error decoding JSON from Java_HOME.json", color='red')
             return None
+
+    def get_java_version_info(self, version_data):
+        try:
+            java_version_info = version_data['javaVersion']
+            component = java_version_info['component']
+            major_version = java_version_info['majorVersion']
+            return component, major_version
+        except KeyError:
+            raise Exception("Failed to find the javaVersion information in the version data.")
 
     @staticmethod
     def initialize_jvm_config():

@@ -1,13 +1,9 @@
 import os
-import shutil
-import subprocess
 import time
-import json
 from LauncherBase import Base, print_color as print
 import requests
 from datetime import datetime
 import textwrap
-from libs.utils import download_file
 
 
 class InstanceManager:
@@ -192,16 +188,20 @@ class InstanceManager:
             ini_file.write(instance_info)
 
     def load_custom_config(self, custom_config_path, item, item_name):
+        # Check if the config file exists; create if not
         if not os.path.exists(custom_config_path):
             self.create_custom_config(custom_config_path)
+
+        # Read and process the config file
+        found = False
         with open(custom_config_path, 'r') as config_file:
-            lines = config_file.readlines()
-            for line in lines:
-                if item in line:
-                    item = line.split('=', 1)[1].strip()
-                    if len(item) > 0:
-                        print(f"Found exist {item_name}:\n"
-                              f" {item}", color='purple')
+            for line in config_file:
+                if line.startswith(item + "="):
+                    value = line.split('=', 1)[1].strip()
+                    if value:
+                        print(f"Found existing {item_name}:\n {value}")
+                        found = True
+                        break  # Exit loop once the item is found
 
     def get_instance_info(self, instance_info_path, **kwargs):
         """

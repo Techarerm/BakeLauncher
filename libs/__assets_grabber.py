@@ -4,7 +4,7 @@ import requests
 from tqdm import tqdm
 from LauncherBase import Base, print_custom as print
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from libs.utils import get_version_data
+from libs.Utils.utils import get_version_data
 
 class assets_grabber:
     def __init__(self):

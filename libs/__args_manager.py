@@ -3,10 +3,10 @@ import time
 import requests
 import psutil
 import json
-from LauncherBase import Base, print_custom as print, ClearOutput, timer
+from LauncherBase import print_custom as print, ClearOutput
 from libs.__instance_manager import instance_manager
-from libs.launch_manager import GetGameArgs
-from libs.utils import get_version_data
+from libs.launch_manager import launch_manager
+from libs.Utils.utils import get_version_data
 
 
 class ArgsManager:
@@ -44,7 +44,7 @@ class ArgsManager:
             """Adds an item to the configuration if it does not already exist."""
             for i, line in enumerate(lines):
                 if "Add>" in data:
-                    add_item = data.split(">")[1].strip()
+                    add_item = data.split("Add>")[1].strip()
                     if add_item.lower() in line.lower():
                         print(f"Argument '{add_item}' already exists.")
                         return False
@@ -218,7 +218,7 @@ class ArgsManager:
                 if user_input.upper() == "EXIT":
                     return
                 else:
-                    self. write_config(modify_instance_path, "WriteJVMArgs", user_input, '')
+                    self. write_config(modify_instance_path, "WriteJVMArgs", user_input, '\n')
 
         if mode == "Clear":
             print("Cleaning config file...", color='green')
@@ -227,7 +227,7 @@ class ArgsManager:
                 for i in range(len(lines)):
                     if "CustomJVMArgs" in lines[i]:
                         # Use the new or existing account ID
-                        lines[i] = f'CustomJVMArgs = ""'
+                        lines[i] = f'CustomJVMArgs = \n'
             with open(config_path, 'w') as file:
                 file.writelines(lines)
             print("Config file has been cleaned :)", color='blue')
@@ -302,7 +302,7 @@ class ArgsManager:
         assets_dir = "${assets_dir}"
         uuid = "${uuid}"
 
-        GameArgs = GetGameArgs(client_version, username, access_token, gameDir, assets_dir, assetsIndex, uuid)
+        GameArgs = launch_manager.generate_game_args(client_version, username, access_token, gameDir, assets_dir, assetsIndex, uuid)
         print("Original Game Args Example:", color='purple')
         print(GameArgs, color='green')
 
@@ -441,12 +441,12 @@ class ArgsManager:
         print("1: Modify Game Args 2: Modify JVM Args 3: Exit")
 
         try:
-            user_input = int(input(":"))
-            if user_input == 1:
+            user_input = str(input(":"))
+            if user_input == "1":
                 self.modify_game_args()
-            elif user_input == 2:
+            elif user_input == "2":
                 self.modify_jvm_args()
-            elif user_input == 3:
+            elif user_input == "3" or user_input.upper() == "EXIT":
                 return
             else:
                 print("ArgsManager: Unknown option :0", color='red')
