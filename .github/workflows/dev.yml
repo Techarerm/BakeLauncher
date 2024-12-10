@@ -21,6 +21,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: recursive # For submodules
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -40,7 +43,7 @@ jobs:
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
-          name: BakeLauncher-Dev-LA091224.Windows
+          name: BakeLauncher-Dev-LB101224.Windows
           path: dist/
 
   macos-build:
@@ -48,6 +51,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: recursive # For submodules
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -67,7 +73,7 @@ jobs:
       - name: Upload APP
         uses: actions/upload-artifact@v4
         with:
-          name: BakeLauncher-Dev-LA091224.macOS
+          name: BakeLauncher-Dev-LB101224.macOS
           path: dist/
 
   linux-build:
@@ -75,6 +81,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: recursive # For submodules
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -94,7 +103,7 @@ jobs:
       - name: Upload Linux binary
         uses: actions/upload-artifact@v4
         with:
-          name: BakeLauncher-Dev-LA091224.Linux
+          name: BakeLauncher-Dev-LB101224.Linux
           path: dist/
 
   create-latest-tag:

@@ -1,8 +1,6 @@
 import os
-import re
 import shutil
 import time
-from collections import defaultdict
 from json import JSONDecodeError
 from LauncherBase import Base, print_custom as print
 from libs.__assets_grabber import assets_grabber
@@ -11,6 +9,7 @@ from libs.__account_manager import account_manager
 from libs.launch_client import LaunchClient
 from libs.__instance_manager import instance_manager
 from libs.Utils.utils import get_version_data
+from libs.Utils.libraries import generate_libraries_paths
 
 
 class LauncherManager:
@@ -63,29 +62,6 @@ class LauncherManager:
                         OtherArgs += "-XstartOnFirstThread "
 
         return RAMSize_Args, OtherArgs
-
-    def generate_libraries_paths(self, client_version, libraries_dir):
-        jar_paths_string = ""
-        client_jar_path = os.path.join(libraries_dir, "net", "minecraft", client_version, "client.jar")
-
-        for root, dirs, files in os.walk(libraries_dir):
-            for file in files:
-                if file.endswith('.jar') and not file.startswith("client.jar"):
-                    # Skip adding client.jar to jar_paths_string
-                    relative_path = os.path.relpath(os.path.join(root, file), start=libraries_dir)
-                    full_path = os.path.join(".minecraft", "libraries", relative_path)
-
-                    # Append the path to the jar_paths_string with the correct separator
-                    if Base.Platform == "Windows":
-                        jar_paths_string += full_path + ";"
-                    else:
-                        jar_paths_string += full_path + ":"
-
-        # Finally, append the client.jar path to the end of the jar paths string if it exists
-        if client_jar_path:
-            jar_paths_string += client_jar_path
-
-        return jar_paths_string
 
     def generate_game_args(self, version_id, username, access_token, game_dir, assets_dir, assetsIndex, uuid):
         version_data = get_version_data(version_id)  # Fetch version data
@@ -143,7 +119,7 @@ class LauncherManager:
         return minecraft_args
 
     def launch_game(self, **kwargs):
-        global JVMArgs
+        global JVMArgs, CustomRAMArgs
         QuickLaunch = kwargs.get("QuickLaunch", False)
 
         # Check folder "versions" are available in root (To avoid some user forgot to install)
@@ -156,7 +132,7 @@ class LauncherManager:
         if not QuickLaunch:
             if len(instances_list) == 0:
                 print("No instances are available to launch :(", color='red')
-                print("Try to using DownloadTool to download the Minecraft!")
+                print("You can use create instance to create a new instance for you :)", color='blue')
                 time.sleep(4)
                 return "NoInstancesAreAvailable"
 
@@ -228,13 +204,15 @@ class LauncherManager:
         # Check JavaPath is valid
         if JavaPath is None:
             print("Get JavaPath failed! Cause by None path!", color='red')
-            print("Please download third version of Minecraft support Java(In DownloadTool)!")
+            print("Try 4: Extra>7: Search Java Runtimes(Duke) to create JavaConfig.", color='green')
+            print("If you still get the error when launching Minecraft. Go to '3: Create Instance>4: Reinstall "
+                  "instance' to reinstall it.", color='indigo')
             time.sleep(4)
             return "FailedToCheckJavaPath"
 
         if not os.path.exists(JavaPath):
             print("The selected version of Java runtime folder does not exist :(", color='red')
-            print("Please reinstall it! (Or download the latest version for your launch instances)", color='yellow')
+            print("Go to '3: Create Instance>4: Reinstall instance' to reinstall it.", color='yellow')
             time.sleep(2.5)
             return "JavaRuntimePathDoesNotExist"
         # After get JVMPath(bin), Get PlatformName and set the actual required Java Virtual Machine Path
@@ -250,7 +228,7 @@ class LauncherManager:
             JVMPath = f'"{java_executable_path}"'  # Enclose in quotes for proper execution
         else:
             print("Error: Your Java executable is corrupted :(", color='red')
-            print("Please reinstall it! (Or download the latest version for your launch instances)", color='yellow')
+            print("Go to '3: Create Instance>4: Reinstall instance' to reinstall it.", color='yellow')
             time.sleep(2.5)
             return "JavaExecutableAreCorrupted"
 
@@ -270,6 +248,8 @@ class LauncherManager:
             access_token = account_data['AccessToken']
             uuid = account_data['UUID']
             if username == "Player" or username == "BakeLauncherLocalUser":
+                print("Sorry :( You can't launch game without login in this version.", color='red')
+                time.sleep(3)
                 return "AccountDataInvalid"
 
         except JSONDecodeError or ValueError:
@@ -283,8 +263,6 @@ class LauncherManager:
             print("Failed to launch Minecraft :( Cause by instance file are corrupted.", color='red')
             time.sleep(2.5)
             return "GameDirDoesNotExist"
-
-        RAM_Args, OtherArgs = self.generate_jvm_args(minecraft_version)
 
         # Check natives are available to use
         print("Checking natives...", color='green')
@@ -316,7 +294,7 @@ class LauncherManager:
             print("Moving libraries folder to .minecraft...")
             shutil.move("libraries", ".minecraft")
 
-        libraries_paths_strings = self.generate_libraries_paths(minecraft_version, ".minecraft/libraries")
+        libraries_paths_strings = generate_libraries_paths(minecraft_version, ".minecraft/libraries")
         # Inject jar file to launch chain
         # Get MainClass Name And Set Args(-cp "libraries":client.jar net.minecraft.client.main.Main or
         # net.minecraft.launchwrapper.Launch(old))
@@ -348,15 +326,15 @@ class LauncherManager:
 
             # Check if CustomJVMArgs(or CustomGameArgs) is None or has a length of 0 (ignoring spaces)
             if CustomJVMArgs is None or len(CustomJVMArgs.strip()) == 0:
-                print("CustomJVMArgs is empty or not provided, ignoring...", color='yellow')
+                # print("CustomJVMArgs is empty or not provided, ignoring...", color='yellow')
                 CustomJVMArgs = None
 
             if CustomGameArgs is None or len(CustomGameArgs.strip()) == 0:
-                print("CustomGameArgs is empty or not provided, ignoring...", color='yellow')
+                # print("CustomGameArgs is empty or not provided, ignoring...", color='yellow')
                 CustomGameArgs = " "  # Replace Custom Args to a spaces(if is empty)
 
             if ModLoaderClass is None or len(ModLoaderClass.strip()) == 0:
-                print("ModLoaderClass is empty or not provided, ignoring...", color='yellow')
+                # print("ModLoaderClass is empty or not provided, ignoring...", color='yellow')
                 ModLoaderClass = None  # Replace Custom Args to a spaces(if is empty)
             else:
                 print(f"Found exist Mod Loader class: {ModLoaderClass}", color='indigo')
@@ -367,30 +345,32 @@ class LauncherManager:
             CustomGameArgs = " "
             CustomJVMArgs = None
 
-        if CustomJVMArgs is not None:
-            JVMArgs = CustomJVMArgs
-        else:
-            JVMArgs = RAM_Args + OtherArgs
-
         if InjectJARPath is not None:
             libraries_paths_strings += InjectJARPath
+
+        # Config JVM Args
+        RAM_Args, OtherArgs = self.generate_jvm_args(minecraft_version)
+        if CustomJVMArgs is None:
+            FinalArgs = RAM_Args + OtherArgs
+        else:
+            FinalArgs = CustomJVMArgs
 
         # Set instances_id(for multitasking process title)
         instances_id = f"Minecraft {minecraft_version}"
 
         # Bake Minecraft :)
         if Base.Platform == "Windows":
-            LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVMArgs, GameArgs,
+            LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, FinalArgs, GameArgs,
                          CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking)
         elif Base.Platform == "Darwin":
             LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class,
-                         JVMArgs, GameArgs,
+                         FinalArgs, GameArgs,
                          CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking)
         elif Base.Platform == "Linux":
-            LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVMArgs, GameArgs,
+            LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, FinalArgs, GameArgs,
                          CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking)
         else:
-            LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, JVMArgs, GameArgs,
+            LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, FinalArgs, GameArgs,
                          CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking)
 
         os.chdir(Base.launcher_root_dir)

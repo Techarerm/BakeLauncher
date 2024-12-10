@@ -29,7 +29,7 @@ class assets_grabber:
             f.write(response.content)
 
         print(
-            f"AssetsGrabber: Asset index {version_data['assetIndex']['id']}.json downloaded successfully to {save_dir}",
+            f"Asset index {version_data['assetIndex']['id']}.json downloaded successfully to {save_dir}",
             color='blue')
         return response.json()
 
@@ -50,11 +50,11 @@ class assets_grabber:
             print(f"AssetsIndex config has been saved :)", color='blue')
         else:
             print("Failed to config AssetsIndex :(", color='red')
-            print("Maybe the server issue is preventing DownloadTool from getting AssetsIndex?", color='yellow')
             print("Please try again later (If still can't get assetsIndex please report this bug to GitHub!",
                   color='yellow')
             print(
-                "IMPORTANT: 'Do not launch it if failed to get assetsIndex. You might get a broken version of Minecraft :D",
+                "IMPORTANT: 'Do not launch it if failed to get assetsIndex. You might get a broken version of "
+                "Minecraft :D",
                 color='yellow')
             print("Asset index not found.", color='red')
 

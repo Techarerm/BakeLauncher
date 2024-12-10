@@ -34,7 +34,7 @@ def error_return(ErrorMessage, mode):
 def extra_memu():
     while True:
         if not Base.NoList:
-            print("Extra list:")
+            print("Extra list:", color='blue')
             print("1: [Exp]Custom Args        5: Convert Old Instance Structure ")
             print("2: Reset AccountData.json  6: Auto-Convert Old Instance Structure")
             print("3: Clear JVM config file   7: Search Java Runtimes(Duke)")
@@ -121,6 +121,7 @@ def main_memu():
             print("4: Extra 5: About")
 
         user_input = str(input(":"))
+        user_input = user_input.strip()
         if user_input == "1":
             print("Launching Minecraft...", color='lightgreen')
             LaunchMessage = launch_manager.launch_game()

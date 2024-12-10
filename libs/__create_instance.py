@@ -17,7 +17,6 @@ from tqdm import tqdm
 
 class Create_Instance:
     def __init__(self):
-
         self.fabric_loader_version = None
         self.fabric_loader_dest = None
         self.client_version = ""
@@ -26,6 +25,7 @@ class Create_Instance:
         self.legacy_version_type = "classic"
         self.legacy_version = False
         self.SelectedInstanceInstalled = False
+        self.require_jvm_version_installed = False
         self.VersionManifestURl = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
         self.LegacyVersionManifestURl = ("https://github.com/Techarerm/BakeLauncher-Library/raw/refs/heads/main/Legacy"
                                          "%20Manifest/version_manifest_legacy.json")
@@ -424,10 +424,6 @@ class Create_Instance:
                     file_path = os.path.join(root, file)
                     dest_path = os.path.join(instance_natives_dir, file)
 
-                    if os.path.exists(dest_path):
-                        base, ext = os.path.splitext(file)
-                        dest_path = os.path.join(instance_natives_dir, f"{base}_copy{ext}")
-
                     shutil.move(file_path, dest_path)
 
             # After moving all files, optionally remove now-empty subdirectories
@@ -583,6 +579,7 @@ class Create_Instance:
             return True, "BypassInstallJVM"
 
         if os.path.exists(install_path):
+            self.require_jvm_version_installed = True
             print("Warning: A same version of Java runtime has been installed.", color='yellow')
             print("Do you want to reinstall it? Y/N")
             user_input = str(input(":"))
@@ -597,6 +594,7 @@ class Create_Instance:
                 os.makedirs(install_path)
                 time.sleep(0.5)
         else:
+            self.require_jvm_version_installed = False
             os.makedirs(install_path)
         Status, Message = self.download_java_runtime_files(manifest_data, install_path)
 
@@ -632,6 +630,14 @@ class Create_Instance:
             else:
                 print("Permission fix skipped by user.", color='yellow', tag='INFO')
                 Message = "PermissionFixBypassed"
+
+            if not self.require_jvm_version_installed:
+                print("Do you want to create JVMConfig?", color='blue')
+                print("This config is require when launching Minecraft (Find Usage JVM Path).", color='green')
+                user_input = input("Y/N : ")
+                if user_input == "Y":
+                    Duke.duke_finder()
+
 
         if not len(Message) == 0:
             return True, f"InstallJVMFinished[{Message}]"
@@ -783,7 +789,7 @@ class Create_Instance:
 
             print(f'Creating instance at "{instance_path}"', color='green')
             if self.legacy_version:
-                instance_manager.create_instance_data(
+                instance_manager.create_instance_info(
                     instance_name=os.path.basename(instance_path),
                     client_version=client_version,
                     version_type=version_type,
@@ -796,7 +802,7 @@ class Create_Instance:
                 )
                 self.download_games_files(client_version, instance_path)
             else:
-                instance_manager.create_instance_data(
+                instance_manager.create_instance_info(
                     instance_name=os.path.basename(instance_path),
                     client_version=client_version,
                     version_type=version_type,

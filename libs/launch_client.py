@@ -202,7 +202,7 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
         with open("LaunchLoadCommandTemp.sh", "w+") as f:
             f.write(launch_command)
 
-    print("Baking Minecraft! :)", color='blue')
+    print("Baking Minecraft! :)", color='blue')  # Bring it back :)
 
     if EnableMultitasking:
         print("EnableExperimentalMultitasking is Enabled!", color='purple')

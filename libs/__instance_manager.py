@@ -1,3 +1,4 @@
+import json
 import os
 import time
 from LauncherBase import Base, print_color as print
@@ -63,6 +64,7 @@ class InstanceManager:
         
         ModLoaderClass =
         CustomJVMArgs = 
+        MemoryJVMArgs = 
         CustomGameArgs = 
         InjectJARFile = 
         InjectJARPath = 
@@ -98,6 +100,8 @@ class InstanceManager:
             custom_item = "InjectJARPath"
         elif item.lower() == "modloderclass":
             custom_item = "ModLoaderClass"
+        elif item.lower() == "memoryjvmargs":
+            custom_item = "MemoryJVMArgs"
 
         with open(custom_config_path, 'r') as file:
             lines = file.readlines()
@@ -113,7 +117,38 @@ class InstanceManager:
         else:
             return False
 
-    def create_instance_data(self, instance_name, client_version, version_type, is_vanilla, modify_status,
+    @staticmethod
+    def write_instance_info(item_name, new_data, instance_info_path):
+        if not os.path.exists(instance_info_path):
+            return False
+
+        found = False
+        try:
+            with open(instance_info_path, 'r') as file:
+                lines = file.readlines()
+
+            # Look for the item_name in the lines and update its value
+            for i in range(len(lines)):
+                if item_name in lines[i]:
+                    if isinstance(new_data, bool):
+                        lines[i] = f'{item_name} = {str(new_data).lower()}\n'
+                    else:
+                        lines[i] = f'{item_name} = "{new_data}"\n'
+                    found = True
+                    break  # Exit the loop once we've made the change
+
+            # Write info file
+            if found:
+                with open(instance_info_path, 'w') as file:
+                    file.writelines(lines)
+
+        except (IOError, OSError) as e:  # Handle general file errors
+            print(f"Error: {e}")
+            return False
+
+        return found
+
+    def create_instance_info(self, instance_name, client_version, version_type, is_vanilla, modify_status,
                              mod_loader_name, mod_loader_version, **kwargs):
 
         # Setting some path and create date
@@ -232,42 +267,60 @@ class InstanceManager:
                     if line.startswith("instance_name"):
                         # Extract the value after the equals sign
                         key, value = line.split("=", 1)
-                        self.INSTANCE_NAME = value.strip().strip('"')
+                        self.INSTANCE_NAME = value.strip().strip('"').strip("'")
 
                     if line.startswith("client_version"):
                         # Extract the value after the equals sign
                         key, value = line.split("=", 1)
-                        self.CLIENT_VERSION = value.strip().strip('"')
+                        self.CLIENT_VERSION = value.strip().strip('"').strip("'")
 
                     if line.startswith("type"):
                         # Extract the value after the equals sign
                         key, value = line.split("=", 1)
-                        self.VERSION_TYPE = value.strip().strip('"')
+                        self.VERSION_TYPE = value.strip().strip('"').strip("'")
 
                     if line.startswith("launcher_version"):
                         # Extract the value after the equals sign
                         key, value = line.split("=", 1)
-                        self.LAUNCHER_VERSION = value.strip().strip('"')
+                        self.LAUNCHER_VERSION = value.strip().strip('"').strip("'")
 
                     if line.startswith("instance_format"):
                         # Extract the value after the equals sign
                         key, value = line.split("=", 1)
-                        self.INSTANCE_FORMAT = value.strip().strip('"')
+                        self.INSTANCE_FORMAT = value.strip().strip('"').strip("'")
 
                     if line.startswith("create_date"):
                         # Extract the value after the equals sign
                         key, value = line.split("=", 1)
-                        self.CREATE_DATE = value.strip().strip('"')
+                        self.CREATE_DATE = value.strip().strip('"').strip("'")
 
                     if line.startswith("real_minecraft_version"):
                         # Extract the value after the equals sign
                         key, value = line.split("=", 1)
-                        self.real_minecraft_version = value.strip().strip('"')
-                        self.real_minecraft_version = self.real_minecraft_version.strip("'")
+                        self.real_minecraft_version = value.strip().strip('"').strip("'")
+                        self.real_minecraft_version = self.real_minecraft_version.strip("'").strip("'")
 
                     if line.startswith("use_legacy_manifest"):
                         # Extract the value after the equals sign
                         self.use_legacy_manifest = line.split('=')[1].strip().upper() == "TRUE"
+
+                    if line.startswith("IsVanilla"):
+                        # Extract the value after the equals sign
+                        self.use_legacy_manifest = line.split('=')[1].strip().upper() == "TRUE"
+
+                    if line.startswith("Modified"):
+                        # Extract the value after the equals sign
+                        self.use_legacy_manifest = line.split('=')[1].strip().upper() == "TRUE"
+
+                    if line.startswith("ModLoaderName"):
+                        # Extract the value after the equals sign
+                        key, value = line.split("=", 1)
+                        self.CREATE_DATE = value.strip().strip('"').strip("'")
+
+                    if line.startswith("ModLoaderVersion"):
+                        # Extract the value after the equals sign
+                        key, value = line.split("=", 1)
+                        self.CREATE_DATE = value.strip().strip('"').strip("'")
 
         except Exception as e:
             print(f"Error reading file: {e}")
@@ -406,7 +459,7 @@ class InstanceManager:
         def convert_process(instance_name, client_version, version_type):
             # Convert instance to new structure
             print("Converting to new structure...", color='green')
-            instance_manager.create_instance_data(
+            instance_manager.create_instance_info(
                 instance_name=instance_name,
                 client_version=client_version,
                 version_type=version_type,

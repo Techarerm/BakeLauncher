@@ -536,7 +536,7 @@ class AuthManager:
             self.initialize_account_data()
             print("Login Status: Not logged in :(", color='lightred')
             print("Please log in to your account first!", color='lightred')
-            print("Hi, Baker", color='lightyellow')
+            print("Hi, Baker", color='yellow')
 
     def SelectDefaultAccount(self):
         print("AccountList:")

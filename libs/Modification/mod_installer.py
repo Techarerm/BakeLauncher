@@ -9,6 +9,7 @@ from LauncherBase import Base, print_custom as print
 from libs.__instance_manager import instance_manager
 from libs.__duke_explorer import Duke
 from libs.Utils.utils import download_file, multi_thread_download, extract_zip
+from libs.Utils.libraries import libraries_check
 
 
 class ModInstaller:
@@ -19,7 +20,6 @@ class ModInstaller:
         self.ForgeMetadataURL = "https://maven.minecraftforge.net/net/minecraftforge/forge/maven-metadata.xml"
 
     def download_fabric_loader(self, libraries_path, loader_version):
-        print("Downloading fabric loader...", color='yellow')
         fabric_loader_dest = os.path.join(libraries_path, "net", "fabricmc", "fabric-loader",
                                           f"fabric_loader_{loader_version}.jar")
         FabricLoaderURL = (f"https://maven.fabricmc.net/net/fabricmc/fabric-loader/{loader_version}/fabric"
@@ -54,8 +54,7 @@ class ModInstaller:
                 (url, destination)
             ]
             download_queue.append(fabric_lib_url_and_dest)
-        print(download_queue)
-        multi_thread_download(download_queue, "Fabric Libraries")
+        multi_thread_download(download_queue, "Fabric libraries")
 
         print("Downloading intermediary...", color='green')
         intermediary_url = (f"https://maven.fabricmc.net/net/fabricmc/intermediary/"
@@ -91,7 +90,6 @@ class ModInstaller:
                     (url, destination)
                 ]
                 download_queue.append(forge_lib_url_and_dest)
-        print(forge_lib_url_and_dest)
         multi_thread_download(download_queue, "Forge Libraries")
 
     def install_fabric_loader(self, instance_path):
@@ -164,8 +162,14 @@ class ModInstaller:
 
         instance_manager.write_custom_config(instance_cfg, "modloderclass"
                                              , "net.fabricmc.loader.impl.launch.knot.KnotClient")
-
+        instance_manager.write_instance_info("IsVanilla", False, instance_info)
+        instance_manager.write_instance_info("Modified", True, instance_info)
+        instance_manager.write_instance_info("ModLoaderName", "Fabric", instance_info)
+        instance_manager.write_instance_info("ModLoaderVersion", loader_version, instance_info)
+        print("Checking duplicates...", color='green')
+        libraries_check(instance_libraries)
         print("Install Fabric loader successfully!", color='blue')
+        time.sleep(3)
 
     def install_forge_loader(self, instance_path):
         def fetch_support_forge_versions(client_version):

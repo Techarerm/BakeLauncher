@@ -8,21 +8,19 @@ from modules.print_colorx.print_color import print as print_color
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
 # dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
 # Example = "LB041224" Years: 2024 Month: 12 Date: 04
-dev_version = "LA091224"  # If version type is release set it blank
+dev_version = "LB101224"  # If version type is release set it blank
 version_type = "Dev"
 major_version = "0.9"
 
 BetaWarningMessage = ("You are running beta version of BakeLauncher.\n"
                       "This is an 'Experimental' version with potential instability.\n"
-                      "=========================I'm a line==============================\n"
-                      "In Pre-0.9, launcher are unstable. If you want to get a stable Dev version.\n"
-                      "Go to Github Actions and find version Dev-KB112624(Download Build version for you :).\n"
-                      "Is the last one not support installation of mod loaders (but it is indeed stable and supports"
-                      " the new instance structure).\n"
                       "Please run it only if you know what you are doing.\n")
 
 ChangeLog = ("Changelog:\n"
-             ""
+             "In Pre-0.9, launcher are unstable :( If you want to get a stable Dev version.\n"
+             "Go to Github Actions and find version Dev-KB112624(Download Build version for you :).\n"
+             "Is the last one not support installation of mod loaders (but it is indeed stable and supports"
+             " the new instance structure).\n"
              "\n")
 
 global_config = """[BakeLauncher Configuration]
@@ -155,6 +153,7 @@ class LauncherBase:
     A good Launcher must have a good foundation.
     .....
     """
+
     def __init__(self):
         # Set version
         if version_type == "Dev":
@@ -287,8 +286,8 @@ class LauncherBase:
             with open(self.launcher_tmp_session, "w"):
                 pass
         # else:
-            # print_color("A launcher already running on your computer. Please close it and try again.", tag="Warning")
-            # time.sleep(2)
+        # print_color("A launcher already running on your computer. Please close it and try again.", tag="Warning")
+        # time.sleep(2)
 
         # Clean up tmp folder
         if len(Base.launcher_tmp_dir) != 0:

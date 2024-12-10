@@ -69,8 +69,6 @@ class BakeLauncher:
 
         # Print BetaWarningMessage
         print(BetaWarningMessage, color='yellow')
-        if Base.Debug:
-            time.sleep(5)
         ClearOutput()
 
         # Load main menu
