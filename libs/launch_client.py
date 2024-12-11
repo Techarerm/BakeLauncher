@@ -216,10 +216,10 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
         print("EnableExperimentalMultitasking is Disabled!", color='green')
         print('"Launch Mode: Legacy', color='green')
         if Base.Platform == "Windows":
-            subprocess.run(minecraft_command_one_thread, shell=True)
+            os.system(minecraft_command)
             print("Minecraft has stopped running! (Thread terminated)", color='green')
             back_to_main_memu = input("Press any key to continue. . .")
         else:
-            subprocess.run(minecraft_command, shell=True)
+            os.system(minecraft_command)
             print("Minecraft has stopped running! (Thread terminated)", color='green')
             back_to_main_memu = input("Press any key to continue. . .")

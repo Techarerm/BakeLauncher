@@ -4,8 +4,6 @@ Main
 CheckArch(Call LauncherBase)>GetPlatformName>Load Main_Memu>Ended
 """
 import multiprocessing
-import argparse
-import time
 import traceback
 import textwrap
 import datetime

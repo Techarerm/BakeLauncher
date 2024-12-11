@@ -34,7 +34,7 @@ def error_return(ErrorMessage, mode):
 def extra_memu():
     while True:
         if not Base.NoList:
-            print("Extra list:", color='blue')
+            print("Extra list:", color='lightblue')
             print("1: [Exp]Custom Args        5: Convert Old Instance Structure ")
             print("2: Reset AccountData.json  6: Auto-Convert Old Instance Structure")
             print("3: Clear JVM config file   7: Search Java Runtimes(Duke)")

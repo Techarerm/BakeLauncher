@@ -1,12 +1,14 @@
 import subprocess
 import sys
+import traceback
+
 import requests
 import os
 import zipfile
 import time
 import hashlib
 import shutil
-from LauncherBase import Base, ClearOutput, print_custom as print
+from LauncherBase import Base, ClearOutput, print_custom as print, internal_functions_error_log_dump
 from libs.__assets_grabber import assets_grabber_manager
 from libs.__instance_manager import instance_manager
 from libs.__duke_explorer import Duke
@@ -208,19 +210,6 @@ class Create_Instance:
                 return version["type"]
 
         return None
-
-    @staticmethod
-    def instance_list():
-        instances_list = os.listdir(Base.launcher_instances_dir)
-        row_count = 0
-        for name in instances_list:
-            if row_count >= Base.MaxInstancesPerRow:
-                print("\n", end='')
-                row_count = 0
-            print(f"{name}", end='')
-            print(" | ", end='', color='blue')
-            row_count += 1
-        print("\n", end='')
 
     @staticmethod
     def download_natives(libraries, libraries_dir):
@@ -749,7 +738,7 @@ class Create_Instance:
         instances_dir = os.listdir(Base.launcher_instances_dir)
         if len(instances_dir) == 0:
             print("Installed instance list:", color='green')
-            self.instance_list()
+            instance_manager.instance_list(without_drop_no_instance_available_error=True)
 
         while True:
             # Prompt for instance name
@@ -787,7 +776,7 @@ class Create_Instance:
                     print("Please choose a different name.", color='red')
                     continue
 
-            print(f'Creating instance at "{instance_path}"', color='green')
+            print(f'Creating instance at {instance_path}', color='green')
             if self.legacy_version:
                 instance_manager.create_instance_info(
                     instance_name=os.path.basename(instance_path),
@@ -1007,11 +996,18 @@ class Create_Instance:
             self.create_instance()
         try:
             print("")
-        except ValueError:
-            # Back to main avoid crash(when user type illegal thing)
-            print("BakeLaunch: Oops! Invalid option :O  Please enter a number.", color='red')
-
-            self.create_instance()
+        except Exception as e:
+            if Exception is ValueError:
+                # Back to main avoid crash(when user type illegal thing)
+                print("BakeLaunch: Oops! Invalid option :O  Please enter a number.", color='red')
+                self.create_instance()
+                time.sleep(1.5)
+            else:
+                print(f"AccountManager got a error when calling a internal functions. Error: {e}", color='red')
+                function_name = traceback.extract_tb(e.__traceback__)[-1].name
+                detailed_traceback = traceback.format_exc()
+                internal_functions_error_log_dump(e, "Create Instance", function_name, detailed_traceback)
+                time.sleep(5)
 
 
 create_instance = Create_Instance()

@@ -1,5 +1,7 @@
+import datetime
 import os
 import shutil
+import textwrap
 import time
 import platform
 from ping3 import ping
@@ -8,7 +10,7 @@ from modules.print_colorx.print_color import print as print_color
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
 # dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
 # Example = "LB041224" Years: 2024 Month: 12 Date: 04
-dev_version = "LB101224"  # If version type is release set it blank
+dev_version = "LC111224"  # If version type is release set it blank
 version_type = "Dev"
 major_version = "0.9"
 
@@ -129,6 +131,34 @@ def ClearOutput():
         return
 
 
+def internal_functions_error_log_dump(error_data, main_function_name, crash_function_name, detailed_traceback):
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    error_log_output = textwrap.dedent(f"""\
+    ==================================================================================================
+    [{main_function_name}] Time: {timestamp} Error: {error_data} | At function {crash_function_name} | 
+    [{detailed_traceback}]
+    ==================================================================================================
+    """)
+
+    if not os.path.exists("logs"):
+        os.mkdir("logs")
+
+    error_log_data = "\n".join(line.lstrip() for line in error_log_output.splitlines())
+    timestamp_day = datetime.datetime.now().strftime("%Y-%m-%d")
+    # Format the timestamp to avoid invalid characters
+    log_name = f"error_{timestamp_day}.log"
+    error_log_save_path = os.path.join(Base.launcher_root_dir, "logs", log_name)
+
+    if os.path.exists(error_log_save_path):
+        with open(error_log_save_path, "a") as f:
+            f.write(f"\n{error_log_data}")
+    else:
+        with open(error_log_save_path, "w") as f:
+            f.write(error_log_data)
+
+    return True
+
+
 def timer(message, seconds):
     for remaining in range(seconds, 0, -1):
         # Determine the color based on the remaining time
@@ -186,6 +216,7 @@ class LauncherBase:
         self.MainMemuResetFlag = False  # Set to true by check_account_data_are_valid
         self.InternetConnected = False
         self.ErrorMessageList = []
+        self.StartUsingErrorLog = False
         # ============================I'm a line==============================
         # Config file stuff
         # Global stuff

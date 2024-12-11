@@ -115,6 +115,8 @@ class DukeCute:
             for RuntimeDir in self.ExecutableJavaList:
                 major_version = self.test_java_executable(RuntimeDir, mode="GetMajorVersion")
                 self.write_runtimes_data(RuntimeDir, major_version)
+        print("Search Java Runtimes process finished.", color='blue')
+        time.sleep(3)
 
     def write_runtimes_data(self, java_bin_dir, runtime_version):
         try:

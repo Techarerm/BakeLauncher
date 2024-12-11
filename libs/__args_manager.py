@@ -1,9 +1,11 @@
 import os
 import time
+import traceback
+
 import requests
 import psutil
 import json
-from LauncherBase import print_custom as print, ClearOutput
+from LauncherBase import print_custom as print, ClearOutput, internal_functions_error_log_dump
 from libs.__instance_manager import instance_manager
 from libs.launch_manager import launch_manager
 from libs.Utils.utils import get_version_data
@@ -450,8 +452,17 @@ class ArgsManager:
                 return
             else:
                 print("ArgsManager: Unknown option :0", color='red')
-        except ValueError:
-            print("ArgsManager: Unknown type :0", color='red')
+        except Exception as e:
+            if Exception is ValueError:
+                print("ArgsManager: Unknown type :0", color='red')
+                self.ArgsMemu()
+                time.sleep(1.5)
+            else:
+                print(f"AccountManager got a error when calling a internal functions. Error: {e}", color='red')
+                function_name = traceback.extract_tb(e.__traceback__)[-1].name
+                detailed_traceback = traceback.format_exc()
+                internal_functions_error_log_dump(e, "Create Instance", function_name, detailed_traceback)
+                time.sleep(5)
 
 
 args_manager = ArgsManager()

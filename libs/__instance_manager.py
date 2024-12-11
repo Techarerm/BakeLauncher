@@ -155,8 +155,8 @@ class InstanceManager:
         selected_instance_dir = os.path.join(Base.launcher_instances_dir, instance_name)
         selected_instance_ini = os.path.join(selected_instance_dir, "instance.bakelh.ini")
         create_date = datetime.now()
-        print("Instance Info Path: ", selected_instance_ini, color='green', tag='DEBUG')
-        print("Instance Dir: ", selected_instance_dir, color='green', tag='DEBUG')
+        print("Instance Info Path:", selected_instance_ini, color='green', tag='DEBUG')
+        print("Instance Dir:", selected_instance_dir, color='green', tag='DEBUG')
 
         # Check selected_instance_dir status
         if not os.path.exists(selected_instance_dir):
@@ -363,13 +363,23 @@ class InstanceManager:
     def instance_list(**kwargs):
         only_print_legacy = kwargs.get('only_print_legacy', False)
         only_return_list = kwargs.get('only_return_list', False)
+        without_drop_no_instance_error = kwargs.get('without_drop_no_instance_available_error', False)
         only_return_legacy_list = kwargs.get('only_return_legacy_list', False)
-        instances_list_original = os.listdir(Base.launcher_instances_dir)
+        if not os.path.exists(Base.launcher_instances_dir):
+            return False, "NoInstancesAreAvailable"
+        else:
+            instances_list_original = os.listdir(Base.launcher_instances_dir)
+            if len(instances_list_original) == 0:
+                return False, "NoInstancesAreAvailable"
 
         if not instances_list_original:
-            print("No instances are available.", color='red')
-            print("Go to step 3: Create Instance. After it's installed, you can try this method again!", color='yellow')
-            return False, "NoInstancesAreAvailable"
+            if not without_drop_no_instance_error:
+                print("No instances are available.", color='red')
+                print("Go to step 3: Create Instance. After it's installed, you can try this method again!", color='yellow')
+                return False, "NoInstancesAreAvailable"
+            else:
+                print("[You are looking to the null space]", color='darkwhite')
+                return True, "NoInstancesAreAvailable"
 
         instances_list_legacy = []
         instances_list_new = []

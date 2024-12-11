@@ -44,11 +44,11 @@ Example In AccountData(v2 Format):
 import time
 import webbrowser
 from json import JSONDecodeError
-
+import traceback
 import requests
 import json
 import os
-from LauncherBase import Base, ClearOutput, initialize_config, print_custom as print
+from LauncherBase import Base, ClearOutput, initialize_config, print_custom as print, internal_functions_error_log_dump
 from libs.Utils.utils import write_global_config
 
 
@@ -85,11 +85,8 @@ class AuthManager:
             microsoft_token = self.request_data.json()["access_token"]
             microsoft_refresh_token = self.request_data.json()["refresh_token"]
             return True, microsoft_token, microsoft_refresh_token
-        except requests.RequestException:
-            print("Failed to get Microsoft token :(", color='lightred')
-            print("Maybe this url are expired. Try to re-login again!", color='lightred')
-            print("If you still can't login please clean your browser token and try again.", color='lightred')
-            return False, 'FailedToGetMicrosoftToken', "FailedToGetRefreshToken"
+        except Exception as e:
+            return False, e, None
 
     def get_xbl_token(self, microsoft_token):
         try:
@@ -106,9 +103,8 @@ class AuthManager:
             r.raise_for_status()
             xbl_token = r.json()["Token"]
             return True, xbl_token
-        except requests.RequestException:
-            print("Failed to get XBL token.", color='lightred')
-            return False, "FailedToGetXBLToken"
+        except Exception as e:
+            return False, e
 
     def get_xsts_token(self, xbl_token):
         try:
@@ -125,12 +121,8 @@ class AuthManager:
             xsts_userhash = r.json()["DisplayClaims"]["xui"][0]["uhs"]
             xsts_token = r.json()["Token"]
             return True, xsts_userhash, xsts_token
-        except requests.RequestException:
-            print("Failed to get XSTS token.", color='lightred')
-            print("Maybe this url are expired. Try to re-login again!", color='lightred')
-            print("If stil can't login please clean your browser token and try again.", color='lightred')
-            print("If still can't login....report this issue to GitHUb!.", color='lightred')
-            return False, "FailedToGetXSTSUserHash", "FailedToGetXSTSToken"
+        except Exception as e:
+            return False, e, None
 
     def get_access_token(self, xsts_userhash, xsts_token):
         try:
@@ -141,10 +133,8 @@ class AuthManager:
             r.raise_for_status()
             access_token = r.json()["access_token"]
             return True, access_token
-        except requests.RequestException:
-            print("Failed to get Minecraft token.", color='lightred')
-            print("Maybe this url are expired. Try to re-login again!", color='lightred')
-            return False, "FailedToGetAccessToken"
+        except Exception as e:
+            return False, e
 
     def get_account_data(self, minecraft_token):
         try:
@@ -159,12 +149,8 @@ class AuthManager:
                 print("Minecraft Username:", username, color='lightblue')
                 print("Minecraft UUID:", uuid, color='lightblue')
             return True, username, uuid
-        except requests.RequestException:
-            print("Failed to get Minecraft profile information.", color='lightred')
-            print("Maybe this url are expired. Try to re-login again!", color='lightred')
-            print("If you still can't login please clean your browser token and try again.", color='lightred')
-            print("If still can't login....report this issue to GitHUb!.", color='lightred')
-            return False, "FailedToGetAccountData", ""
+        except Exception as e:
+            return False, e, None
 
     @staticmethod
     def get_account_id(data):
@@ -191,29 +177,24 @@ class AuthManager:
                         if entry['id'] == int(target_id):
                             # Return the matching entry
                             return True, entry
-                    print(f"No account found with ID {target_id}.", color='lightyellow')
-                    return False, None
+                    return False, f"NoAccountFoundWithID>{target_id}"
                 except json.JSONDecodeError:
-                    print("Error reading the JSON file.", color='lightred')
-                    return False, None
+                    return False, "JSONDecodeError"
         else:
-            print("JSON file does not exist :(", color='lightred')
-            print("Trying to login your account first!", color='lightyellow')
-
-        return False, "FailedToGetAccountDataUseAccountID"
+            return False, "AccountDataDoesNotExist"
 
     def update_account_data(self, account_id, access_token, username, refresh_token):
         # Fetch account data
         status, selected_account_data = self.get_account_data_use_account_id(account_id)
         if not status:
-            return False, f"UpdateAccountData>{selected_account_data}"
+            return False, f"UpdateAccountData>GetAccountDataUseAccountID>{selected_account_data}"
 
         # Load JSON data
         try:
             with open("data/AccountData.json", 'r') as f:
                 account_data = json.load(f)
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            return False, f"Error loading AccountData.json: {e}"
+            return False, f"LoadingAccountData>Error:{e}"
 
         # Update "select" account data
         account_found = False
@@ -230,12 +211,11 @@ class AuthManager:
             try:
                 with open("data/AccountData.json", "w") as jsonFile:
                     json.dump(account_data, jsonFile, indent=4)
-                return True, "Token refreshed and saved successfully!"
+                return True, None
             except IOError as e:
-                return False, f"Error saving AccountData.json: {e}"
+                return False, f"SavingAccountData>Error: {e}"
 
-        print(f"No account found with ID {account_id}.", color='lightyellow')
-        return False, "Account not found"
+        return False, f"NoAccountFoundWithID{account_id}"
 
     @staticmethod
     def set_default_account_id(account_id):
@@ -300,22 +280,32 @@ class AuthManager:
         # Start get token process...
         Status, microsoft_token, microsoft_refresh_token = self.get_microsoft_account_token(code, "AuthToken")
         if not Status:
+            print(f"Failed to get microsoft account token :( Cause by error {microsoft_token}", color='red')
+            time.sleep(3)
             return microsoft_token + microsoft_refresh_token
 
         Status, xbl_token = self.get_xbl_token(microsoft_token)
         if not Status:
+            print(f"Failed to get XBL token :( Cause by error {xbl_token}", color='red')
+            time.sleep(3)
             return xbl_token
 
         Status, xsts_userhash, xsts_token = self.get_xsts_token(xbl_token)
         if not Status:
+            print(f"Failed to get XBL token :( Cause by error {xsts_userhash}", color='red')
+            time.sleep(3)
             return xsts_userhash + xsts_token
 
         Status, access_token = self.get_access_token(xsts_userhash, xsts_token)
         if not Status:
+            print(f"Failed to get access token :( Cause by error {access_token}", color='red')
+            time.sleep(3)
             return access_token
 
         Status, username, uuid = self.get_account_data(access_token)
         if not Status:
+            print(f"Failed to get Minecraft profile information. Cause by error {username}", color='red')
+            time.sleep(3)
             return username
 
         try:
@@ -371,13 +361,15 @@ class AuthManager:
             with open("data/AccountData.json", "w") as jsonFile:
                 json.dump(json_data, jsonFile, indent=4)
 
-            print("AccountData saved successfully!", color='green')
+            print("AccountData saved successfully!", color='lightblue')
             print("Want to change launch using account? Y/N:", color='lightgreen')
             user_input = input(":")
             if user_input.upper() == "Y":
                 print("Change using account...", color='lightgreen')
-                self.set_default_account_id(new_id)
-
+                Status = self.set_default_account_id(new_id)
+                if not Status:
+                    print("Failed to change DefaultAccountID. Is your config file corrupted?", color='red')
+                    time.sleep(3)
 
         except Exception as e:
             print(f"Failed to save account data. Error: {e}", color='lightred')
@@ -427,32 +419,43 @@ class AuthManager:
             Status, new_microsoft_token, new_refresh_token = self.get_microsoft_account_token(RefreshToken,
                                                                                               "RefreshToken")
             if not Status:
-                print("Failed to refresh Microsoft token.", color='lightred')
+                print(f"Failed to refresh Microsoft token. Cause by error {new_microsoft_token}", color='red')
                 print("Maybe your refresh token are expired! please re-login your account.",
                       color='yellow')
+                time.sleep(3)
                 return False, "CheckAccountDataAreValid>FetchNewMicrosoftTokenFailed"
 
             # Get a new Minecraft token using the refreshed Microsoft token
             self.RefreshTokenFlag = True
             Status, xbl_token = self.get_xbl_token(new_microsoft_token)
             if not Status:
+                print(f"Failed to get XBL token :( Cause by error {xbl_token}", color='red')
+                time.sleep(3)
                 return False, f"GettingXBLToken>{xbl_token}"
 
             Status, xsts_userhash, xsts_token = self.get_xsts_token(xbl_token)
             if not Status:
-                return False, f"GettingXSTSToken>{xsts_token}"
+                print(f"Failed to get XBL token :( Cause by error {xsts_userhash}", color='red')
+                time.sleep(3)
+                return False, f"GettingXSTSToken>{xsts_userhash}"
 
             Status, access_token = self.get_access_token(xsts_userhash, xsts_token)
             if not Status:
+                print(f"Failed to get Minecraft token :( Cause by error {access_token}", color='red')
+                time.sleep(3)
                 return False, f"GettingAccessToken>{access_token}"
 
             Status, username, uuid = self.get_account_data(access_token)
             if not Status:
+                print(f"Failed to get Minecraft profile information :( Cause by error {username}", color='red')
+                time.sleep(3)
                 return False, f"GettingAccountData>{username}"
 
             # Update the account data with the new "select" account data
             Status, message = self.update_account_data(id, access_token, username, new_refresh_token)
             if not Status:
+                print(f"Failed to update new ac account data :( Cause by error {message}", color='red')
+                time.sleep(3)
                 return False, f"UpdateAccountData>{message}"
 
             # Set flag after refresh token finished
@@ -488,13 +491,21 @@ class AuthManager:
                 print("Convert to new format? Y/N")
                 user_input = str(input(":"))
                 if user_input.upper() == "Y":
-                    Status = self.convert_legacy_account_data()
+                    Status, e = self.convert_legacy_account_data()
+                    if not Status:
+                        print(f"Failed to convert legacy account data to new format :( Cause by error {e}", color='red')
                 else:
                     Status = False
 
                 if not Status:
+                    # If user don't want to convert account data to new format, reset account data and reload main memu
                     self.initialize_account_data()
-                    self.set_default_account_id(1)
+                    Status = self.set_default_account_id(1)
+                    if not Status:
+                        print("Failed to change DefaultAccountID. Is your config file corrupted?", color='red')
+                        time.sleep(3)
+
+                # Reset Main Memu
                 Base.MainMemuResetFlag = True
                 return
             if account_data is None:
@@ -585,12 +596,33 @@ class AuthManager:
             return False, "AccountDataNotFound"
 
         try:
-            with open("data/AccountData.json", "r") as file:
+            with open(Base.account_data_path, "r") as file:
                 data = json.load(file)
         except JSONDecodeError:
             return False, "ReadAccountDataFailed>ERROR_CODE=JSONDecodeError"
 
-        return True, True
+        return True, data
+
+    def get_account_list(self):
+        AccountIDList = []
+        AccountNameList = []
+        if not os.path.exists(Base.account_data_path):
+            return False, "AccountDataNotFound", None
+
+        try:
+            with open(Base.account_data_path, "r") as file:
+                data = json.load(file)
+        except JSONDecodeError:
+            return False, "ReadAccountDataFailed>Error_Code=JSONDecodeError", None
+
+        try:
+            for item in data:
+                AccountIDList.append(item["id"])
+                AccountNameList.append(item["Username"])
+        except TypeError:
+            return False, "ReadAccountDataFailed>Error_Code=TypeError", None
+
+        return True, AccountIDList, AccountNameList
 
     @staticmethod
     def write_account_data(new_data):
@@ -627,7 +659,7 @@ class AuthManager:
 
         for item in AccData:
             found_same_id = False
-            if account_id == item["AccountID"]:
+            if account_id == item["id"]:
                 found_same_id = True
                 data = [entry for entry in AccData if entry["id"] != account_id]
 
@@ -645,22 +677,24 @@ class AuthManager:
             return True, ":)"
 
     def DeleteAccount(self):
-        print("AccountList:")
-        try:
-            with open("data/AccountData.json", "r") as file:
-                data = json.load(file)
+        Status, AccountIDList, AccountNameList = self.get_account_list()
+        if not Status:
+            print(f"Failed to get account list :( Cause by error {AccountIDList}")
+            time.sleep(3)
+            return
 
-            # Display available accounts
-            for item in data:
-                print(f'{item["id"]}: {item["Username"]}')
+        while True:
+            print("AccountList:")
+            for account_id, account_name in zip(AccountIDList, AccountNameList):
+                print(f"{account_id}: {account_name}", color='blue')
 
             # Get user input
             print("Please enter the ID of the account you want to delete.")
-            print("Or you can type 'exit' to go back to the main menu.")
+            print("Or you can type 'exit' to go back to the menu.")
             user_input = input(": ")
             if str(user_input).lower() == "exit":
                 print("Exiting...")
-                return
+                return True
 
             # Validate user input as integer
             try:
@@ -668,60 +702,40 @@ class AuthManager:
             except ValueError:
                 print("Invalid ID format. Please enter a valid integer.")
                 time.sleep(2)
-                self.SelectDefaultAccount()
-                return
 
-            # Find the account and delete it
-            found = False
-            for item in data:
-                if user_input == item["id"]:
-                    found = True
-                    if user_input == 1:
-                        print("You can't delete the launcher local account!", color='lightred')
-                        time.sleep(1.8)
-                        return
-                    data = [entry for entry in data if entry["id"] != user_input]
-                    print(f"Deleting account ID {user_input}...")
+            print(f"Deleting account data with id {user_input}...", color='indigo')
 
-                    # Reassign IDs sequentially
-                    for index, account in enumerate(data):
-                        account["id"] = index + 1
-
-                    # Write updated data to file
-                    with open("data/AccountData.json", "w") as file:
-                        json.dump(data, file, indent=4)
-
-                    print(f"Deleted account ID {user_input} successfully!")
-                    time.sleep(3)
-                    break
-
-            if not found:
-                print(f"Can't find account with ID {user_input}.")
-                print("Please check the ID and try again.")
+            Status, e = self.delete_select_account_data(user_input)
+            if not Status:
+                print("Failed to delete account data :(", color='red')
+                print("Please check you enter account id is in the list and try again.", color='yellow')
+                print(f"{e}")
                 time.sleep(3)
-                self.SelectDefaultAccount()
+                return
             else:
-                try:
-                    with open(Base.global_config_path, 'r') as file:
-                        for line in file:
-                            if "DefaultAccountID" in line:
-                                id = line.split('=')[1].strip()  # Extract the value if found
-                                break  # Stop after finding the ID
-                except FileNotFoundError:
-                    initialize_config()
-                id = int(id)
-                if id is not None:
-                    if not id == 1:
-                        if id > user_input:
-                            id -= 1
-                            self.set_default_account_id(id)
+                print("Account data deleted successfully!", color='green')
 
-        except FileNotFoundError:
-            print("Account data file not found.", color='lightred')
-            self.initialize_account_data()
-        except json.JSONDecodeError:
-            print("Error decoding account data.")
-            self.initialize_account_data()
+            Status, now_id = self.get_default_account_id()
+            if not Status:
+                print("Failed to get Default Account ID :( Is your config file corrupted?", color='red')
+                time.sleep(3)
+                return True
+            now_id = int(now_id)
+            new_id = now_id
+            if now_id is not None:
+                if not now_id == 1:
+                    if now_id > user_input:
+                        new_id -= 1
+                        Status = self.set_default_account_id(new_id)
+                        if not Status:
+                            print("Failed to change DefaultAccountID. Is your config file corrupted?", color='red')
+                            time.sleep(3)
+            else:
+                print("Found Account ID are not valid. :( Is your config file corrupted?", color='red')
+                time.sleep(3)
+                return True
+
+            return True
 
     @staticmethod
     def initialize_account_data():
@@ -745,25 +759,27 @@ class AuthManager:
 
     def convert_legacy_account_data(self):
         if not os.path.exists("data/AccountData.json"):
-            print("Could not convert legacy account data. Cause by file not found error.", color='red')
             time.sleep(3)
-            return False
+            return False, "AccountDataNotFound"
 
-        with open("data/AccountData.json", "r") as account_data:
-            data = json.load(account_data)
+        try:
+            with open("data/AccountData.json", "r") as account_data:
+                data = json.load(account_data)
+        except Exception as e:
+            return False, e
 
         try:
             print("Checking AccountData format...", color='green')
             TryGetLegacyAccountName = data["AccountName"]
             if TryGetLegacyAccountName == "None" or TryGetLegacyAccountName is None:
-                print("AccountData are invalid. Bypassing convert process...", color='yellow')
-                return False
+                # print(". Bypassing convert process...", color='yellow')
+                return False, "AccountDataAreInvalid"
             print("AccountData are valid! Starting convert process...", color='lightblue')
         except ValueError:
             print("Check AccountData format version failed. Are you using the modern format of AccountData?",
                   color='red')
             time.sleep(3)
-            return False
+            return False, "CouldNotCheckAccountDataFormatVersion"
 
         username = data["AccountName"]
         uuid = data["UUID"]
@@ -772,27 +788,32 @@ class AuthManager:
         try:
             refresh_token = data["RefreshToken"]
             if refresh_token is None or refresh_token == "None":
-                print("Key RefreshToken are invalid. Bypassing write RefreshToken...", color='yellow')
+                # In 0.7.1, launcher added RefreshToken to AccountData(old version not support)
                 refresh_token = None
         except ValueError:
-            print("Key RefreshToken not found. Bypassing write RefreshToken...", color='yellow')
             refresh_token = None
 
         print("Backup old AccountData...", color='green')
 
-        if os.path.exists("data/AccountData.json.bak"):
-            os.remove("data/AccountData.json.bak")
+        # Delete old backup file
+        try:
+            if os.path.exists("data/AccountData.json.bak"):
+                os.remove("data/AccountData.json.bak")
+        except Exception as e:
+            return Exception, f"DeleteAccountData>Error: {e}"
 
         try:
             os.rename("data/AccountData.json", "data/AccountData.json.bak")
-        except PermissionError or FileNotFoundError:
-            print("Failed to backup AccountData :( Cause by PermissionError when rename it.", color='red')
-            return False
+        except PermissionError:
+            return False, "PermissionError"
 
         self.initialize_account_data()
 
-        with open("data/AccountData.json", "r") as acc_data:
-            new_account_data = json.load(acc_data)
+        try:
+            with open("data/AccountData.json", "r") as acc_data:
+                new_account_data = json.load(acc_data)
+        except Exception as e:
+            return False, f"LoadingNewAccountData>Error: {e}"
 
         new_id = self.get_account_id(new_account_data)
 
@@ -807,11 +828,16 @@ class AuthManager:
         # Append new data to old json data(or new?)
         new_account_data.append(new_data)
         print("Changing default account id...", color='green')
-        self.set_default_account_id(2)
+        Status = self.set_default_account_id(2)
+        if not Status:
+            return False, "ChangeDefaultAccountIDFailed"
 
         # Write the updated or new data back to the AccountData
-        with open("data/AccountData.json", "w") as file:
-            json.dump(new_account_data, file, indent=4)
+        try:
+            with open("data/AccountData.json", "w") as file:
+                json.dump(new_account_data, file, indent=4)
+        except Exception as e:
+            return False, f"WriteNewAccountData>Error: {e}"
 
         return True
 
@@ -838,10 +864,15 @@ class AuthManager:
                 self.DeleteAccount()
             elif user_input == "4":
                 return
-
-        except ValueError:
-            print("Invalid Option :0", color='lightred')
-            self.AccountManager()
-
+        except Exception as e:
+            if Exception is ValueError:
+                print("Unknown input :O", color='red')
+                time.sleep(1.5)
+            else:
+                print(f"AccountManager got a error when calling a internal functions. Error: {e}", color='red')
+                function_name = traceback.extract_tb(e.__traceback__)[-1].name
+                detailed_traceback = traceback.format_exc()
+                internal_functions_error_log_dump(e, "AccountManager", function_name, detailed_traceback)
+                time.sleep(5)
 
 account_manager = AuthManager()
