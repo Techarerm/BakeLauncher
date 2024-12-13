@@ -21,11 +21,13 @@ class LauncherManager:
         main_class = version_data.get("mainClass")
         return main_class
 
-    def generate_jvm_args(self, client_version):
+    def generate_jvm_args(self, client_version, **kwargs):
         """
         Generate JVM arguments(Only generate require args)
         (About argument "-Djava.library.path=", check launch_client for more information :)
         """
+        without_ram_args = kwargs.get("without_ram_args", False)
+
         # Get version data
         version_data = get_version_data(client_version)
 
@@ -61,7 +63,10 @@ class LauncherManager:
                     if isinstance(value, list) and "-XstartOnFirstThread" in value:
                         OtherArgs += "-XstartOnFirstThread "
 
-        return RAMSize_Args, OtherArgs
+        if without_ram_args:
+            return OtherArgs
+        else:
+            return RAMSize_Args, OtherArgs
 
     def generate_game_args(self, version_id, username, access_token, game_dir, assets_dir, assetsIndex, uuid):
         version_data = get_version_data(version_id)  # Fetch version data

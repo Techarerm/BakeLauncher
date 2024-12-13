@@ -57,8 +57,8 @@ class InstanceManager:
             return None
 
     @staticmethod
-    def create_custom_config(config_file_path):
-        print("Creating custom config...", color='green')
+    def create_custom_config(config_file_path, **kwargs):
+        overwrite = kwargs.get("overwrite", False)
         default_data = textwrap.dedent("""\
         [BakeLauncher Instance Custom Config]
         
@@ -70,31 +70,43 @@ class InstanceManager:
         InjectJARPath = 
 
         """)
+        if overwrite:
+            if os.path.exists(config_file_path):
+                os.remove(config_file_path)
         with open(config_file_path, 'w') as config_file:
             config_file.write(default_data)
 
     @staticmethod
+    def check_custom_config_valid(config_file_path):
+        if not os.path.isfile(config_file_path):
+            return False
+        try:
+            with open(config_file_path, 'r') as config_file:
+                data = config_file.read()
+            return True
+        except json.decoder.JSONDecodeError:
+            return False
+
+    @staticmethod
     def read_custom_config(config_file_path, item):
-        with open(config_file_path, "r") as file:  # Open the file in read mode
-            lines = file.readlines()  # Read all lines into a list
+        with open(config_file_path, "r") as file:
+            lines = file.readlines()
 
         for line in lines:
-            line = line.strip()  # Strip leading/trailing whitespace and newline characters
-            # Check if the item is in the line and the line contains '=' (key-value pair)
+            line = line.strip()
             if item in line and '=' in line:
-                # Split the line at '=' and get the value part, then strip any extra spaces
-                data = line.split('=')[1].strip()  # Strip again in case there are spaces around the value
-                return data  # Return the cleaned data
+                data = line.split('=')[1].strip()
+                return data
 
-        return None  # Return None if the item is not found
+        return None
 
     @staticmethod
     def write_custom_config(custom_config_path, item, data):
         global custom_item
         item = str(item)
-        if item.lower() == "jvmargs":
+        if item.lower() == "jvmargs" or item.lower() == "customjvmargs":
             custom_item = "CustomJVMArgs"
-        elif item.lower() == "gameargs":
+        elif item.lower() == "gameargs" or item.lower() == "customgameargs":
             custom_item = "CustomGameArgs"
         elif item.lower() == "injectjarpath":
             custom_item = "InjectJARPath"
@@ -411,14 +423,21 @@ class InstanceManager:
         if max_per_row <= 0:  # Handle invalid configurations
             max_per_row = 5
 
-        for name in instances_list:
-            if row_count >= max_per_row:
-                print("\n", end='')  # New line after max instances per row
-                row_count = 0
-            print(f"{name}", end='')
-            print(" | ", end='', color='blue')
-            row_count += 1
-        print("")
+        if not len(instances_list) == 0:
+            for name in instances_list:
+                if row_count >= max_per_row:
+                    print("\n", end='')  # New line after max instances per row
+                    row_count = 0
+                print(f"{name}", end='')
+                print(" | ", end='', color='blue')
+                row_count += 1
+            print("")
+        else:
+            if without_drop_no_instance_error:
+                print("[You are looking to the null space]", color='darkwhite')
+                return True, "NoInstancesAreAvailable"
+            else:
+                return False, "NoInstancesAreAvailable"
         return True, instances_list
 
     def select_instance(self, Message, **kwargs):

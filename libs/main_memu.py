@@ -42,8 +42,7 @@ def extra_memu():
         user_input = str(input(":"))
         if user_input == "1":
             print("Warning: This is a re-code version. Not sure all functions will working fine.", color='red')
-            time.sleep(2)
-            args_manager.ArgsMemu()
+            args_manager.ManagerMemu()
             return
         elif user_input == "2":
             print("Resting AccountData.json...", color='purple')

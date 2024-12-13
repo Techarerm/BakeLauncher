@@ -10,7 +10,7 @@ from modules.print_colorx.print_color import print as print_color
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
 # dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
 # Example = "LB041224" Years: 2024 Month: 12 Date: 04
-dev_version = "LC111224"  # If version type is release set it blank
+dev_version = "LE141224"  # If version type is release set it blank
 version_type = "Dev"
 major_version = "0.9"
 
@@ -152,9 +152,12 @@ def internal_functions_error_log_dump(error_data, main_function_name, crash_func
     if os.path.exists(error_log_save_path):
         with open(error_log_save_path, "a") as f:
             f.write(f"\n{error_log_data}")
+        print(f"Exception event output has been saved to the error log. Saved to: {error_log_save_path} ")
     else:
         with open(error_log_save_path, "w") as f:
             f.write(error_log_data)
+        print(f"Exception event output has been saved to the existing error log. Saved to: {error_log_save_path}")
+
 
     return True
 

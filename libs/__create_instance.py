@@ -1003,7 +1003,7 @@ class Create_Instance:
                 self.create_instance()
                 time.sleep(1.5)
             else:
-                print(f"AccountManager got a error when calling a internal functions. Error: {e}", color='red')
+                print(f"Create Instance got a error when calling a internal functions. Error: {e}", color='red')
                 function_name = traceback.extract_tb(e.__traceback__)[-1].name
                 detailed_traceback = traceback.format_exc()
                 internal_functions_error_log_dump(e, "Create Instance", function_name, detailed_traceback)

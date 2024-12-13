@@ -15,141 +15,128 @@ class ArgsManager:
     def __init__(self):
         self.updated = False
         self.GameArgsRequireValve = False
+        self.BakeLibraryJVMConfigURL = ("https://github.com/Techarerm/BakeLauncher-Library/raw/refs/heads/main/JVM"
+                                        "/JVM_ramConfigurations.json")
 
-    def write_config(self, instance_path, mode, data, OriginalArgs):
-        """
-        Updates or manages a configuration file with game or JVM arguments.
-
-        Args:
-            instance_path (str): Path to the instance folder.
-            mode (str): Mode for configuration operation (e.g., "WriteGameArgs", "WriteJVMArgs").
-            data (str): Data to add, remove, or overwrite in the configuration.
-            OriginalArgs (str): Original arguments used for reference.
-        """
-        config_file_path = os.path.join(instance_path, 'instance.bakelh.cfg')
-
-        def delete_item(data, lines):
-            """Deletes an item from the configuration if specified in `data`."""
-            for i, line in enumerate(lines):
-                if "Delete>" in data:
-                    delete_item = data.split(">")[1].strip()
-                    if delete_item.lower() in line.lower():
-                        lines[i] = line.replace(delete_item, "").strip()
-                        self.updated = True
-                        print(f"Argument '{delete_item}' has been deleted!")
-                        break
-            else:
-                return False
-            return self.updated
-
-        def add_data(data, lines):
-            """Adds an item to the configuration if it does not already exist."""
-            for i, line in enumerate(lines):
-                if "Add>" in data:
-                    add_item = data.split("Add>")[1].strip()
-                    if add_item.lower() in line.lower():
-                        print(f"Argument '{add_item}' already exists.")
-                        return False
-                    else:
-                        lines[i] = line.strip() + " " + add_item
-                        self.updated = True
-                        print(f"Argument '{add_item}' has been added!")
-                        break
-            return self.updated
-
-        # Ensure the config file exists
-        if not os.path.exists(config_file_path):
-            instance_manager.create_custom_config(config_file_path)
-
-        # Load lines from the existing config file
-        with open(config_file_path, 'r') as config_file:
-            lines = config_file.readlines()
-
-        self.updated = False
-
-        def check_existing_argument(current_value, data):
-            """Checks if a similar argument already exists."""
-            current_args = current_value.split()
-            new_arg_name = data.split()[0]
-            for i, arg in enumerate(current_args):
-                if arg.startswith(new_arg_name):
-                    return ' '.join(current_args[i:i + 2])
-            return None
-
-        if mode == "WriteGameArgs":
-            delete_item(data, lines)
-            add_data(data, lines)
-
-            for i, line in enumerate(lines):
-                if 'CustomGameArgs' in line:
-                    current_value = line.split('=', 1)[1].strip()
-                    if OriginalArgs in current_value:
-                        if self.GameArgsRequireValve:
-                            print(f"Argument '{OriginalArgs}' already exists. Overwriting...")
-                            args_with_valve = current_value.split(OriginalArgs, 1)[1].strip()
-                            lines[i] = line.replace(f"{OriginalArgs} {args_with_valve.split()[0]}", "").strip()
-                            lines[i] += f" {data.strip()}\n"
-                            self.updated = True
-                        else:
-                            print(f"Argument '{OriginalArgs}' already exists. Skipping.")
-                    else:
-                        lines[i] = f'CustomGameArgs = {current_value} {data.strip()}\n'
-                        self.updated = True
-                    break
-            else:
-                lines.append(f'CustomGameArgs = {data.strip()}\n')
-                self.updated = True
-
-        elif mode == "WriteJVMArgs":
-            delete_item(data, lines)
-            add_data(data, lines)
-            for i, line in enumerate(lines):
-                if 'CustomJVMArgs' in line:
-                    current_value = line.split('=', 1)[1].strip()
-                    new_value = f"{current_value} {data.strip()}"
-                    lines[i] = f'CustomJVMArgs = {new_value.strip()}\n'
-                    self.updated = True
-                    break
-            if not self.updated:
-                lines.append(f'CustomJVMArgs = {data.strip()}\n')
-
-        elif mode == "OverWriteJVMArgs":
-            for i, line in enumerate(lines):
-                if 'CustomJVMArgs' in line:
-                    lines[i] = f'CustomJVMArgs = {data.strip()}\n'
-                    self.updated = True
-                    break
-
-        else:
-            print("Invalid mode!")
+    def select_modify_instance(self, message):
+        print(message, color='green')
+        status, client_version, instance_path = instance_manager.select_instance(
+            "Which instance is you want to modify?", client_version=True)
+        if not status:
+            if isinstance(status, str) and status.lower() == 'exit':
+                return
+            print("Could not get instance path. Exiting...", color='yellow')
+            time.sleep(2)
             return
 
-        # Write the updated lines back to the config file
-        with open(config_file_path, 'w') as config_file:
-            config_file.writelines(lines)
+        instance_custom_config = os.path.join(instance_path, "instance.bakelh.cfg")
+        if not os.path.exists(instance_path):
+            instance_manager.create_custom_config(instance_custom_config)
+        return instance_path, instance_custom_config, client_version
 
-        print("Configuration updated successfully!")
+    @staticmethod
+    def write_args(instance_custom_cfg, item, data, mode, **kwargs):
+        key_map = {
+            "customjvmargs": "CustomJVMArgs",
+            "customgameargs": "CustomGameArgs",
+        }
+        item_key = key_map.get(item.lower())
 
-    def get_best_jvm_args(self, instance_path):
-        json_url = 'https://github.com/Techarerm/BakeLauncher-Library/raw/refs/heads/main/JVM/JVM_ramConfigurations.json'
+        if not item_key:
+            return False, f"Unknown item: {item}"
+
+        if mode == "append":
+            old_data = instance_manager.read_custom_config(instance_custom_cfg, item)
+            full_data = (old_data + " " + data) if old_data else data
+            instance_manager.write_custom_config(instance_custom_cfg, item, full_data)
+            return True, None
+
+        elif mode == "overwrite":
+            instance_manager.write_custom_config(instance_custom_cfg, item, data)
+            return True, None
+
+        if kwargs.get("CleanUP", False):
+            instance_manager.write_custom_config(instance_custom_cfg, item, data)
+            return True, None
+
+        return False, None
+
+    def args_editor(self):
+        instance_path, instance_custom_config, client_version = self.select_modify_instance(
+            "ArgsManager requires an instance to modify.")
+        # Mode selection
+        while True:
+            print("Which mode do you want to use?", color='green')
+            print("1: Edit Game Args")
+            print("2: Edit JVM Args")
+            user_input = input(": ").strip()
+            if user_input == "1":
+                mode = "CustomGameArgs"
+                break
+            elif user_input == "2":
+                mode = "CustomJVMArgs"
+                break
+            else:
+                print("Unknown mode :O", color='red')
+
+        if not os.path.exists(instance_custom_config):
+            instance_manager.create_custom_config(instance_custom_config)
+        else:
+            status = instance_manager.check_custom_config_valid(instance_custom_config)
+            if not status:
+                print("Custom config validation failed. Recreating it...", color='yellow')
+                instance_manager.create_custom_config(instance_custom_config, overwrite=True)
+
+        # Editing memu
+        while True:
+            ClearOutput()
+            exist_data = instance_manager.read_custom_config(instance_custom_config, mode)
+            if exist_data:
+                print(f"Existing Custom config data for {mode}", color='lightgreen')
+                print("Existing data:", exist_data, color='lightblue')
+            print("Commands:")
+            print('Add>"NewArgs" : Append new arguments', color='lightblue')
+            print('W>"NewArgs" : Overwrite arguments', color='purple')
+            print('CleanUP : Clear all arguments', color='red')
+            print('Type "exit" to exit the editor', color='lightgreen')
+
+            user_input = input(": ").strip()
+            if user_input.lower() == "exit":
+                print("Exiting...")
+                return True
+            elif user_input.startswith("Add>"):
+                data = user_input.split("Add>")[1].strip()
+                self.write_args(instance_custom_config, mode, data, "append")
+                print(f"Arguments {data} has been saved to custom config :)", color='blue')
+            elif user_input.startswith("W>"):
+                data = user_input.split("W>")[1].strip()
+                self.write_args(instance_custom_config, mode, data, "overwrite")
+                print(f"Arguments {data} has been saved to custom config :)", color='blue')
+            elif user_input.lower() == "cleanup":
+                self.write_args(instance_custom_config, mode, "", "overwrite", CleanUP=True)
+                print(f"{mode} data has been cleaned :)", color='blue')
+            else:
+                print("Unknown command. Try again.", color='red')
+
+    def get_recommend_jvm_args(self, instance_custom_config):
+        if not os.path.exists(instance_custom_config):
+            return False, "CustomConfigNotFound"
+
         try:
-            # Fetch the JSON data from the URL
-            response = requests.get(json_url)
+            # Get recommend JVMConfig json data
+            response = requests.get(self.BakeLibraryJVMConfigURL)
 
-            # Check for a successful response
-            response.raise_for_status()  # Raise an error for bad responses
+            if response.ok:
+                jvm_configurations = response.json()
+            else:
+                return False, "GrabbingJVMConfigListFailed"
 
-            # Load the JSON data
-            jvm_configurations = response.json()
-
-            # Get the total memory size and convert bytes to GB
+            # Get the total memory size and convert size bytes to GB
             memory_info = psutil.virtual_memory()
             total_ram_gb = memory_info.total / (1024 ** 3)
 
-            # Only print the integer value if the decimal part is greater than 0.5
             int_total_ram = int(total_ram_gb) + (1 if (total_ram_gb % 1) > 0.5 else 0)
 
-            # Determine the matching configuration based on the total RAM
             if int_total_ram <= 4:
                 selected_ram = '4GB'
             elif int_total_ram <= 8:
@@ -159,81 +146,90 @@ class ArgsManager:
             elif int_total_ram <= 32:
                 selected_ram = '32GB'
             else:
-                selected_ram = '32GB'  # Default to 32GB for larger systems
+                selected_ram = '32GB'
 
-            # Get the corresponding JVM arguments
             jvm_args = jvm_configurations["ramConfigurations"].get(selected_ram)
 
             if jvm_args:
-                print(f"Selected RAM Configuration: {selected_ram}", color='blue')
                 full_args = ""
                 for arg in jvm_args['JVMArgs']:
                     full_args += arg + " "
-                print(f"Full JVM Arguments: {full_args}]")
-                self.write_config(instance_path, "OverWriteJVMArgs", full_args, "")
+                self.write_args(instance_custom_config, "CustomJVMArgs", full_args, "overwrite")
                 time.sleep(2)
+                return True, full_args
             else:
-                print(f"No JVM arguments found for {selected_ram} configuration.")
+                return False, "CannotFindRecommendArguments"
 
-        except requests.exceptions.RequestException as e:
-            print(f"An error occurred while fetching the JSON data: {e}", color='red')
         except json.JSONDecodeError as e:
-            print(f"JSON decoding error: {e}", color='red')
+            return False, f"JSONDecodeError:{e}"
+        except Exception as e:
+            return False, f"GetArguments>Error:{e}"
 
-    def custom_jvm_args(self, modify_instance_path, mode):
-        config_path = os.path.join(modify_instance_path, 'instance.bakelh.cfg')
-        instance_manager.load_custom_config(config_path, '"CustomJVMArgs"', 'JVM Args')
-        if mode == "EditRAMSize":
-            print("JVM Ram Size Editor:")
-            print("IMPORTANT: Backup your old JVM Args! Is really important if you want to restore your old args.\n")
-            print("If you enter exceeds the size of your computer's memory, you may get crash when you launch "
-                  "Minecraft!", color='red')
-            print("This function is mainly for advanced users.]"
-                  " If you are not, please use Generate Args adapted to your computer!", color='yellow')
-            print("Also use this method will overwrite your old config."
-                  " After doing this, you may need to go CustomEdit to paste your old args and restore.",
-                  color='yellow')
+    def set_jvm_usage_ram_size(self, instance_custom_config, client_version):
+        while True:
+            try:
+                print("This method will set required launch arguments for JVM RAM usage.", color='lightyellow')
 
-            while True:
-                try:
-                    Xmx = int(input("Sets the maximum RAM:"))
-                    Xms = int(input("Sets the initial RAM:"))
-                    RAMSize = f"-Xmx{str(Xmx)}G -Xms{str(Xms)}G"
-                    self.write_config(modify_instance_path, "OverWriteJVMArgs", RAMSize, '')
-                    return True
-                except ValueError:
-                    print("Unknown input :0", color='red')
-                    time.sleep(2)
+                # Get and validate maximum RAM
+                Xmx = int(input("Set the maximum RAM (GB): ").strip())
+                if Xmx <= 0:
+                    print("Maximum RAM must be greater than 0. Please try again.", color='red')
+                    continue
 
-        elif mode == "CustomEdit":
-            print("This function is mainly for advanced users."
-                  " If you are not, please use Generate Args adapted to your computer!", color='yellow')
-            print("Check GitHub 'BakeLauncher-Library' to get more information!"
-                  " (https://github.com/Techarerm/BakeLauncher-Library/blob/main/JVM/JVM_Args_List.json)",
-                  color='green')
-            while True:
-                print("[JVM Args Edit Mode]", color='blue')
-                print("Use Delete>'DeleteArgs' to delete args.")
-                print("Use Add>'AddArgs' to add args.")
-                print("Type exit to back to main memu!")
-                user_input = input(":")
-                if user_input.upper() == "EXIT":
-                    return
-                else:
-                    self. write_config(modify_instance_path, "WriteJVMArgs", user_input, '\n')
+                # Get and validate initial RAM
+                Xms = int(input("Set the initial RAM (GB): ").strip())
+                if Xms <= 0:
+                    print("Initial RAM must be greater than 0. Please try again.", color='red')
+                    continue
+                if Xms > Xmx:
+                    print("Initial RAM cannot be greater than maximum RAM. Please try again.", color='red')
+                    continue
 
-        if mode == "Clear":
-            print("Cleaning config file...", color='green')
-            with open(config_path, 'r') as config_file:
-                lines = config_file.readlines()
-                for i in range(len(lines)):
-                    if "CustomJVMArgs" in lines[i]:
-                        # Use the new or existing account ID
-                        lines[i] = f'CustomJVMArgs = \n'
-            with open(config_path, 'w') as file:
-                file.writelines(lines)
-            print("Config file has been cleaned :)", color='blue')
-        return "exit"
+                # Prepare arguments
+                RAMSize = f"-Xmx{Xmx}G -Xms{Xms}G"
+                JVMArgs = launch_manager.generate_jvm_args(client_version, without_ram_args=True)
+                FullArgs = f"{RAMSize} {JVMArgs}"
+
+                # Display generated arguments and confirm with user
+                print(f"Generated JVM arguments: {FullArgs}", color='blue')
+
+                # Write arguments and display the result
+                self.write_args(instance_custom_config, "CustomJVMArgs", FullArgs, "overwrite")
+                data = instance_manager.read_custom_config(instance_custom_config, "CustomJVMArgs")
+                print(f"New JVM arguments: {data}", color='green')
+                print("JVM RAM arguments set successfully!", color='blue')
+                time.sleep(3)
+                return True
+
+            except ValueError:
+                print("Invalid input. Please enter a valid integer for RAM size.", color='red')
+            except Exception as e:
+                print(f"An unexpected error occurred: {e}", color='red')
+                return False
+
+    def custom_jvm_args_memu(self):
+        instance_path, instance_custom_config, client_version = self.select_modify_instance(
+            "Modify JVM arguments requires an instance to modify.")
+
+        while True:
+            print("List:")
+            print("1: Setting JVM usage ram size.", color='lightgreen')
+            print("2: Get recommend JVM arguments.", color='lightblue')
+            print("3: Clear JVM Config file", color='lightred')
+
+            user_input = str(input(":"))
+
+            if user_input.lower() == "exit":
+                return True
+            elif user_input == "1":
+                self.set_jvm_usage_ram_size(instance_custom_config, client_version)
+            elif user_input == "2":
+                self.get_recommend_jvm_args(instance_custom_config)
+            elif user_input == "3":
+                self.write_args(instance_custom_config, "CustomJVMArgs", "", "overwrite")
+            else:
+                print(f"Unknown option {user_input} :O", color='red')
+            break
 
     def get_support_game_args(self, client_version):
         version_data = get_version_data(client_version)
@@ -265,7 +261,6 @@ class ArgsManager:
 
         return feature_list, feature_dict
 
-
     def get_game_args_by_feature_choice(self, selected_args_number, feature_dict):
         global GameArgsRequireValve
         try:
@@ -289,14 +284,7 @@ class ArgsManager:
             print("Invalid selection! Please enter a valid number.", color='red')
             return None  # Return None to indicate an invalid choice
 
-    def get_game_args_and_edit(self):
-        Status, client_version, instance_path = instance_manager.select_instance("Which instance you want to modify?"
-                                                                                 , client_version=True)
-        if instance_path is None:
-            print("No instance selected.", color='red')
-            return
-
-        config_path = os.path.join(instance_path, 'instance.bakelh.cfg')
+    def get_game_args_and_edit(self, client_version, config_path):
         username = "${username}"
         access_token = "${access_token}"
         gameDir = "${gameDir}"
@@ -304,7 +292,8 @@ class ArgsManager:
         assets_dir = "${assets_dir}"
         uuid = "${uuid}"
 
-        GameArgs = launch_manager.generate_game_args(client_version, username, access_token, gameDir, assets_dir, assetsIndex, uuid)
+        GameArgs = launch_manager.generate_game_args(client_version, username, access_token, gameDir, assets_dir,
+                                                     assetsIndex, uuid)
         print("Original Game Args Example:", color='purple')
         print(GameArgs, color='green')
 
@@ -324,145 +313,70 @@ class ArgsManager:
             user_input = input("Enter the number of the feature you want: ")
 
             if str(user_input).lower() == "exit":
-                return "exit"  # Some weird thing let while loop...
+                return True
 
             # Get the corresponding arguments for the chosen feature(also return original args for write_config)
             args = self.get_game_args_by_feature_choice(user_input, feature_dict)
-            OriginalArgs = args[0]
 
             if args is not None:
                 formatted_args = ' '.join(args)
                 print("New args:", formatted_args)
-                print("Trying to add custom Game Arguments to config file...", color='green')
-                mode = "WriteGameArgs"
-                self.write_config(instance_path, mode, formatted_args, OriginalArgs)
+                print("Trying to add custom game args to config file...", color='green')
+                self.write_args(config_path, "CustomGameArgs", formatted_args, "append")
+                print(f"Game args {formatted_args} has been added to config file :)", color='blue')
+                time.sleep(2)
             else:
                 print("No valid arguments to process :(", color='red')
 
             ClearOutput()
 
-    def game_args_editor(self, mode):
-        Status, client_version, instance_path = instance_manager.select_instance("Which instance you want to modify?"
-                                                                                 , client_version=True)
-        if instance_path is None:
-            print("No instance selected.", color='red')
-            return
+    def custom_game_args_memu(self):
+        instance_path, instance_custom_config, client_version = self.select_modify_instance(
+            "Modify game arguments requires an instance to modify.")
 
-        config_path = os.path.join(instance_path, 'instance.bakelh.cfg')
-        if mode == "Edit":
-            while True:
-                instance_manager.load_custom_config(config_path, '"CustomGameArgs"', "Game Args")
-                print('"GameArgsEditor"', color='purple')
-                print(
-                    "This function is mainly for advanced users."
-                    " If you are not, please use Generate Args adapted to your computer!",
-                    color='yellow')
-                print("Check wiki to get more information! (https://wiki.vg/Launching_the_game#Game_Arguments)",
-                      color='green')
-                print("Use Delete>'DeleteArgs' to delete args.")
-                print("Use Add>'AddArgs' to add args.")
-                print("Type exit to back to main memu!")
-                user_input = input(":")
-                if user_input.upper() == "EXIT":
-                    return True
-
-                self.write_config(instance_path, "WriteGameArgs", user_input, "")
-
-        elif mode == "Clear":
-            print("Cleaning config file...", color='green')
-            if not os.path.exists(config_path):
-                print("Config file does not exist!", color='red')
-                time.sleep(2)
-                return
-
-            with open(config_path, 'r') as config_file:
-                lines = config_file.readlines()
-                for i in range(len(lines)):
-                    if "CustomGameArgs" in lines[i]:
-                        # Use the new or existing account ID
-                        lines[i] = f'CustomGameArgs = '
-            with open(config_path, 'w') as file:
-                file.writelines(lines)
-            print("Config file has been cleaned :)", color='blue')
-
-    def modify_game_args(self):
         while True:
-            print("ModifyGameArgs", color='purple')
-            print("Options:", color='green')
+            print("Options list:", color='green')
             print("1: List support args and enter you want", color='blue')
-            print("2: Custom Args (Advanced)", color='purple')
-            print("3: Clean all Game Args", color='red')
-            print("4: Exit")
-
-            user_input = int(input(":"))
-
-            if user_input == 1:
-                self.get_game_args_and_edit()  # Capture the return value from get_game_args_and_edit()
-            elif user_input == 2:
-                self.game_args_editor("Edit")
-            elif user_input == 3:
-                self.game_args_editor("Clear")
-            elif user_input == 4:
-                return True
-            else:
-                print("Unknown option :0", color='red')
-    def modify_jvm_args(self):
-        Status, client_version, instance_path = instance_manager.select_instance("Which instance you want to modify?"
-                                                                                 , client_version=True)
-        if instance_path is None:
-            print("No instance selected.", color='red')
-            return
-
-        while True:
-            ClearOutput()
-            print("ModifyJVMArgs", color='purple')
-            print("1: Edit JVM Allocation RAM Size (Advanced)", color='green')
-            print("2: Custom Args (Advanced)", color='purple')
-            print("3: Generate Args adapted to your computer", color='blue')
-            print("4: Clear JVM Config file", color='red')
-            print("5: Exit")  # Option to exit the loop
+            print("2: Clean game args", color='red')
+            print("# Type 'exit' to exit the memu", color='orange')
 
             user_input = str(input(":"))
 
             if user_input == "1":
-                self.custom_jvm_args(instance_path, "EditRAMSize")
+                self.get_game_args_and_edit(client_version,
+                                            instance_custom_config)  # Capture the return value from get_game_args_and_edit()
             elif user_input == "2":
-                self.custom_jvm_args(instance_path, "CustomEdit")
-            elif user_input == "3":
-                self.get_best_jvm_args(instance_path)
-            elif user_input == "4":
-                self.custom_jvm_args(instance_path, "Clear")
-            elif user_input == "5":
-                print("Exiting JVM Args modification...", color='yellow')
-                return True
+                self.write_args(instance_custom_config, "CustomGameArgs", "", "overwrite")
             else:
                 print("Unknown option :0", color='red')
 
-    def ArgsMemu(self):
-        print("[ArgsManager]", color='magenta')
-        print("1: Modify Game Args 2: Modify JVM Args 3: Exit")
-
+    def ManagerMemu(self):
+        global user_input
+        print("ArgsManager:", color='indigo')
         try:
+            print("1: Custom JVM Args")
+            print("2: Custom Game Args")
+            print("3: Custom Args (Advanced User)")
+            print("# Type 'exit' to exit the memu", color='orange')
             user_input = str(input(":"))
-            if user_input == "1":
-                self.modify_game_args()
-            elif user_input == "2":
-                self.modify_jvm_args()
-            elif user_input == "3" or user_input.upper() == "EXIT":
-                return
-            else:
-                print("ArgsManager: Unknown option :0", color='red')
-        except Exception as e:
-            if Exception is ValueError:
-                print("ArgsManager: Unknown type :0", color='red')
-                self.ArgsMemu()
-                time.sleep(1.5)
-            else:
-                print(f"AccountManager got a error when calling a internal functions. Error: {e}", color='red')
-                function_name = traceback.extract_tb(e.__traceback__)[-1].name
-                detailed_traceback = traceback.format_exc()
-                internal_functions_error_log_dump(e, "Create Instance", function_name, detailed_traceback)
-                time.sleep(5)
 
+            if user_input == "1":
+                self.custom_jvm_args_memu()
+            elif user_input == "2":
+                self.custom_game_args_memu()
+            elif user_input == "3":
+                self.args_editor()
+            else:
+                print(f"Invalid input {user_input}", color='red')
+                time.sleep(1)
+                self.ManagerMemu()
+
+        except Exception as e:
+            print(f"ArgsManager got a error when calling a internal functions.", color='red')
+            print(f"Error output it crash internal function: {e}")
+            function_name = traceback.extract_tb(e.__traceback__)[-1].name
+            detailed_traceback = traceback.format_exc()
+            internal_functions_error_log_dump(e, "ArgsManager", function_name, detailed_traceback)
+            time.sleep(5)
 
 args_manager = ArgsManager()
