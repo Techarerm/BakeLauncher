@@ -87,7 +87,6 @@ class LauncherManager:
             .replace("${user_properties}", user_properties)  # Replace user_properties if present
 
         if "--userProperties" in minecraftArguments:
-            print("This version of Minecraft requires --userProperties!", color='green')
             minecraft_args = f"--username {username} --version {version_id} --gameDir {game_dir} " \
                              f"--assetsDir {assets_dir} --assetIndex {assetsIndex} --accessToken {access_token} " \
                              f"--userProperties {user_properties}"

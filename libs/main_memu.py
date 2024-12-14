@@ -17,6 +17,7 @@ ErrorMessageList = []
 ErrorMessageOutputRange = 0
 StopAutomaticProcess = False
 
+
 def error_return(ErrorMessage, mode):
     global ErrorMessageList, ErrorMessageOutputRange
     if ErrorMessage is None:
@@ -26,10 +27,12 @@ def error_return(ErrorMessage, mode):
     elif mode == "Read":
         if ErrorMessageOutputRange == 3:
             ErrorMessageOutputRange = 0
+            Base.ErrorMessageList.clear()
             return
         if Base.ErrorMessageList and len(Base.ErrorMessageList[0].strip()) > 0:
             ErrorMessageOutputRange += 1
             print("Latest Error Message:", Base.ErrorMessageList[-1], color='red')
+
 
 def extra_memu():
     while True:
@@ -91,8 +94,8 @@ def automatic_process():
     if MemuReset:
         Base.MainMemuResetFlag = True
 
-
     return True
+
 
 def main_memu():
     global StopAutomaticProcess
@@ -114,6 +117,7 @@ def main_memu():
 
         # Return error message(if it find)
         error_return("", "Read")
+        error_return("", "Refresh")
         if not Base.NoList:
             print("What would you like to do?")
             print("1. Launch Minecraft 2. AccountManager 3: Create Instance")

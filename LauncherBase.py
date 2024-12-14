@@ -32,34 +32,35 @@ Debug = True
 DontPrintColor = false
 DisableClearOutput = false
 DefaultAccountID = 1
-LauncherWorkDir = "None"
-PingServerIP = "None"
-BypassLoginStatusCheck = false
-NoInternetConnectionCheck = true
+LauncherWorkDir = None
+PingServerIP = None
+NoInternetConnectionCheck = false
 
 <MainMemu>
 # Automatic open you want option when launcher load MainMemu
 AutomaticOpenOptions = false
 Option = None
 NoList = false
-QuickLaunch = False
+QuickLaunch = True
 
 <LaunchManager>
 Create a new terminal when launching Minecraft. The new terminal will not be killed when the main stop working.
 EnableExperimentalMultitasking = true
 DefaultGameScreenWidth = 1280
 DefaultGameScreenHeight = 720
+JVMUsageRamSizeMinLimit = 2048
+JVMUsageRamSizeMax = 4096
+
 
 # Memu setting
 # Set maximum number of instances name can be printed in one line
 MaxInstancesPerRow = 20
 
-# Automatic launch you want to launch instances
-AutomaticLaunch = false
-InstancesName = None
+# Automatic launch you want to launch instances(when launcher main memu load)
+AutomaticLaunch = False
 
-# Under testing
-QuickLaunchInstancesName = None
+# Set Automatic launch instance
+QuickInstancesName = None
 
 # Use old libraries.cfg
 UseCustomLibrariesCFG = false
@@ -69,6 +70,7 @@ CustomLibrariesCFGPath = None
 # Get token(Minecraft) from refresh token(or name "Microsoft Token")
 RefreshCustomToken = false
 RefreshToken = None
+BypassLoginStatusCheck = false
 
 # Save the token given by the user
 SaveCustomToken = false
@@ -78,13 +80,14 @@ UUID = None
 
 <Create_Instance>
 # Automatic download you want Minecraft version
-AutomaticDownVersion = true
-MaxVersionPerRow = 
+# AutomaticDownVersion = true
+MaxVersionPerRow = 40
+MaxReleaseVersionPerRow = 100
 
 # If a same version is already installed in the runtimes folder, reinstall it(but bypass ask user)
-OverwriteJVMIfExist = False
-DoNotAskJVMExist = False
-UsingLegacyDownloadOutput = False
+OverwriteJVMIfExist = false
+DoNotAskJVMExist = false
+UsingLegacyDownloadOutput = false
 Version = None
 """
 
@@ -220,6 +223,7 @@ class LauncherBase:
         self.InternetConnected = False
         self.ErrorMessageList = []
         self.StartUsingErrorLog = False
+        self.RefreshTokenFailedFlag = False
         # ============================I'm a line==============================
         # Config file stuff
         # Global stuff
@@ -362,7 +366,7 @@ class LauncherBase:
                 if "DefaultAccountID" in line:
                     self.DefaultAccountID = line.split('=')[1].strip().strip('"').strip("'")
                     try:
-                        # Convert it to integer(if failed set it to 1
+                        # Convert it to integer(if convert failed set it to 1)
                         self.DefaultAccountID = int(self.DefaultAccountID)
                     except ValueError:
                         self.ErrorMessageList.append("DefaultAccountIDNotAnInteger")
@@ -413,6 +417,7 @@ class LauncherBase:
                     try:
                         self.MaxInstancesPerRow = int(self.MaxInstancesPerRow)
                     except ValueError:
+                        print("ddddd")
                         self.ErrorMessageList.append("MaxInstancesPerRowNotAnInteger")
                         self.MaxInstancesPerRow = 20
 
@@ -421,6 +426,7 @@ class LauncherBase:
                     try:
                         self.MaxVersionPerRow = int(self.MaxVersionPerRow)
                     except ValueError:
+                        print("ddddd")
                         self.ErrorMessageList.append("MaxVersionPerRowNotAnInteger")
                         self.MaxVersionPerRow = 40
 

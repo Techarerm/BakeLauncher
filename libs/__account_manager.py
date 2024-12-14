@@ -145,9 +145,6 @@ class AuthManager:
             r.raise_for_status()
             username = r.json()["name"]
             uuid = r.json()["id"]
-            if not self.RefreshTokenFlag:
-                print("Minecraft Username:", username, color='lightblue')
-                print("Minecraft UUID:", uuid, color='lightblue')
             return True, username, uuid
         except Exception as e:
             return False, e, None
@@ -307,6 +304,9 @@ class AuthManager:
             print(f"Failed to get Minecraft profile information. Cause by error {username}", color='red')
             time.sleep(3)
             return username
+        else:
+            print("Minecraft Username:", username, color='lightblue')
+            print("Minecraft UUID:", uuid, color='lightblue')
 
         try:
             # Save the token to AccountData.json
@@ -370,6 +370,8 @@ class AuthManager:
                 if not Status:
                     print("Failed to change DefaultAccountID. Is your config file corrupted?", color='red')
                     time.sleep(3)
+                else:
+                    Base.RefreshTokenFailedFlag = False
 
         except Exception as e:
             print(f"Failed to save account data. Error: {e}", color='lightred')
@@ -422,8 +424,9 @@ class AuthManager:
                 print(f"Failed to refresh Microsoft token. Cause by error {new_microsoft_token}", color='red')
                 print("Maybe your refresh token are expired! please re-login your account.",
                       color='yellow')
-                time.sleep(3)
-                return False, "CheckAccountDataAreValid>FetchNewMicrosoftTokenFailed"
+                Base.RefreshTokenFailedFlag = True
+                time.sleep(5)
+                return False, "FailedToRefreshToken"
 
             # Get a new Minecraft token using the refreshed Microsoft token
             self.RefreshTokenFlag = True
@@ -526,18 +529,27 @@ class AuthManager:
             else:
                 # Bypass check
                 if not Base.BypassLoginStatusCheck:
-                    Status, message = self.check_account_data_are_valid(account_id)
+                    if not Base.RefreshTokenFailedFlag:
+                        Status, message = self.check_account_data_are_valid(account_id)
+                        if Base.RefreshTokenFailedFlag:
+                            Base.MainMemuResetFlag = True
+                            return
+                        else:
+                            Base.RefreshTokenFailedFlag = False
+                    else:
+                        Status = False
                 else:
                     Status = True
                 # When MainMemuResetFlag = True(After refreshing the token it will be set to True) stop print login
                 # message(until main_memu set MainMemuResetFlag = False)
                 if Base.MainMemuResetFlag:
                     return
+
                 if Status:
                     print("Login Status: Already logged in :)", color='lightgreen')
                     print("Hi,", username, color="lightblue")  # Now this should work correctly
                 else:
-                    print(f"ErrorMessage: {message}")
+                    Base.ErrorMessageList.append(message)
                     print("Login Status: Expired session :0", color='lightred')
                     print("Please login your account again!", color='lightred')
                     print("Hi,", username, color="lightblue")  # Now this should work correctly
@@ -578,6 +590,7 @@ class AuthManager:
                     self.set_default_account_id(user_input)
 
                     print("Changing default account successfully!", color='lightblue')
+                    Base.RefreshTokenFailedFlag = False
                     time.sleep(1.5)
 
             if not found:
