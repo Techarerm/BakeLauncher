@@ -6,7 +6,8 @@ from LauncherBase import Base, print_custom as print
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from libs.Utils.utils import get_version_data
 
-class assets_grabber:
+
+class AssetsGrabber:
     def __init__(self):
         self.without_downloaded_output = None
         self.manifest_url = "https://launchermeta.mojang.com/mc/game/version_manifest_v2.json"
@@ -58,15 +59,17 @@ class assets_grabber:
                 color='yellow')
             print("Asset index not found.", color='red')
 
-    def get_assets_index_version(self, version_id):
+    @staticmethod
+    def get_assets_index_version(version_id):
         try:
-            with open('.minecraft/assets_index.json', 'r') as file:
+            with open('assets_index.json', 'r') as file:
                 data = json.load(file)
             assetsIndex_version = data['id']
             return assetsIndex_version
 
         except FileNotFoundError:
             print("Failed to get assetsIndex version. Cause by FileNotFoundError.", color='red')
+
     def download_asset_file(self, asset_name, asset_info, objects_dir):
 
         asset_hash = asset_info['hash']
@@ -175,22 +178,21 @@ class assets_grabber:
 
     @staticmethod
     def get_assets_dir(version_id):
-        assets_dir = ".minecraft/assets"
-        legacy_assets_dir = os.path.join(assets_dir, "virtual", "legacy")
+        legacy_assets_dir = os.path.join("assets", "virtual", "legacy")
         try:
-            with open(".minecraft/assets_index.json", "r") as file:
+            with open("assets_index.json", "r") as file:
                 data = json.load(file)
                 AssetsIndex = data['id']
                 if AssetsIndex == "pre-1.6" or AssetsIndex == "legacy":
                     return legacy_assets_dir
                 else:
-                    return assets_dir
+                    return "assets"
         except FileNotFoundError:
             print("Failed to get assets dir :( Try using the second method...", color='red')
             if version_id == "pre-1.6" or version_id == "legacy":
                 return legacy_assets_dir
             else:
-                return assets_dir
+                return "assets"
 
     def assets_file_grabber(self, version_id, instance_dir):
         # Get version data
@@ -268,4 +270,4 @@ class assets_grabber:
                     print("??? Can't found assets name! Bypass it....)", color='red')
 
 
-assets_grabber_manager = assets_grabber()
+assets_grabber = AssetsGrabber()

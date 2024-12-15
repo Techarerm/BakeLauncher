@@ -261,18 +261,19 @@ class LauncherManager:
             print("Failed to launch Minecraft :( Cause by invalid AccountData", color='red')
             return
 
-        # Sdt work path to instances
-        os.chdir(instance_dir)
+        # Sdt work path to instances gameDir
         gameDir = os.path.join(instance_dir, ".minecraft")
         if not os.path.exists(gameDir):
             print("Failed to launch Minecraft :( Cause by instance file are corrupted.", color='red')
             time.sleep(2.5)
             return "GameDirDoesNotExist"
+        else:
+            os.chdir(gameDir)
 
         # Check natives are available to use
         print("Checking natives...", color='green')
-        if os.path.isdir(".minecraft/natives"):
-            if not len(os.listdir(".minecraft/natives")) == 0:
+        if os.path.isdir("natives"):
+            if not len(os.listdir("natives")) == 0:
                 print("Natives are available! (if it unzip correctly)", color='green')
             else:
                 print("Natives are not available or it unzip not correctly :(", color='red')
@@ -291,15 +292,11 @@ class LauncherManager:
             return "NativesAreNotAvailable"
 
         # Set Natives Path
-        NativesPath = ".minecraft/natives"
+        NativesPath = "natives"
 
         # Get librariesPath(Example: /path/LWJGL-1.0.jar:/path/Hopper-1.2.jar:/path/client.jar)
         InjectJARPath = None
-        if os.path.exists("libraries"):
-            print("Moving libraries folder to .minecraft...")
-            shutil.move("libraries", ".minecraft")
-
-        libraries_paths_strings = generate_libraries_paths(minecraft_version, ".minecraft/libraries")
+        libraries_paths_strings = generate_libraries_paths(minecraft_version, "libraries")
         # Inject jar file to launch chain
         # Get MainClass Name And Set Args(-cp "libraries":client.jar net.minecraft.client.main.Main or
         # net.minecraft.launchwrapper.Launch(old))
@@ -308,7 +305,12 @@ class LauncherManager:
               color='blue' if "net.minecraft.client.main.Main" in main_class else 'purple')
 
         # Get assetsIndex and assets_dir
-        assetsIndex = assets_grabber.get_assets_index_version("", minecraft_version)
+        assetsIndex = assets_grabber.get_assets_index_version(minecraft_version)
+        if assetsIndex is None:
+            print("Failed to get assets index version :(", color='red')
+            time.sleep(3)
+            return "FailedToGetAssetsIndexVer"
+
         assets_dir = assets_grabber.get_assets_dir(minecraft_version)
 
         # Get GameArgs
@@ -317,7 +319,7 @@ class LauncherManager:
 
         # Now it available :)
         instance_custom_config = os.path.join(instance_dir, "instance.bakelh.cfg")
-        if os.path.exists("instance.bakelh.cfg"):
+        if os.path.exists(instance_custom_config):
             print("Found instance config :D", color='blue')
             print('Loading custom config...', color='green')
 
@@ -366,17 +368,21 @@ class LauncherManager:
         # Bake Minecraft :)
         if Base.Platform == "Windows":
             LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, FinalArgs, GameArgs,
-                         CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking)
+                         CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking,
+                         Base.LaunchMultiClientWithOutput)
         elif Base.Platform == "Darwin":
             LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class,
                          FinalArgs, GameArgs,
-                         CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking)
+                         CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking,
+                         Base.LaunchMultiClientWithOutput)
         elif Base.Platform == "Linux":
             LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, FinalArgs, GameArgs,
-                         CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking)
+                         CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking,
+                         Base.LaunchMultiClientWithOutput)
         else:
             LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, FinalArgs, GameArgs,
-                         CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking)
+                         CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking,
+                         Base.LaunchMultiClientWithOutput)
 
         os.chdir(Base.launcher_root_dir)
         time.sleep(2)

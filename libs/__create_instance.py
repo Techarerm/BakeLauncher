@@ -8,7 +8,7 @@ from libs.__duke_explorer import Duke
 from libs.instance.instance import instance
 from libs.java.jvm_installer import jvm_installer
 from libs.__instance_manager import instance_manager
-from libs.__assets_grabber import assets_grabber_manager
+from libs.__assets_grabber import assets_grabber
 from libs.modification.mod_installer import mod_installer
 from libs.Utils.utils import get_version_data, download_file, multi_thread_download
 from LauncherBase import Base, ClearOutput, print_custom as print, internal_functions_error_log_dump
@@ -574,7 +574,7 @@ class Create_Instance:
 
         # Download assets(Also it will check this version are use legacy assets or don't use)
         print("Downloading assets...", color='purple')
-        assets_grabber_manager.assets_file_grabber(version_id, install_dir)
+        assets_grabber.assets_file_grabber(version_id, install_dir)
         os.chdir(self.WorkDir)
 
         print("Unzipping natives...", color='green')

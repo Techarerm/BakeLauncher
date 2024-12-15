@@ -1,6 +1,7 @@
 import os
 import tempfile
 import subprocess
+import threading
 import time
 import multiprocessing
 from LauncherBase import Base, print_custom as print
@@ -20,7 +21,7 @@ terminals = [
 ]
 
 
-def create_new_client_thread(launch_command, title, PlatFormName, ConfigPath):
+def create_new_client_thread_with_output(launch_command, title, PlatFormName, ConfigPath):
     FailedToLaunch = False
     Base.NoPrintConfigInfo = True
     Base.load_setting(CfgPath=ConfigPath)
@@ -114,10 +115,29 @@ def create_new_client_thread(launch_command, title, PlatFormName, ConfigPath):
         print("LaunchClient: Creating launch thread failed !")
         print("LaunchClient: Cause by unknown system or launch can't find shell :(")
 
+def launch_process(launch_command):
+    try:
+        subprocess.Popen(
+            launch_command,
+            shell=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+    except Exception as e:
+        print(f"Failed to launch process. Cause: {e}")
+
+def create_new_client_thread(launch_command):
+    try:
+        client = multiprocessing.Process(target=launch_process
+                                         , args=(launch_command,))
+        client.start()
+    except Exception as e:
+        print(f"Failed to create launch process. Cause: {e}")
+
 
 def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
                  JVMArgs, GameArgs, custom_game_args, instances_id,
-                 EnableMultitasking):
+                 EnableMultitasking, MultiClientOutput):
     work_instance_dir = os.getcwd()
     # Construct the Minecraft launch command with proper quoting
     minecraft_command = (
@@ -127,9 +147,9 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
     )
 
     # Is for launch using one thread method
-    cleaned_jvm_path = JVMExecutable.replace(" ", "")
+    cleaned_jvm_path = JVMExecutable.replace('""', '')
     minecraft_command_one_thread = (
-        f'{cleaned_jvm_path} {JVMExecutable} {JVMArgs} '
+        f'{JVMArgs} '
         f'-Djava.library.path="{NativesPath}" -cp "{libraries_paths_strings}" '
         f'{MainClass} {GameArgs} {custom_game_args}'
     )
@@ -205,18 +225,26 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
     print("Baking Minecraft! :)", color='blue')  # Bring it back :)
 
     if EnableMultitasking:
-        print("EnableExperimentalMultitasking is Enabled!", color='purple')
-        client_process = multiprocessing.Process(
-            target=create_new_client_thread,
-            args=(launch_command, title, Base.Platform, Base.global_config_path)
-        )
-        # Start the process
-        client_process.start()
+        if Base.LaunchMultiClientWithOutput:
+            print("EnableExperimentalMultitasking is Enabled!", color='purple')
+            print("Creating mew client thread with log output...", color='green')
+            client_process = multiprocessing.Process(
+                target=create_new_client_thread_with_output,
+                args=(launch_command, title, Base.Platform, Base.global_config_path)
+            )
+            # Start the process
+            client_process.start()
+        else:
+            print("EnableExperimentalMultitasking is Enabled!", color='purple')
+            launch_command = f"{JVMExecutable} {minecraft_command_one_thread}"
+            create_new_client_thread(launch_command)
+
     else:
         print("EnableExperimentalMultitasking is Disabled!", color='green')
         print('"Launch Mode: Legacy', color='green')
         if Base.Platform == "Windows":
-            os.system(minecraft_command)
+            local = os.getcwd()
+            subprocess.run(f"{JVMExecutable} {minecraft_command_one_thread}")
             print("Minecraft has stopped running! (Thread terminated)", color='green')
             back_to_main_memu = input("Press any key to continue. . .")
         else:

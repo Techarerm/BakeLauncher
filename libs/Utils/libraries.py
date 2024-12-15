@@ -74,7 +74,7 @@ def generate_libraries_paths(client_version, libraries_dir):
             if file.endswith('.jar') and not file.startswith("client.jar"):
                 # Skip adding client.jar to jar_paths_string
                 relative_path = os.path.relpath(os.path.join(root, file), start=libraries_dir)
-                full_path = os.path.join(".minecraft", "libraries", relative_path)
+                full_path = os.path.join("libraries", relative_path)
 
                 # Append the path to the jar_paths_string with the correct separator
                 if Base.Platform == "Windows":
