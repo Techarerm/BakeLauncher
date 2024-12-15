@@ -1,20 +1,17 @@
-import subprocess
-import sys
-import traceback
-
-import requests
 import os
-import zipfile
 import time
-import hashlib
 import shutil
-from LauncherBase import Base, ClearOutput, print_custom as print, internal_functions_error_log_dump
-from libs.__assets_grabber import assets_grabber_manager
-from libs.__instance_manager import instance_manager
+import zipfile
+import requests
+import traceback
 from libs.__duke_explorer import Duke
-from libs.Utils.utils import get_version_data, download_file, multi_thread_download, extract_zip
-from libs.Modification.mod_installer import mod_installer
-from tqdm import tqdm
+from libs.instance.instance import instance
+from libs.java.jvm_installer import jvm_installer
+from libs.__instance_manager import instance_manager
+from libs.__assets_grabber import assets_grabber_manager
+from libs.modification.mod_installer import mod_installer
+from libs.Utils.utils import get_version_data, download_file, multi_thread_download
+from LauncherBase import Base, ClearOutput, print_custom as print, internal_functions_error_log_dump
 
 
 class Create_Instance:
@@ -427,98 +424,7 @@ class Create_Instance:
                   " Minecraft again.", color='yellow')
         os.chdir(Base.launcher_root_dir)
 
-    @staticmethod
-    def verify_checksum(file_path, expected_sha1):
-        sha1 = hashlib.sha1()
-        with open(file_path, "rb") as f:
-            while True:
-                data = f.read(65536)  # Read in 64KB chunks
-                if not data:
-                    break
-                sha1.update(data)
-        file_sha1 = sha1.hexdigest()
-        return file_sha1 == expected_sha1
 
-    @staticmethod
-    def create_directories(file_path, destination_folder):
-        # Extract directory path and create it if it doesn't exist
-        directory = os.path.join(destination_folder, os.path.dirname(file_path))
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-
-    def download_java_file(self, file_info, file_path, destination_folder):
-        download_type = "raw"  # You can choose "lzma" if preferred
-        file_url = file_info["downloads"][download_type]["url"]
-        file_name = os.path.basename(file_path)  # Extract the file name
-        full_file_path = os.path.join(destination_folder, file_path)
-        expected_sha1 = file_info["downloads"][download_type]["sha1"]
-
-        # Create necessary directories
-        self.create_directories(file_path, destination_folder)
-
-        # Check if the file already exists and verify checksum
-        if os.path.exists(full_file_path) and self.verify_checksum(full_file_path, expected_sha1):
-            return
-
-        # Download file
-        response = requests.get(file_url)
-        if response.status_code == 200:
-            with open(full_file_path, "wb") as f:
-                f.write(response.content)
-            if Base.UsingLegacyDownloadOutput:
-                if self.verify_checksum(full_file_path, expected_sha1):
-                    print(f"Downloaded and verified {file_name} to {full_file_path}", color='green')
-            if not self.verify_checksum(full_file_path, expected_sha1):
-                print(f"Checksum mismatch for {file_name}.", color='yellow')
-                os.remove(full_file_path)
-        else:
-            print(f"Failed to download {file_name}. Status code: {response.status_code}")
-
-    def download_java_runtime_files(self, manifest, install_path):
-        if not os.path.exists(install_path):
-            return False, "InstallFolderAreNotExist"
-
-        files = manifest.get("files", {})
-        total_files = len(files)  # Get total number of files to download(for progress bar)
-
-        # Create a progress bar with a custom color
-        if not Base.UsingLegacyDownloadOutput:
-            with tqdm(total=total_files, unit="file", desc="Downloading files", colour='cyan') as progress_bar:
-                for file_path, file_info in files.items():
-                    if "downloads" in file_info:
-                        # Test method
-                        self.download_java_file(file_info, file_path, install_path)
-                        progress_bar.update(1)  # Increment progress bar for each completed file
-
-                # Ensure the progress bar completes at 100%(??? Why it stuck in 92%???)
-                progress_bar.n = total_files
-                progress_bar.refresh()
-        else:
-            files = manifest.get("files", {})
-            for file_path, file_info in files.items():
-                if "downloads" in file_info:
-                    self.download_java_file(file_info, file_path, install_path)
-
-        return True, "DownloadFinished"
-
-    @staticmethod
-    def find_selected_java_version_manifest_url(manifest_data, component, major_version):
-        if Base.LibrariesPlatform == 'windows':
-            JavaPlatformName = 'windows-x64'
-        elif Base.LibrariesPlatform == 'darwin':
-            JavaPlatformName = 'mac-os'
-        else:
-            JavaPlatformName = Base.LibrariesPlatform
-
-        if JavaPlatformName not in manifest_data:
-            raise Exception(f"No {Base.Platform} platform data found in the manifest.")
-
-        java_versions = manifest_data[JavaPlatformName].get(component, [])
-        for version in java_versions:
-            if version['version']['name'].startswith(str(major_version)):
-                manifest_url = version['manifest']['url']
-                return manifest_url
-        raise Exception(f"No matching Java manifest found for component {component} and version {major_version}.")
 
     def install_jvm(self, minecraft_version):
         java_manifest_url = 'https://launchermeta.mojang.com/v1/products/java-runtime/2ec0cc96c44e5a76b9c8b7c39df7210883d12871/all.json'
@@ -543,7 +449,7 @@ class Create_Instance:
             return f"FailedToFetchJavaManifest[{e}]"
 
         # gEt "selected java version manifest_url"
-        selected_java_version_manifest_url = self.find_selected_java_version_manifest_url(manifest_data, component,
+        selected_java_version_manifest_url = jvm_installer.find_selected_java_version_manifest_url(manifest_data, component,
                                                                                           major_version)
 
         try:
@@ -585,7 +491,7 @@ class Create_Instance:
         else:
             self.require_jvm_version_installed = False
             os.makedirs(install_path)
-        Status, Message = self.download_java_runtime_files(manifest_data, install_path)
+        Status, Message = jvm_installer.download_java_runtime_files(manifest_data, install_path)
 
         if Status:
             print(f"Successfully installed Java runtime.", color='blue')
@@ -653,7 +559,7 @@ class Create_Instance:
         print("Loading version info...")
         instance_info = os.path.join(install_dir, "instance.bakelh.ini")
         # Get real_version(to download client)
-        Status, real_version = instance_manager.get_instance_info(instance_info, info_name='real_minecraft_version')
+        Status, real_version = instance.get_instance_info(instance_info, info_name='real_minecraft_version')
         version_data = get_version_data(version_id)
 
         # Download game file( libraries, .jar files...)
@@ -778,7 +684,7 @@ class Create_Instance:
 
             print(f'Creating instance at {instance_path}', color='green')
             if self.legacy_version:
-                instance_manager.create_instance_info(
+                instance.create_instance_info(
                     instance_name=os.path.basename(instance_path),
                     client_version=client_version,
                     version_type=version_type,
@@ -791,7 +697,7 @@ class Create_Instance:
                 )
                 self.download_games_files(client_version, instance_path)
             else:
-                instance_manager.create_instance_info(
+                instance.create_instance_info(
                     instance_name=os.path.basename(instance_path),
                     client_version=client_version,
                     version_type=version_type,
@@ -819,8 +725,8 @@ class Create_Instance:
             return True
 
         instance_info = os.path.join(instance_path, "instance.bakelh.ini")
-        Status, use_legacy_manifest = instance_manager.get_instance_info(instance_info, info_name="use_legacy_manifest")
-        Status, instance_name = instance_manager.get_instance_info(instance_info, info_name="instance_name")
+        Status, use_legacy_manifest = instance.get_instance_info(instance_info, info_name="use_legacy_manifest")
+        Status, instance_name = instance.get_instance_info(instance_info, info_name="instance_name")
         if use_legacy_manifest:
             self.legacy_version = True
         else:

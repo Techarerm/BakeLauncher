@@ -1,22 +1,18 @@
 import os
 import time
 import traceback
-
-import requests
-import psutil
-import json
-from LauncherBase import print_custom as print, ClearOutput, internal_functions_error_log_dump
-from libs.__instance_manager import instance_manager
-from libs.launch_manager import launch_manager
+from libs.instance.instance import instance
 from libs.Utils.utils import get_version_data
+from libs.arguments.arguments import arguments
+from libs.launch_manager import launch_manager
+from libs.__instance_manager import instance_manager
+from LauncherBase import print_custom as print, ClearOutput, internal_functions_error_log_dump
 
 
 class ArgsManager:
     def __init__(self):
         self.updated = False
         self.GameArgsRequireValve = False
-        self.BakeLibraryJVMConfigURL = ("https://github.com/Techarerm/BakeLauncher-Library/raw/refs/heads/main/JVM"
-                                        "/JVM_ramConfigurations.json")
 
     def select_modify_instance(self, message):
         print(message, color='green')
@@ -31,35 +27,8 @@ class ArgsManager:
 
         instance_custom_config = os.path.join(instance_path, "instance.bakelh.cfg")
         if not os.path.exists(instance_path):
-            instance_manager.create_custom_config(instance_custom_config)
+            instance.create_custom_config(instance_custom_config)
         return instance_path, instance_custom_config, client_version
-
-    @staticmethod
-    def write_args(instance_custom_cfg, item, data, mode, **kwargs):
-        key_map = {
-            "customjvmargs": "CustomJVMArgs",
-            "customgameargs": "CustomGameArgs",
-        }
-        item_key = key_map.get(item.lower())
-
-        if not item_key:
-            return False, f"Unknown item: {item}"
-
-        if mode == "append":
-            old_data = instance_manager.read_custom_config(instance_custom_cfg, item)
-            full_data = (old_data + " " + data) if old_data else data
-            instance_manager.write_custom_config(instance_custom_cfg, item, full_data)
-            return True, None
-
-        elif mode == "overwrite":
-            instance_manager.write_custom_config(instance_custom_cfg, item, data)
-            return True, None
-
-        if kwargs.get("CleanUP", False):
-            instance_manager.write_custom_config(instance_custom_cfg, item, data)
-            return True, None
-
-        return False, None
 
     def args_editor(self):
         instance_path, instance_custom_config, client_version = self.select_modify_instance(
@@ -80,17 +49,17 @@ class ArgsManager:
                 print("Unknown mode :O", color='red')
 
         if not os.path.exists(instance_custom_config):
-            instance_manager.create_custom_config(instance_custom_config)
+            instance.create_custom_config(instance_custom_config)
         else:
-            status = instance_manager.check_custom_config_valid(instance_custom_config)
+            status = instance.check_custom_config_valid(instance_custom_config)
             if not status:
                 print("Custom config validation failed. Recreating it...", color='yellow')
-                instance_manager.create_custom_config(instance_custom_config, overwrite=True)
+                instance.create_custom_config(instance_custom_config, overwrite=True)
 
         # Editing memu
         while True:
             ClearOutput()
-            exist_data = instance_manager.read_custom_config(instance_custom_config, mode)
+            exist_data = instance.read_custom_config(instance_custom_config, mode)
             if exist_data:
                 print(f"Existing Custom config data for {mode}", color='lightgreen')
                 print("Existing data:", exist_data, color='lightblue')
@@ -106,64 +75,17 @@ class ArgsManager:
                 return True
             elif user_input.startswith("Add>"):
                 data = user_input.split("Add>")[1].strip()
-                self.write_args(instance_custom_config, mode, data, "append")
+                arguments.write_args(instance_custom_config, mode, data, "append")
                 print(f"Arguments {data} has been saved to custom config :)", color='blue')
             elif user_input.startswith("W>"):
                 data = user_input.split("W>")[1].strip()
-                self.write_args(instance_custom_config, mode, data, "overwrite")
+                arguments.write_args(instance_custom_config, mode, data, "overwrite")
                 print(f"Arguments {data} has been saved to custom config :)", color='blue')
             elif user_input.lower() == "cleanup":
-                self.write_args(instance_custom_config, mode, "", "overwrite", CleanUP=True)
+                arguments.write_args(instance_custom_config, mode, "", "overwrite", CleanUP=True)
                 print(f"{mode} data has been cleaned :)", color='blue')
             else:
                 print("Unknown command. Try again.", color='red')
-
-    def get_recommend_jvm_args(self, instance_custom_config):
-        if not os.path.exists(instance_custom_config):
-            return False, "CustomConfigNotFound"
-
-        try:
-            # Get recommend JVMConfig json data
-            response = requests.get(self.BakeLibraryJVMConfigURL)
-
-            if response.ok:
-                jvm_configurations = response.json()
-            else:
-                return False, "GrabbingJVMConfigListFailed"
-
-            # Get the total memory size and convert size bytes to GB
-            memory_info = psutil.virtual_memory()
-            total_ram_gb = memory_info.total / (1024 ** 3)
-
-            int_total_ram = int(total_ram_gb) + (1 if (total_ram_gb % 1) > 0.5 else 0)
-
-            if int_total_ram <= 4:
-                selected_ram = '4GB'
-            elif int_total_ram <= 8:
-                selected_ram = '8GB'
-            elif int_total_ram <= 16:
-                selected_ram = '16GB'
-            elif int_total_ram <= 32:
-                selected_ram = '32GB'
-            else:
-                selected_ram = '32GB'
-
-            jvm_args = jvm_configurations["ramConfigurations"].get(selected_ram)
-
-            if jvm_args:
-                full_args = ""
-                for arg in jvm_args['JVMArgs']:
-                    full_args += arg + " "
-                self.write_args(instance_custom_config, "CustomJVMArgs", full_args, "overwrite")
-                time.sleep(2)
-                return True, full_args
-            else:
-                return False, "CannotFindRecommendArguments"
-
-        except json.JSONDecodeError as e:
-            return False, f"JSONDecodeError:{e}"
-        except Exception as e:
-            return False, f"GetArguments>Error:{e}"
 
     def set_jvm_usage_ram_size(self, instance_custom_config, client_version):
         while True:
@@ -193,9 +115,13 @@ class ArgsManager:
                 # Display generated arguments and confirm with user
                 print(f"Generated JVM arguments: {FullArgs}", color='blue')
 
+                # Check custom config file status
+                if not os.path.exists(instance_custom_config):
+                    instance.create_custom_config(instance_custom_config)
+
                 # Write arguments and display the result
-                self.write_args(instance_custom_config, "CustomJVMArgs", FullArgs, "overwrite")
-                data = instance_manager.read_custom_config(instance_custom_config, "CustomJVMArgs")
+                arguments.write_args(instance_custom_config, "CustomJVMArgs", FullArgs, "overwrite")
+                data = instance.read_custom_config(instance_custom_config, "CustomJVMArgs")
                 print(f"New JVM arguments: {data}", color='green')
                 print("JVM RAM arguments set successfully!", color='blue')
                 time.sleep(3)
@@ -224,9 +150,9 @@ class ArgsManager:
             elif user_input == "1":
                 self.set_jvm_usage_ram_size(instance_custom_config, client_version)
             elif user_input == "2":
-                self.get_recommend_jvm_args(instance_custom_config)
+                arguments.get_recommend_jvm_args(instance_custom_config)
             elif user_input == "3":
-                self.write_args(instance_custom_config, "CustomJVMArgs", "", "overwrite")
+                arguments.write_args(instance_custom_config, "CustomJVMArgs", "", "overwrite")
             else:
                 print(f"Unknown option {user_input} :O", color='red')
             break
@@ -297,7 +223,11 @@ class ArgsManager:
         print("Original Game Args Example:", color='purple')
         print(GameArgs, color='green')
 
-        feature_list, feature_dict = self.get_support_game_args(client_version)
+        feature_list, feature_dict = arguments.get_support_game_args(client_version)
+        if not feature_list:
+            print("Your Minecraft version are not support custom game args :(", color='red')
+            time.sleep(5)
+            return False
 
         if feature_dict is None or not feature_dict:
             return
@@ -322,7 +252,7 @@ class ArgsManager:
                 formatted_args = ' '.join(args)
                 print("New args:", formatted_args)
                 print("Trying to add custom game args to config file...", color='green')
-                self.write_args(config_path, "CustomGameArgs", formatted_args, "append")
+                arguments.write_args(config_path, "CustomGameArgs", formatted_args, "append")
                 print(f"Game args {formatted_args} has been added to config file :)", color='blue')
                 time.sleep(2)
             else:
@@ -346,7 +276,7 @@ class ArgsManager:
                 self.get_game_args_and_edit(client_version,
                                             instance_custom_config)  # Capture the return value from get_game_args_and_edit()
             elif user_input == "2":
-                self.write_args(instance_custom_config, "CustomGameArgs", "", "overwrite")
+                arguments.write_args(instance_custom_config, "CustomGameArgs", "", "overwrite")
             else:
                 print("Unknown option :0", color='red')
 

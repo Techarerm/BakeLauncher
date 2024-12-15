@@ -10,6 +10,7 @@ from libs.launch_client import LaunchClient
 from libs.__instance_manager import instance_manager
 from libs.Utils.utils import get_version_data
 from libs.Utils.libraries import generate_libraries_paths
+from libs.instance.instance import instance
 
 
 class LauncherManager:
@@ -168,18 +169,18 @@ class LauncherManager:
 
         # Get instance's Minecraft version
         instance_info_path = os.path.join(Base.launcher_instances_dir, self.instance_name, "instance.bakelh.ini")
-        InfoStatus, use_legacy_manifest = instance_manager.get_instance_info(instance_info_path,
-                                                                             info_name="use_legacy_manifest",
-                                                                             ignore_not_found=True)
+        InfoStatus, use_legacy_manifest = instance.get_instance_info(instance_info_path,
+                                                                     info_name="use_legacy_manifest",
+                                                                     ignore_not_found=True)
 
         if use_legacy_manifest:
-            InfoStatus, minecraft_version = instance_manager.get_instance_info(instance_info_path,
-                                                                               info_name="real_minecraft_version",
-                                                                               ignore_not_found=True)
+            InfoStatus, minecraft_version = instance.get_instance_info(instance_info_path,
+                                                                       info_name="real_minecraft_version",
+                                                                       ignore_not_found=True)
         else:
-            InfoStatus, minecraft_version = instance_manager.get_instance_info(instance_info_path,
-                                                                               info_name="client_version",
-                                                                               ignore_not_found=True)
+            InfoStatus, minecraft_version = instance.get_instance_info(instance_info_path,
+                                                                       info_name="client_version",
+                                                                       ignore_not_found=True)
         if not InfoStatus:
             print("Warning: You are trying to launch a who built with an older version of BakeLauncher.",
                   color='yellow')
@@ -320,13 +321,13 @@ class LauncherManager:
             print("Found instance config :D", color='blue')
             print('Loading custom config...', color='green')
 
-            CustomJVMArgs = instance_manager.read_custom_config(instance_custom_config, "CustomJVMArgs")
+            CustomJVMArgs = instance.read_custom_config(instance_custom_config, "CustomJVMArgs")
 
-            CustomGameArgs = instance_manager.read_custom_config(instance_custom_config, "CustomGameArgs")
+            CustomGameArgs = instance.read_custom_config(instance_custom_config, "CustomGameArgs")
 
-            InjectJARPath = instance_manager.read_custom_config(instance_custom_config, "InjectJARPath")
+            InjectJARPath = instance.read_custom_config(instance_custom_config, "InjectJARPath")
 
-            ModLoaderClass = instance_manager.read_custom_config(instance_custom_config, "ModLoaderClass")
+            ModLoaderClass = instance.read_custom_config(instance_custom_config, "ModLoaderClass")
 
             # Check if CustomJVMArgs(or CustomGameArgs) is None or has a length of 0 (ignoring spaces)
             if CustomJVMArgs is None or len(CustomJVMArgs.strip()) == 0:

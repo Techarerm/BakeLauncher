@@ -10,6 +10,7 @@ from libs.__instance_manager import instance_manager
 from libs.__duke_explorer import Duke
 from libs.Utils.utils import download_file, multi_thread_download, extract_zip
 from libs.Utils.libraries import libraries_check
+from libs.instance.instance import instance
 
 
 class ModInstaller:
@@ -130,7 +131,7 @@ class ModInstaller:
                 print(f"Failed to move libraries to .minecraft folder. Cause by error {e}", color='red')
 
         instance_info = os.path.join(instance_path, "instance.bakelh.ini")
-        Status, client_version = instance_manager.get_instance_info(instance_info, info_name="client_version")
+        Status, client_version = instance.get_instance_info(instance_info, info_name="client_version")
         game_dir = os.path.join(instance_path, ".minecraft")
         if not os.path.exists(game_dir):
             os.makedirs(game_dir)
@@ -158,14 +159,14 @@ class ModInstaller:
 
         print("Confining Fabric setting...", color='green')
         instance_cfg = os.path.join(instance_path, "instance.bakelh.cfg")
-        instance_manager.create_custom_config(instance_cfg)
+        instance.create_custom_config(instance_cfg)
 
-        instance_manager.write_custom_config(instance_cfg, "modloderclass"
+        instance.write_custom_config(instance_cfg, "modloderclass"
                                              , "net.fabricmc.loader.impl.launch.knot.KnotClient")
-        instance_manager.write_instance_info("IsVanilla", False, instance_info)
-        instance_manager.write_instance_info("Modified", True, instance_info)
-        instance_manager.write_instance_info("ModLoaderName", "Fabric", instance_info)
-        instance_manager.write_instance_info("ModLoaderVersion", loader_version, instance_info)
+        instance.write_instance_info("IsVanilla", False, instance_info)
+        instance.write_instance_info("Modified", True, instance_info)
+        instance.write_instance_info("ModLoaderName", "Fabric", instance_info)
+        instance.write_instance_info("ModLoaderVersion", loader_version, instance_info)
         print("Checking duplicates...", color='green')
         libraries_check(instance_libraries)
         print("Install Fabric loader successfully!", color='blue')
@@ -203,7 +204,7 @@ class ModInstaller:
                 print(f"Failed to move libraries to .minecraft folder. Cause by error {e}", color='red')
         os.chdir(Base.launcher_root_dir)
         instance_info = os.path.join(instance_path, "instance.bakelh.ini")
-        Status, client_version = instance_manager.get_instance_info(instance_info, info_name="client_version")
+        Status, client_version = instance.get_instance_info(instance_info, info_name="client_version")
         game_dir = os.path.join(instance_path, ".minecraft")
         if not os.path.exists(game_dir):
             os.makedirs(game_dir)

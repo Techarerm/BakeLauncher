@@ -10,7 +10,7 @@ from modules.print_colorx.print_color import print as print_color
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
 # dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
 # Example = "LB041224" Years: 2024 Month: 12 Date: 04
-dev_version = "LE141224"  # If version type is release set it blank
+dev_version = "LG151224"  # If version type is release set it blank
 version_type = "Dev"
 major_version = "0.9"
 
@@ -413,27 +413,26 @@ class LauncherBase:
                     self.BypassLoginStatusCheck = line.split('=')[1].strip().upper() == "TRUE"
 
                 if "MaxInstancesPerRow" in line:
-                    self.MaxInstancesPerRow = line.split('=')[1].strip().strip('"').strip("'")
+                    MaxInstancesPerRow = line.split('=')[1].strip().strip('"').strip("'")
                     try:
-                        self.MaxInstancesPerRow = int(self.MaxInstancesPerRow)
+                        self.MaxInstancesPerRow = int(MaxInstancesPerRow)
                     except ValueError:
                         print("ddddd")
                         self.ErrorMessageList.append("MaxInstancesPerRowNotAnInteger")
                         self.MaxInstancesPerRow = 20
 
                 if "MaxVersionPerRow" in line:
-                    self.MaxVersionPerRow = line.split('=')[1].strip().strip('"').strip("'")
+                    MaxVersionPerRow = line.split('=')[1].strip().strip('"').strip("'")
                     try:
-                        self.MaxVersionPerRow = int(self.MaxVersionPerRow)
+                        self.MaxVersionPerRow = int(MaxVersionPerRow)
                     except ValueError:
-                        print("ddddd")
                         self.ErrorMessageList.append("MaxVersionPerRowNotAnInteger")
                         self.MaxVersionPerRow = 40
 
                 if "MaxReleaseVersionPerRow" in line:
-                    self.MaxReleaseVersionPerRow = line.split('=')[1].strip().strip('"').strip("'")
+                    MaxReleaseVersionPerRow = line.split('=')[1].strip().strip('"').strip("'")
                     try:
-                        self.MaxReleaseVersionPerRow = int(self.MaxReleaseVersionPerRow)
+                        self.MaxReleaseVersionPerRow = int(MaxReleaseVersionPerRow)
                     except ValueError:
                         self.ErrorMessageList.append("MaxReleaseVersionPerRowNotAnInteger")
                         self.MaxReleaseVersionPerRow = 9
@@ -451,30 +450,30 @@ class LauncherBase:
                         self.AutomaticLaunch = False
 
                 if "DefaultGameScreenWidth" in line:
-                    self.DefaultGameScreenWidth = line.split('=')[1].strip().strip('"').strip("'")
+                    DefaultGameScreenWidth = line.split('=')[1].strip().strip('"').strip("'")
                     try:
-                        self.DefaultGameScreenWidth = int(self.DefaultGameScreenWidth)
+                        self.DefaultGameScreenWidth = int(DefaultGameScreenWidth)
                     except ValueError:
                         self.DefaultGameScreenWidth = 1280
 
                 if "DefaultGameScreenHeight" in line:
-                    self.DefaultGameScreenHeight = line.split('=')[1].strip().strip('"').strip("'")
+                    DefaultGameScreenHeight = line.split('=')[1].strip().strip('"').strip("'")
                     try:
-                        self.DefaultGameScreenHeight = int(self.DefaultGameScreenHeight)
+                        self.DefaultGameScreenHeight = int(DefaultGameScreenHeight)
                     except ValueError:
                         self.DefaultGameScreenHeight = 720
 
                 if "JVMUsageRamSizeMinLimit" in line:
-                    self.JVMUsageRamSizeMinLimit = line.split('=')[1].strip().strip('"').strip("'")
+                    JVMUsageRamSizeMinLimit = line.split('=')[1].strip().strip('"').strip("'")
                     try:
-                        self.JVMUsageRamSizeMinLimit = int(self.JVMUsageRamSizeMinLimit)
+                        self.JVMUsageRamSizeMinLimit = int(JVMUsageRamSizeMinLimit)
                     except ValueError:
                         self.JVMUsageRamSizeMinLimit = 2048
 
                 if "JVMUsageRamSizeMax" in line:
-                    self.JVMUsageRamSizeMax = line.split('=')[1].strip().strip('"').strip("'")
+                    JVMUsageRamSizeMax = line.split('=')[1].strip().strip('"').strip("'")
                     try:
-                        self.JVMUsageRamSizeMax = int(self.JVMUsageRamSizeMax)
+                        self.JVMUsageRamSizeMax = int(JVMUsageRamSizeMax)
                     except ValueError:
                         self.JVMUsageRamSizeMax = 4096
 
