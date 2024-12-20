@@ -9,7 +9,7 @@ import textwrap
 import datetime
 import os
 from LauncherBase import Base, ClearOutput, BetaWarningMessage, print_custom as print
-from libs.main_memu import main_memu
+from libs.main_menu import main_menu
 
 
 class BakeLauncher:
@@ -23,7 +23,7 @@ class BakeLauncher:
         self.Message = None
         # Load LauncherBase
         try:
-            self.StartStatus, self.Message = Base.Initialize()
+            self.StartStatus, self.Message = Base.Initialize
         except Exception as e:
             ClearOutput()
             tb = traceback.format_exc()  # Full traceback as a string
@@ -58,7 +58,13 @@ class BakeLauncher:
             os.remove(Base.launcher_tmp_session)
 
         print("BakeLauncher thread terminated!")
-        input("Press any key to continue...")
+        if Base.LauncherFullResetFlag:
+            input("Press any key to reset all thing...")
+            Base.LauncherFullResetFlag = False
+            BakeLauncher()
+            return
+        else:
+            input("Press any key to continue...")
 
     def main(self):
         # DEBUG for platform check
@@ -70,7 +76,7 @@ class BakeLauncher:
         ClearOutput()
 
         # Load main menu
-        main_memu()
+        main_menu()
 
     @staticmethod
     def generate_crash_log(tb, crash_function, e, BaseInitialized):
@@ -110,3 +116,4 @@ if __name__ == "__main__":
     # Added multitasking(?) support(for LaunchClient and pyinstaller...)
     multiprocessing.freeze_support()
     BakeLauncher()
+

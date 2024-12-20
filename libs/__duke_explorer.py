@@ -149,7 +149,7 @@ class DukeCute:
         """
 
         JAVA8 = kwargs.get("JAVA8", False)
-        print(f"Trying to check the required Java version for this Minecraft version...", color='green')
+        print(f"Checking the required Java version for this Minecraft version...", color='green')
 
         if not JAVA8:
             try:
@@ -158,14 +158,19 @@ class DukeCute:
 
                 # Extract the Java version information
                 component, major_version = self.get_java_version_info(version_data)
-                print(f"Required Java Component: {component}, Major Version: {major_version}", color='green')
-
+                if not major_version is None:
+                    print(f"Required Java Component: {component}, Major Version: {major_version}", color='green')
+                else:
+                    print("Could not found required java component. Using Java 8 without getting it in the version "
+                          "data.", color='yellow')
+                    major_version = "8"
             except Exception as e:
                 # If it can't get support Java version, using Java 8(some old version will get this error)
                 print(f"Error occurred while fetching version data: {e}", color='red')
                 print(f"Warning: BakeLauncher will using Java 8 instead original support version of Java.",
                       color='yellow')
                 major_version = str("8")
+
         else:
             major_version = str("8")
 
@@ -189,13 +194,14 @@ class DukeCute:
             return None
 
     def get_java_version_info(self, version_data):
+        global major_version
         try:
             java_version_info = version_data['javaVersion']
             component = java_version_info['component']
             major_version = java_version_info['majorVersion']
             return component, major_version
         except KeyError:
-            raise Exception("Failed to find the javaVersion information in the version data.")
+            return None, "8"
 
     @staticmethod
     def initialize_jvm_config():

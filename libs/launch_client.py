@@ -1,7 +1,6 @@
 import os
 import tempfile
 import subprocess
-import threading
 import time
 import multiprocessing
 from LauncherBase import Base, print_custom as print
@@ -21,17 +20,8 @@ terminals = [
 ]
 
 
-def create_new_client_thread_with_output(launch_command, title, PlatFormName, ConfigPath):
+def create_new_client_thread_with_output(launch_command, title, PlatFormName):
     FailedToLaunch = False
-    Base.NoPrintConfigInfo = True
-    Base.load_setting(CfgPath=ConfigPath)
-
-    if not Base.DontPrintColor:
-        print("Please check the launcher already created a new terminal.", color='purple')
-        print("If it didn't create it please check the output and report it to GitHub!", color='green')
-    else:
-        print("Please check the launcher already created a new terminal.")
-        print("If it didn't create it please check the output and report it to GitHub!")
 
     if PlatFormName == 'Windows':
         # Create the temp batch file
@@ -115,6 +105,7 @@ def create_new_client_thread_with_output(launch_command, title, PlatFormName, Co
         print("LaunchClient: Creating launch thread failed !")
         print("LaunchClient: Cause by unknown system or launch can't find shell :(")
 
+
 def launch_process(launch_command):
     try:
         subprocess.Popen(
@@ -125,6 +116,7 @@ def launch_process(launch_command):
         )
     except Exception as e:
         print(f"Failed to launch process. Cause: {e}")
+
 
 def create_new_client_thread(launch_command):
     try:
@@ -225,12 +217,19 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
     print("Baking Minecraft! :)", color='blue')  # Bring it back :)
 
     if EnableMultitasking:
+        if not Base.DontPrintColor:
+            print("Please check the launcher already created a new terminal.", color='purple')
+            print("If it didn't create it please check the output and report it to GitHub!", color='green')
+        else:
+            print("Please check the launcher already created a new terminal.")
+            print("If it didn't create it please check the output and report it to GitHub!")
         if Base.LaunchMultiClientWithOutput:
             print("EnableExperimentalMultitasking is Enabled!", color='purple')
             print("Creating mew client thread with log output...", color='green')
             client_process = multiprocessing.Process(
-                target=create_new_client_thread_with_output,
-                args=(launch_command, title, Base.Platform, Base.global_config_path)
+                target=
+                create_new_client_thread_with_output,
+                args=(launch_command, title, Base.Platform)
             )
             # Start the process
             client_process.start()

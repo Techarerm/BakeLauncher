@@ -50,7 +50,7 @@ def get_version_data(version_id):
         return version_data
     except Exception as e:
         print(f"Error occurred while fetching version data: {e}", color='red')
-        print("Failed to get version data. Cause by internet connect error or unknown issues.", color='red')
+        print("Failed to get version data :(", color='red')
         return None
 
 

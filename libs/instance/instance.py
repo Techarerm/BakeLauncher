@@ -8,6 +8,7 @@ from LauncherBase import Base
 
 class class_instance:
     def __init__(self):
+        self.IsVanilla = None
         self.real_minecraft_version = None
         self.use_legacy_manifest = None
         self.name = None
@@ -292,21 +293,21 @@ class class_instance:
 
                     if line.startswith("IsVanilla"):
                         # Extract the value after the equals sign
-                        self.use_legacy_manifest = line.split('=')[1].strip().upper() == "TRUE"
+                        self.IsVanilla = line.split('=')[1].strip().upper() == "TRUE"
 
                     if line.startswith("Modified"):
                         # Extract the value after the equals sign
-                        self.use_legacy_manifest = line.split('=')[1].strip().upper() == "TRUE"
+                        self.Modified = line.split('=')[1].strip().upper() == "TRUE"
 
                     if line.startswith("ModLoaderName"):
                         # Extract the value after the equals sign
                         key, value = line.split("=", 1)
-                        self.CREATE_DATE = value.strip().strip('"').strip("'")
+                        self.ModLoaderName = value.strip().strip('"').strip("'")
 
                     if line.startswith("ModLoaderVersion"):
                         # Extract the value after the equals sign
                         key, value = line.split("=", 1)
-                        self.CREATE_DATE = value.strip().strip('"').strip("'")
+                        self.ModLoaderVersion = value.strip().strip('"').strip("'")
 
         except Exception as e:
             return False, f"FailedToReadInstanceInfo>Error: {e}"

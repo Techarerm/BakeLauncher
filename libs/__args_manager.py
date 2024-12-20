@@ -56,7 +56,7 @@ class ArgsManager:
                 print("Custom config validation failed. Recreating it...", color='yellow')
                 instance.create_custom_config(instance_custom_config, overwrite=True)
 
-        # Editing memu
+        # Editing menu
         while True:
             ClearOutput()
             exist_data = instance.read_custom_config(instance_custom_config, mode)
@@ -133,7 +133,7 @@ class ArgsManager:
                 print(f"An unexpected error occurred: {e}", color='red')
                 return False
 
-    def custom_jvm_args_memu(self):
+    def custom_jvm_args_menu(self):
         instance_path, instance_custom_config, client_version = self.select_modify_instance(
             "Modify JVM arguments requires an instance to modify.")
 
@@ -260,7 +260,7 @@ class ArgsManager:
 
             ClearOutput()
 
-    def custom_game_args_memu(self):
+    def custom_game_args_menu(self):
         instance_path, instance_custom_config, client_version = self.select_modify_instance(
             "Modify game arguments requires an instance to modify.")
 
@@ -268,7 +268,7 @@ class ArgsManager:
             print("Options list:", color='green')
             print("1: List support args and enter you want", color='blue')
             print("2: Clean game args", color='red')
-            print("# Type 'exit' to exit the memu", color='orange')
+            print("# Type 'exit' to exit the menu", color='orange')
 
             user_input = str(input(":"))
 
@@ -280,26 +280,26 @@ class ArgsManager:
             else:
                 print("Unknown option :0", color='red')
 
-    def ManagerMemu(self):
+    def ManagerMenu(self):
         global user_input
         print("ArgsManager:", color='indigo')
         try:
             print("1: Custom JVM Args")
             print("2: Custom Game Args")
             print("3: Custom Args (Advanced User)")
-            print("# Type 'exit' to exit the memu", color='orange')
+            print("# Type 'exit' to exit the menu", color='orange')
             user_input = str(input(":"))
 
             if user_input == "1":
-                self.custom_jvm_args_memu()
+                self.custom_jvm_args_menu()
             elif user_input == "2":
-                self.custom_game_args_memu()
+                self.custom_game_args_menu()
             elif user_input == "3":
                 self.args_editor()
             else:
                 print(f"Invalid input {user_input}", color='red')
                 time.sleep(1)
-                self.ManagerMemu()
+                self.ManagerMenu()
 
         except Exception as e:
             print(f"ArgsManager got a error when calling a internal functions.", color='red')

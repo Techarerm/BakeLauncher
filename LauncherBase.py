@@ -10,7 +10,7 @@ from modules.print_colorx.print_color import print as print_color
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
 # dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
 # Example = "LB041224" Years: 2024 Month: 12 Date: 04
-dev_version = "LG151224-2"  # If version type is release set it blank
+dev_version = "LE201224"  # If version type is release set it blank
 version_type = "Dev"
 major_version = "0.9"
 
@@ -32,16 +32,22 @@ Debug = True
 DontPrintColor = false
 DisableClearOutput = false
 DefaultAccountID = 1
+# Custom launcher working Dir(Do not use non-English language paths unless you want to see Minecraft crash on launch)
 LauncherWorkDir = None
+# When the launcher checks for an Internet connection, it will use this setting instead of the recommended IP address.
 PingServerIP = None
+# Bypass internet connection check
 NoInternetConnectionCheck = false
 
-<MainMemu>
-# Automatic open you want option when launcher load MainMemu
+<MainMenu>
+# Automatic open you want option when launcher load MainMenu
 AutomaticOpenOptions = false
 Option = None
 NoList = false
 QuickLaunch = True
+# Support red, orange, blue, green, yellow, white, gray, lightred, lightblue(recommended), lightyellow, lightgreen
+# , lightyellow, indigo, pink....
+LauncherTitleColor = red
 
 <LaunchManager>
 # Create a new terminal when launching Minecraft. The new terminal will not be killed when the main stop working.
@@ -55,49 +61,44 @@ JVMUsageRamSizeMinLimit = 2048
 JVMUsageRamSizeMax = 4096
 
 
-# Memu setting
+# Menu setting
 # Set maximum number of instances name can be printed in one line
-MaxInstancesPerRow = 20
+MaxInstancesPerRow = 10
 
-# Automatic launch you want to launch instances(when launcher main memu load)
+# Automatic launch you want to launch instances(when launcher main menu loaded)
 AutomaticLaunch = False
 
-# Set Automatic launch instance
+# Launch an instance when main menu loaded(Requires AutomaticLaunch or QuickLaunch is set to True)
 QuickInstancesName = None
 
 # Use old libraries.cfg
-UseCustomLibrariesCFG = false
-CustomLibrariesCFGPath = None
+# UseCustomLibrariesCFG = false
+# CustomLibrariesCFGPath = None
 
 <AccountManager>
-# Get token(Minecraft) from refresh token(or name "Microsoft Token")
-RefreshCustomToken = false
-RefreshToken = None
+# Bypass login check when launcher loading main menu.
 BypassLoginStatusCheck = false
 
-# Save the token given by the user
+# Save the token given by the user(It will add into launcher in the future :)
 SaveCustomToken = false
+RefreshToken = None
 Token = None
 Username = None
 UUID = None
 
 <Create_Instance>
 # Automatic download you want Minecraft version
-# AutomaticDownVersion = true
-MaxVersionPerRow = 40
-MaxReleaseVersionPerRow = 100
+AutomaticDownVersion = true
+MaxFullVersionPerLine = 5  # If the version list is not readable on your computer(When you use recommended setting),
+# Set it to 3 (Or even 2, but I wouldn't recommend setting it to a value<3 number. Just use legacy version mode
+# because is enough for most of people. But the list will be very long (more than >250 lines)
+MaxReleaseVersionPerLine = 10
 
-# If a same version is already installed in the runtimes folder, reinstall it(but bypass ask user)
+# If the same version is already installed in the runtime folder, reinstall it instead of asking user.
 OverwriteJVMIfExist = false
 DoNotAskJVMExist = false
 UsingLegacyDownloadOutput = false
-Version = None
 """
-
-# Default value for some settings
-DontPrintColor = False
-DisableClearOutput = False
-NoList = False
 
 
 def print_custom(*args, **kwargs):
@@ -213,6 +214,7 @@ class LauncherBase:
                 self.launcher_version_display = self.launcher_version
         # Other stuff(for create instance, platform check...)
         self.launcher_data_format = "dev-beta-0.9-2"
+        self.launcher_lib_version = f"pre-0.9-lib-{dev_version}"  # Pre-0.9
         self.PlatformSupportList = ["Windows", "Darwin", "Linux"]
         self.Platform = self.get_platform("platform")
         self.LibrariesPlatform = self.get_platform("libraries")
@@ -222,11 +224,12 @@ class LauncherBase:
         # ============================I'm a line==============================
         # Flag and list(Set by launcher)
         self.EndLoadFlag = False  # If load process failed(platform check failed), Set to True
-        self.MainMemuResetFlag = False  # Set to true by check_account_data_are_valid
+        self.MainMenuResetFlag = False  # Set to true by check_account_data_are_valid
         self.InternetConnected = False
         self.ErrorMessageList = []
         self.StartUsingErrorLog = False
         self.RefreshTokenFailedFlag = False
+        self.LauncherFullResetFlag = False
         # ============================I'm a line==============================
         # Config file stuff
         # Global stuff
@@ -239,10 +242,11 @@ class LauncherBase:
         self.NoInternetConnectionCheck = False
         self.PingServerIP = None
         self.BypassLoginStatusCheck = False
-        # main_memu stuff
-        self.NoList = False  # Make main_memu not print the list
-        self.AutomaticOpenOptions = False  # Start selected option when load main_memu
+        # main_menu stuff
+        self.NoList = False  # Make main_menu not print the list
+        self.AutomaticOpenOptions = False  # Start selected option when load main_menu
         self.AutoOpenOptions = None  # Select option
+        self.LauncherTitleColor = None
         # LaunchManager stuff
         self.AutomaticLaunch = False
         self.QuickLaunch = None
@@ -258,8 +262,8 @@ class LauncherBase:
         self.OverwriteJVMIfExist = False
         self.DoNotAskJVMExist = False
         self.UsingLegacyDownloadOutput = False
-        self.MaxVersionPerRow = 40  # Not working
-        self.MaxReleaseVersionPerRow = 9  # Not working
+        self.MaxFullVersionPerLine = 5
+        self.MaxReleaseVersionPerLine = 10
         # ============================I'm a line==============================
         # Other stuff
         self.launcher_root_dir = os.getcwd()  # Set launcher root dir
@@ -269,7 +273,9 @@ class LauncherBase:
         self.global_config_path = os.path.join(self.launcher_root_dir, "data/config.bakelh.cfg")  # config(global)
         self.account_data_path = os.path.join(self.launcher_root_dir, "data/AccountData.json")
         self.PingServerHostList = ["8.8.8.8", "210.2.4.8", "1.1.1.1"]  # Test internet Connection
+        self.launcher_loaded_time = None
 
+    @property
     def Initialize(self):
         # Initialize Launcher "Base"
         # Load config
@@ -353,6 +359,8 @@ class LauncherBase:
 
         if not Status:
             return False, Message
+        else:
+            self.launcher_loaded_time = datetime.datetime.now()
 
         return True, ""
 
@@ -363,7 +371,18 @@ class LauncherBase:
             self.global_config_path = ConfigPath
 
         with open(self.global_config_path, 'r') as file:
+            cleaned_lines = []
             for line in file:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    # Filter all comments
+                    continue
+
+                line = line.split('#', 1)[0].strip()
+                if line:
+                    cleaned_lines.append(line)
+
+            for line in cleaned_lines:
                 if "Debug" in line:
                     self.Debug = line.split('=')[1].strip().upper() == "TRUE"
 
@@ -391,6 +410,9 @@ class LauncherBase:
                 if "AutoOpenOptions" in line:
                     if self.AutomaticOpenOptions:
                         self.AutoOpenOptions = line.split('=')[1].strip().strip('"').strip("'")
+
+                if "LauncherTitleColor" in line:
+                    self.LauncherTitleColor = line.split('=')[1].strip().strip('"').strip("'")
 
                 if "QuickLaunch" in line:
                     self.QuickLaunch = line.split('=')[1].strip().upper() == "TRUE"
@@ -425,21 +447,21 @@ class LauncherBase:
                         self.ErrorMessageList.append("MaxInstancesPerRowNotAnInteger")
                         self.MaxInstancesPerRow = 20
 
-                if "MaxVersionPerRow" in line:
-                    MaxVersionPerRow = line.split('=')[1].strip().strip('"').strip("'")
+                if "MaxFullVersionPerLine" in line:
+                    MaxFullVersionPerLine = line.split('=')[1].strip().strip('"').strip("'")
                     try:
-                        self.MaxVersionPerRow = int(MaxVersionPerRow)
+                        self.MaxFullVersionPerLine = int(MaxFullVersionPerLine)
                     except ValueError:
-                        self.ErrorMessageList.append("MaxVersionPerRowNotAnInteger")
-                        self.MaxVersionPerRow = 40
+                        self.ErrorMessageList.append("MaxFullVersionPerLineNotAnInteger")
+                        self.MaxFullVersionPerLine = 5
 
-                if "MaxReleaseVersionPerRow" in line:
-                    MaxReleaseVersionPerRow = line.split('=')[1].strip().strip('"').strip("'")
+                if "MaxReleaseVersionPerLine" in line:
+                    MaxReleaseVersionPerLine = line.split('=')[1].strip().strip('"').strip("'")
                     try:
-                        self.MaxReleaseVersionPerRow = int(MaxReleaseVersionPerRow)
+                        self.MaxReleaseVersionPerLine = int(MaxReleaseVersionPerLine)
                     except ValueError:
-                        self.ErrorMessageList.append("MaxReleaseVersionPerRowNotAnInteger")
-                        self.MaxReleaseVersionPerRow = 9
+                        self.ErrorMessageList.append("MaxReleaseVersionPerLineNotAnInteger")
+                        self.MaxReleaseVersionPerLine = 9
 
                 if "EnableExperimentalMultitasking" in line:
                     self.EnableExperimentalMultitasking = line.split('=')[1].strip().upper() == "TRUE"
@@ -631,7 +653,8 @@ def bake_bake():
         print_color("Almost done? (Just wait...like 1 years?)", color='blue')
     print_color(" ")
     print_color(ChangeLog, color='cyan')
-    print_color("Type 'exit' to back to main memu.", color='green')
+    print_color("Type 'exit' to back to main menu.", color='green')
+    print_color('"Details" for more information :)', color='purple')
     type_time = 1
     while True:
         user_input = str(input("BakeLauncher> "))
@@ -642,6 +665,33 @@ def bake_bake():
         if "BAKE" in user_input.upper():
             bake_game()
             return True
+
+        if "details" in user_input.lower():
+            current_time = datetime.datetime.now()
+            elapsed_time = current_time - Base.launcher_loaded_time
+            print(f"Launcher Version : {Base.launcher_version}")
+            print(f"Launcher Version Type : {Base.launcher_version_type}")
+            print(f"Using Lib Version : {Base.launcher_lib_version}")
+            print(f"WorkDir : {Base.launcher_root_dir}")
+            print(f"Debug : {Base.Debug}")
+            print("")
+            print("System Info")
+            print(f"OS Name : {Base.Platform}")
+            print(f"Architecture : {Base.Arch[0]}")
+            print(f"Libraries Name : {Base.LibrariesPlatform}")
+            print(f"Internet Connection : {Base.InternetConnected}")
+            print(f"")
+            print("Setting & Flag")
+            print(f"Debug : {Base.Debug}")
+            print(f"DontPrintColor : {Base.DontPrintColor}")
+            print(f"DisableClearOutput : {Base.DisableClearOutput}")
+            print(f"DefaultAccountID : {Base.DefaultAccountID}")
+            print(f"LauncherWorkDir : {Base.LauncherWorkDir}")
+            print(f"PingServerIP : {Base.PingServerIP}")
+            print(f"NoInternetConnectionCheck : {Base.NoInternetConnectionCheck}")
+            while True:
+                input("Press any key to continue...")
+                return True
 
         if type_time == 1:
             print(f"?{user_input}")

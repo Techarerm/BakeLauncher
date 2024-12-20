@@ -85,5 +85,4 @@ def generate_libraries_paths(client_version, libraries_dir):
     # Finally, append the client.jar path to the end of the jar paths string if it exists
     if client_jar_path:
         jar_paths_string += client_jar_path
-
     return jar_paths_string

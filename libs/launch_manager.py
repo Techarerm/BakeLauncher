@@ -49,7 +49,7 @@ class LauncherManager:
         if Base.Platform == "Windows":
             # JVM_Args_HeapDump(It will save heap dump when Minecraft Encountered OutOfMemoryError? "Only For Windows!")
             OtherArgs += "-XX:HeapDumpPath=MojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump "
-        elif Base.Platform == "macOS":
+        elif Base.Platform == "Darwin":
             # Check whether the startup version of macOS requires the parameter "-XstartOnFirstThread" parameter
             # In LWJGL 3.x, macOS requires this args to make lwjgl running on the JVM starts with thread 0) (from wiki.vg)
             for jvm_entry in jvm_args_list:
@@ -120,7 +120,8 @@ class LauncherManager:
             minecraft_args += " --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker"
         elif "AlphaVanillaTweaker" in minecraftArguments or version_data.get("type") == "indev":
             minecraft_args += " --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker"
-
+        elif "AlphaVanillaTweaker" in minecraftArguments or version_data.get("type") == "alpha":
+            minecraft_args += " --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker"
         return minecraft_args
 
     def launch_game(self, **kwargs):

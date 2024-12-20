@@ -462,7 +462,7 @@ class AuthManager:
                 return False, f"UpdateAccountData>{message}"
 
             # Set flag after refresh token finished
-            Base.MainMemuResetFlag = True
+            Base.MainMenuResetFlag = True
             self.RefreshTokenFlag = False
             print("Refresh token process finished!", color='lightblue')
             return True, "AccountDataRefreshSuccessfully"
@@ -481,7 +481,7 @@ class AuthManager:
             print("Using exist launcher account...", tag='INFO')
             write_global_config("DefaultAccountID", "1")
             time.sleep(2)
-            Base.MainMemuResetFlag = True
+            Base.MainMenuResetFlag = True
             account_id = 1
 
         if os.path.exists('data/AccountData.json'):
@@ -501,15 +501,15 @@ class AuthManager:
                     Status = False
 
                 if not Status:
-                    # If user don't want to convert account data to new format, reset account data and reload main memu
+                    # If user don't want to convert account data to new format, reset account data and reload main menu
                     self.initialize_account_data()
                     Status = self.set_default_account_id(1)
                     if not Status:
                         print("Failed to change DefaultAccountID. Is your config file corrupted?", color='red')
                         time.sleep(3)
 
-                # Reset Main Memu
-                Base.MainMemuResetFlag = True
+                # Reset Main Menu
+                Base.MainMenuResetFlag = True
                 return
             if account_data is None:
                 print(
@@ -532,7 +532,7 @@ class AuthManager:
                     if not Base.RefreshTokenFailedFlag:
                         Status, message = self.check_account_data_are_valid(account_id)
                         if Base.RefreshTokenFailedFlag:
-                            Base.MainMemuResetFlag = True
+                            Base.MainnResetFlag = True
                             return
                         else:
                             Base.RefreshTokenFailedFlag = False
@@ -540,16 +540,16 @@ class AuthManager:
                         Status = False
                 else:
                     Status = True
-                # When MainMemuResetFlag = True(After refreshing the token it will be set to True) stop print login
-                # message(until main_memu set MainMemuResetFlag = False)
-                if Base.MainMemuResetFlag:
+                # When MainMenuResetFlag = True(After refreshing the token it will be set to True) stop print login
+                # message(until main_menu set MainMenuResetFlag = False)
+                if Base.MainMenuResetFlag:
                     return
 
                 if Status:
                     print("Login Status: Already logged in :)", color='lightgreen')
                     print("Hi,", username, color="lightblue")  # Now this should work correctly
                 else:
-                    Base.ErrorMessageList.append(message)
+                    # Base.ErrorMessageList.append(message)
                     print("Login Status: Expired session :0", color='lightred')
                     print("Please login your account again!", color='lightred')
                     print("Hi,", username, color="lightblue")  # Now this should work correctly
