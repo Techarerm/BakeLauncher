@@ -4,7 +4,7 @@ import time
 import traceback
 from libs.instance.instance import instance
 from LauncherBase import Base, print_color as print, internal_functions_error_log_dump
-from libs.Utils.utils import find_main_class
+from libs.Utils.utils import find_main_class, get_version_data
 from libs.__duke_explorer import Duke
 
 
@@ -242,9 +242,10 @@ class InstanceManager:
                 print("Bypassed rename process.", color='green')
                 self.instance_path = instance_path_old
                 self.name = self.CLIENT_VERSION
-            java_major_version = Duke.get_java_version_info(self.name)
+            version_data = get_version_data(self.CLIENT_VERSION)
+            component, major_version = Duke.get_java_version_info(version_data)
             main_class = find_main_class(self.name)
-            convert_process(self.name, self.CLIENT_VERSION, version_type, java_major_version, main_class)
+            convert_process(self.name, self.CLIENT_VERSION, version_type, major_version, main_class)
 
         else:
             print("This method does not support renaming instances!", color='red')
@@ -255,6 +256,7 @@ class InstanceManager:
                     print("No instances legacy found :(", color='red')
                     time.sleep(2)
                     return
+
                 if not Status:
                     print(
                         f"Failed to convert all instances to new structure :( Caused by error {instances_list_legacy}",
@@ -262,9 +264,10 @@ class InstanceManager:
                     return "FailedToConvertInstance"
                 for instance_name in instances_list_legacy:
                     version_type = instance.get_instance_type(instance_name)
-                    java_major_version = Duke.get_java_version_info(instance_name)
+                    version_data = get_version_data(instance_name)
+                    component, major_version = Duke.get_java_version_info(version_data)
                     main_class = find_main_class(instance_name)
-                    convert_process(instance_name, instance_name, version_type, java_major_version, main_class)
+                    convert_process(instance_name, instance_name, version_type, major_version, main_class)
             except Exception as e:
                 print(f"Error Message {e}", color='red')
 

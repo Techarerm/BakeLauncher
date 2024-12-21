@@ -148,7 +148,7 @@ class LauncherManager:
         return minecraft_args
 
     def launch_game(self, **kwargs):
-        global JVMArgs, CustomRAMArgs, JavaPath
+        global JVMArgs, CustomRAMArgs, JavaPath, LegacyFlag, main_class
         QuickLaunch = kwargs.get("QuickLaunch", False)
 
         # Check folder "versions" are available in root (To avoid some user forgot to install)
@@ -211,13 +211,15 @@ class LauncherManager:
                                                                        info_name="client_version",
                                                                        ignore_not_found=True)
         if not InfoStatus:
+            LegacyFlag = True
             print("Warning: You are trying to launch a who built with an older version of BakeLauncher.",
                   color='yellow')
             print("Old instances support will be drop soon. ", end='', color='red')
             print("Please go to Extra>Convert Old Instance Structure to convert instance to new structure.",
                   color='red')
             minecraft_version = self.instance_name
-
+        else:
+            LegacyFlag = False
         # Get required Java version path
         if os.path.isfile('data/Java_HOME.json'):
             print("Found exist Java Path config!", color='blue')
@@ -234,13 +236,16 @@ class LauncherManager:
 
         print("Getting JVM Path...", color='c')
         Status, major_version = instance.get_instance_info(instance_info_path, info_name="support_java_version")
-        if major_version is None or not major_version == "None":
-            JavaPath = Duke.java_version_check(minecraft_version, java_version=major_version)
-        else:
-            if Base.InternetConnected:
-                JavaPath = Duke.java_version_check(minecraft_version)
+        if not LegacyFlag:
+            if major_version is None or not major_version == "None":
+                JavaPath = Duke.java_version_check(minecraft_version, java_version=major_version)
             else:
-                print("Failed to get support java version :( No internet connection.", color='red')
+                if Base.InternetConnected:
+                    JavaPath = Duke.java_version_check(minecraft_version)
+                else:
+                    print("Failed to get support java version :( No internet connection.", color='red')
+        else:
+            JavaPath = Duke.java_version_check(minecraft_version)
 
         # Check JavaPath is valid
         if JavaPath is None:
@@ -348,9 +353,13 @@ class LauncherManager:
         # Inject jar file to launch chain
         # Get MainClass Name And Set Args(-cp "libraries":client.jar net.minecraft.client.main.Main or
         # net.minecraft.launchwrapper.Launch(old))
-        Status, main_class = instance.get_instance_info(instance_info_path, info_name="main_class")
-        if main_class is None or main_class == "None":
+        if not LegacyFlag:
+            Status, main_class = instance.get_instance_info(instance_info_path, info_name="main_class")
+            if main_class is None or main_class == "None":
+                main_class = find_main_class(minecraft_version)
+        else:
             main_class = find_main_class(minecraft_version)
+
         print(f"Using {main_class} as the Main Class.",
               color='blue' if "net.minecraft.client.main.Main" in main_class else 'purple')
 
