@@ -1,4 +1,5 @@
 import os
+import subprocess
 import time
 import shutil
 import zipfile
@@ -661,6 +662,13 @@ class Create_Instance:
                     continue
 
             print(f'Creating instance at {instance_path}', color='green')
+
+            # Avoid macOS hide game folder
+            game_folder = os.path.join(instance_path, ".minecraft")
+            os.makedirs(game_folder, exist_ok=True)
+            if Base.Platform == "Darwin":
+                subprocess.run(["chflags", "nohidden", game_folder])
+
             if self.legacy_version:
                 instance.create_instance_info(
                     instance_name=os.path.basename(instance_path),
@@ -719,6 +727,12 @@ class Create_Instance:
             self.legacy_version = True
         else:
             self.legacy_version = False
+
+        # Avoid macOS hide game folder
+        game_folder = os.path.join(instance_path, ".minecraft")
+        os.makedirs(game_folder, exist_ok=True)
+        if Base.Platform == "Darwin":
+            subprocess.run(["chflags", "nohidden", game_folder])
 
         print(f"Reinstalling instance name {instance_name}...", color='green')
         print(f"Client Version: {client_version} Instance Dir: {instance_path}", color='green', tag='DEBUG')
