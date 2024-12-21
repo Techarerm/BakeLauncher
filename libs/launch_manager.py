@@ -8,7 +8,7 @@ from libs.__duke_explorer import Duke
 from libs.__account_manager import account_manager
 from libs.launch_client import LaunchClient
 from libs.__instance_manager import instance_manager
-from libs.Utils.utils import get_version_data
+from libs.Utils.utils import get_version_data, find_main_class
 from libs.Utils.libraries import generate_libraries_paths
 from libs.instance.instance import instance
 
@@ -17,11 +17,6 @@ class LauncherManager:
     def __init__(self):
         self.instance_name = None
 
-    def find_main_class(self, client_version):
-        version_data = get_version_data(client_version)
-        main_class = version_data.get("mainClass")
-        return main_class
-
     def generate_jvm_args(self, client_version, **kwargs):
         """
         Generate JVM arguments(Only generate require args)
@@ -29,11 +24,35 @@ class LauncherManager:
         """
         without_ram_args = kwargs.get("without_ram_args", False)
 
-        # Get version data
-        version_data = get_version_data(client_version)
+        # Grabbing args list(Added saved arguments process)
+        if os.path.exists("launch.data"):
+            with open("launch.data", "r") as data:
+                jvm_args_list = next((line.split('=')[1].strip() for line in data if "JVMArgsList" in line), None)
+        else:
+            jvm_args_list = None
 
-        # Grabbing args list
-        jvm_args_list = version_data.get("arguments", {}).get("jvm", [])
+        if not jvm_args_list:
+            version_data = get_version_data(client_version)
+            jvm_args_list = version_data.get("arguments", {}).get("jvm", [])
+            found = False
+
+            if os.path.exists("launch.data"):
+                with open("launch.data", "r") as data:
+                    lines = data.readlines()
+
+                with open("launch.data", "w") as data:
+                    for line in lines:
+                        if "JVMArgsList" in line:
+                            data.write(f"JVMArgsList={jvm_args_list}\n")
+                            found = True
+                        else:
+                            data.write(line)
+
+                    if not found:
+                        data.write(f"JVMArgsList={jvm_args_list}\n")
+            else:
+                with open("launch.data", "w") as data:
+                    data.write(f"JVMArgsList={jvm_args_list}\n")
 
         # Set Java Virtual Machine use Memory Size
         RAMSize_Args = fr"-Xms{Base.JVMUsageRamSizeMinLimit}m -Xmx{Base.JVMUsageRamSizeMax}m "
@@ -69,30 +88,39 @@ class LauncherManager:
         else:
             return RAMSize_Args, OtherArgs
 
-    def generate_game_args(self, version_id, username, access_token, game_dir, assets_dir, assetsIndex, uuid):
-        version_data = get_version_data(version_id)  # Fetch version data
-        minecraftArguments = version_data.get("minecraftArguments", "")  # Get the arguments or an empty string
+    def generate_game_args(self, version_id, username, access_token, game_dir, assets_dir, assetsIndex, uuid, instance_path):
+        global minecraftArguments, client_type
+        # Fetch version data and arguments
+        if not os.path.exists("launch.data"):
+            version_data = get_version_data(version_id)
+            minecraftArguments = version_data.get("minecraftArguments", "")
+            with open("launch.data", "w") as data:
+                data.write(f"minecraftArguments={minecraftArguments}")
+        else:
+            with open("launch.data", "r") as data:
+                for line in data:
+                    if "minecraftArguments" in line:
+                        minecraftArguments = line.split('=')[1].strip()
+                        break
+
+        # Get client type
+        instance_info = os.path.join(instance_path, "instance.bakelh.ini")
+        if os.path.exists(instance_info):
+            Status, version_type = instance.get_instance_info(instance_info, info_name="type")
+            client_type = version_type if version_type not in {None, "None"} else "default"
+        else:
+            version_data = get_version_data(version_id)
+            client_type = version_data.get("type", "default")
+
         user_properties = "{}"
         user_type = "msa"  # Set user type to 'msa'
-        # Replace placeholders in minecraftArguments with actual values
-        minecraft_args = minecraftArguments \
-            .replace("${auth_player_name}", username) \
-            .replace("${auth_session}", access_token) \
-            .replace("${game_directory}", game_dir) \
-            .replace("${assets_root}", assets_dir) \
-            .replace("${version_name}", version_id) \
-            .replace("${assets_index_name}", assetsIndex) \
-            .replace("${auth_uuid}", uuid) \
-            .replace("${auth_access_token}", access_token) \
-            .replace("${user_type}", user_type) \
-            .replace("${user_properties}", user_properties)  # Replace user_properties if present
 
         if "--userProperties" in minecraftArguments:
             minecraft_args = f"--username {username} --version {version_id} --gameDir {game_dir} " \
                              f"--assetsDir {assets_dir} --assetIndex {assetsIndex} --accessToken {access_token} " \
                              f"--userProperties {user_properties}"
 
-        elif version_data.get("type") == "old-alpha":
+        elif client_type == "old-alpha":
             minecraft_args = f"{username} {access_token} --gameDir {game_dir} --assetsDir {assets_dir}"
 
         # Handle special case where ${auth_player_name} and ${auth_session} are at the beginning
@@ -114,18 +142,13 @@ class LauncherManager:
                              f"--assetsDir {assets_dir} --assetIndex {assetsIndex} --uuid {uuid} " \
                              f"--accessToken {access_token} --userType {user_type}"
 
-        if "AlphaVanillaTweaker" in minecraftArguments or version_data.get("type") == "classic":
+        if "AlphaVanillaTweaker" in minecraftArguments or client_type in ["classic", "infdev", "indev", "alpha"]:
             minecraft_args += " --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker"
-        elif "AlphaVanillaTweaker" in minecraftArguments or version_data.get("type") == "infdev":
-            minecraft_args += " --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker"
-        elif "AlphaVanillaTweaker" in minecraftArguments or version_data.get("type") == "indev":
-            minecraft_args += " --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker"
-        elif "AlphaVanillaTweaker" in minecraftArguments or version_data.get("type") == "alpha":
-            minecraft_args += " --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker"
+
         return minecraft_args
 
     def launch_game(self, **kwargs):
-        global JVMArgs, CustomRAMArgs
+        global JVMArgs, CustomRAMArgs, JavaPath
         QuickLaunch = kwargs.get("QuickLaunch", False)
 
         # Check folder "versions" are available in root (To avoid some user forgot to install)
@@ -168,6 +191,11 @@ class LauncherManager:
             instance_dir = os.path.join(Base.launcher_instances_dir, self.instance_name)
             print("Preparing to launch.....", color='c')
 
+        if not Base.InternetConnected:
+            print("Warning: Internet is not connected.", color='red')
+            print("If the instance is never started in a networked environment."
+                  " The launcher may crash when preparing some process.", color='red')
+
         # Get instance's Minecraft version
         instance_info_path = os.path.join(Base.launcher_instances_dir, self.instance_name, "instance.bakelh.ini")
         InfoStatus, use_legacy_manifest = instance.get_instance_info(instance_info_path,
@@ -205,7 +233,14 @@ class LauncherManager:
                 return "JVMConfigAreNotFound"
 
         print("Getting JVM Path...", color='c')
-        JavaPath = Duke.java_version_check(minecraft_version)
+        Status, major_version = instance.get_instance_info(instance_info_path, info_name="support_java_version")
+        if major_version is None or not major_version == "None":
+            JavaPath = Duke.java_version_check(minecraft_version, java_version=major_version)
+        else:
+            if Base.InternetConnected:
+                JavaPath = Duke.java_version_check(minecraft_version)
+            else:
+                print("Failed to get support java version :( No internet connection.", color='red')
 
         # Check JavaPath is valid
         if JavaPath is None:
@@ -264,8 +299,20 @@ class LauncherManager:
 
         # Sdt work path to instances gameDir
         gameDir = os.path.join(instance_dir, ".minecraft")
+        old_libraries_path = os.path.join(instance_dir, "libraries")
+        libraries_path = os.path.join(gameDir, "libraries")
+        # Move libraries folder to .minecraft folder
+        if not os.path.exists(libraries_path):
+            if os.path.exists(old_libraries_path):
+                shutil.move(old_libraries_path, gameDir)
+            else:
+                print("Library folder not found :( Please reinstall the instance.", color='red')
+                time.sleep(3)
+                return "LibrariesNotFound"
+
         if not os.path.exists(gameDir):
             print("Failed to launch Minecraft :( Cause by instance file are corrupted.", color='red')
+            print("Please go to '3: Create Instance>4: Reinstall instance' to reinstall it.", color='yellow')
             time.sleep(2.5)
             return "GameDirDoesNotExist"
         else:
@@ -301,7 +348,9 @@ class LauncherManager:
         # Inject jar file to launch chain
         # Get MainClass Name And Set Args(-cp "libraries":client.jar net.minecraft.client.main.Main or
         # net.minecraft.launchwrapper.Launch(old))
-        main_class = self.find_main_class(minecraft_version)
+        Status, main_class = instance.get_instance_info(instance_info_path, info_name="main_class")
+        if main_class is None or main_class == "None":
+            main_class = find_main_class(minecraft_version)
         print(f"Using {main_class} as the Main Class.",
               color='blue' if "net.minecraft.client.main.Main" in main_class else 'purple')
 
@@ -316,7 +365,7 @@ class LauncherManager:
 
         # Get GameArgs
         GameArgs = self.generate_game_args(minecraft_version, username, access_token, gameDir, assets_dir, assetsIndex,
-                                           uuid)
+                                           uuid, instance_dir)
 
         # Now it available :)
         instance_custom_config = os.path.join(instance_dir, "instance.bakelh.cfg")

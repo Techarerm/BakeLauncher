@@ -530,7 +530,10 @@ class AuthManager:
                 # Bypass check
                 if not Base.BypassLoginStatusCheck:
                     if not Base.RefreshTokenFailedFlag:
-                        Status, message = self.check_account_data_are_valid(account_id)
+                        if Base.InternetConnected:
+                            Status, message = self.check_account_data_are_valid(account_id)
+                        else:
+                            Status = False
                         if Base.RefreshTokenFailedFlag:
                             Base.MainnResetFlag = True
                             return
@@ -549,10 +552,14 @@ class AuthManager:
                     print("Login Status: Already logged in :)", color='lightgreen')
                     print("Hi,", username, color="lightblue")  # Now this should work correctly
                 else:
-                    # Base.ErrorMessageList.append(message)
-                    print("Login Status: Expired session :0", color='lightred')
-                    print("Please login your account again!", color='lightred')
-                    print("Hi,", username, color="lightblue")  # Now this should work correctly
+                    if not Base.InternetConnected:
+                        print("Login Status: Unknown", color='yellow')
+                        print("Hi,", username, color="lightblue")
+                    else:
+                        # Base.ErrorMessageList.append(message)
+                        print("Login Status: Expired session :0", color='lightred')
+                        print("Please login your account again!", color='lightred')
+                        print("Hi,", username, color="lightblue")  # Now this should work correctly
             if "tag" in account_data:
                 print(f"Account Tag: {account_data['tag']}", color='lightgreen')
         else:

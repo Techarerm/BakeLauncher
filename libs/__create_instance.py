@@ -11,7 +11,7 @@ from libs.java.jvm_installer import jvm_installer
 from libs.__instance_manager import instance_manager
 from libs.__assets_grabber import assets_grabber
 from libs.modification.mod_installer import mod_installer
-from libs.Utils.utils import get_version_data, download_file, multi_thread_download
+from libs.Utils.utils import get_version_data, download_file, multi_thread_download, find_main_class
 from LauncherBase import Base, ClearOutput, print_custom as print, internal_functions_error_log_dump
 
 
@@ -637,6 +637,8 @@ class Create_Instance:
             instance_path = os.path.join(Base.launcher_instances_dir, name)
             version_type = self.get_version_type(real_version)
             version_data = get_version_data(real_version)
+            main_class = find_main_class(real_version)
+
             if version_data is None:
                 print("Failed to get version data. Cause by source is unavailable :(", color='red')
                 return False
@@ -680,7 +682,8 @@ class Create_Instance:
                     mod_loader_version=None,
                     real_minecraft_version=real_version,
                     use_legacy_manifest=True,
-                    java_major_version=major_version
+                    java_major_version=major_version,
+                    main_class=main_class
                 )
                 e = self.download_legacy_game(real_version, client_version, instance_path)
                 if e is not None:
@@ -696,6 +699,8 @@ class Create_Instance:
                     mod_loader_name=None,
                     mod_loader_version=None,
                     real_minecraft_version=real_version,
+                    java_major_version=major_version,
+                    main_class=main_class
                 )
                 self.download_games_files(client_version, instance_path)
             return True, "InstanceCreated"

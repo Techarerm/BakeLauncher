@@ -49,7 +49,7 @@ class BakeLauncher:
                 print(f"Detailed traceback:\n{tb}")
                 self.generate_crash_log(tb, function_name, e, BaseInitialized=True)
         else:
-            print("Init Error :(", colo='red')
+            print("Init Error :(", color='red')
             print("If BakeLauncher crashes while loading Base. You can try deleting the invalid profile, this may "
                   "help resolve the issue")
 

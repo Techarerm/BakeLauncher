@@ -181,3 +181,8 @@ def write_global_config(item_name, new_item_data):
         return True
     else:
         return False
+
+def find_main_class(client_version):
+    version_data = get_version_data(client_version)
+    main_class = version_data.get("mainClass")
+    return main_class

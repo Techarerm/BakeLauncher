@@ -8,6 +8,10 @@ from LauncherBase import Base
 
 class class_instance:
     def __init__(self):
+        self.main_class = None
+        self.version_type = None
+        self.convert_by_legacy = None
+        self.support_java_version = None
         self.IsVanilla = None
         self.real_minecraft_version = None
         self.use_legacy_manifest = None
@@ -73,6 +77,9 @@ class class_instance:
         # Get java major version
         java_major_version = kwargs.get('java_major_version', None)
 
+        # Main class
+        main_class = kwargs.get("main_class", None)
+
         # Avoid to overwrite old data
         if os.path.exists(selected_instance_ini):
             return True
@@ -85,6 +92,7 @@ class class_instance:
             # Instance Info
             instance_name = "{instance_name}"
             client_version = "{client_version}"
+            main_class = "{main_class}"
             support_java_version = "{java_major_version}"
             type = "{version_type}"
             launcher_version = "{Base.launcher_internal_version}"
@@ -261,10 +269,20 @@ class class_instance:
                         key, value = line.split("=", 1)
                         self.CLIENT_VERSION = value.strip().strip('"').strip("'")
 
+                    if line.startswith("main_class"):
+                        # Extract the value after the equals sign
+                        key, value = line.split("=", 1)
+                        self.main_class = value.strip().strip('"').strip("'")
+
+                    if line.startswith("support_java_version"):
+                        # Extract the value after the equals sign
+                        key, value = line.split("=", 1)
+                        self.support_java_version = value.strip().strip('"').strip("'")
+
                     if line.startswith("type"):
                         # Extract the value after the equals sign
                         key, value = line.split("=", 1)
-                        self.VERSION_TYPE = value.strip().strip('"').strip("'")
+                        self.version_type = value.strip().strip('"').strip("'")
 
                     if line.startswith("launcher_version"):
                         # Extract the value after the equals sign
@@ -281,15 +299,33 @@ class class_instance:
                         key, value = line.split("=", 1)
                         self.CREATE_DATE = value.strip().strip('"').strip("'")
 
+                    if line.startswith("convert_by_legacy"):
+                        # Extract the value after the equals sign
+                        key, value = line.split("=", 1)
+                        convert_by_legacy = value.strip().strip('"').strip("'")
+                        self.convert_by_legacy = convert_by_legacy.strip("'").strip("'")
+
                     if line.startswith("real_minecraft_version"):
                         # Extract the value after the equals sign
                         key, value = line.split("=", 1)
-                        self.real_minecraft_version = value.strip().strip('"').strip("'")
-                        self.real_minecraft_version = self.real_minecraft_version.strip("'").strip("'")
+                        real_minecraft_version = value.strip().strip('"').strip("'")
+                        self.real_minecraft_version = real_minecraft_version.strip("'").strip("'")
 
                     if line.startswith("use_legacy_manifest"):
                         # Extract the value after the equals sign
                         self.use_legacy_manifest = line.split('=')[1].strip().upper() == "TRUE"
+
+                    if line.startswith("game_folder"):
+                        # Extract the value after the equals sign
+                        key, value = line.split("=", 1)
+                        game_folder = value.strip().strip('"').strip("'")
+                        self.game_folder = game_folder.strip("'").strip("'")
+
+                    if line.startswith("assets_folder"):
+                        # Extract the value after the equals sign
+                        key, value = line.split("=", 1)
+                        assets_folder = value.strip().strip('"').strip("'")
+                        self.assets_folder = assets_folder.strip("'").strip("'")
 
                     if line.startswith("IsVanilla"):
                         # Extract the value after the equals sign
@@ -309,6 +345,15 @@ class class_instance:
                         key, value = line.split("=", 1)
                         self.ModLoaderVersion = value.strip().strip('"').strip("'")
 
+                    if line.startswith("EnableConfig"):
+                        # Extract the value after the equals sign
+                        self.EnableConfig = line.split('=')[1].strip().upper() == "TRUE"
+
+                    if line.startswith("CFGPath"):
+                        # Extract the value after the equals sign
+                        key, value = line.split("=", 1)
+                        self.CFGPath = value.strip().strip('"').strip("'")
+
         except Exception as e:
             return False, f"FailedToReadInstanceInfo>Error: {e}"
 
@@ -323,20 +368,42 @@ class class_instance:
                 return True, self.INSTANCE_NAME
             elif info_name == "client_version":
                 return True, self.CLIENT_VERSION
+            elif info_name == "main_class":
+                return True, self.main_class
+            elif info_name == "support_java_version":
+                return True, self.support_java_version
             elif info_name == "type":
-                return True, self.VERSION_TYPE
+                return True, self.version_type
             elif info_name == "launcher_version":
                 return True, self.LAUNCHER_VERSION
             elif info_name == "instance_format":
                 return True, self.INSTANCE_FORMAT
             elif info_name == "create_date":
                 return True, self.CREATE_DATE
-            elif info_name == "use_legacy_manifest":
-                return True, self.use_legacy_manifest
+            elif info_name == "convert_by_legacy":
+                return True, self.convert_by_legacy
             elif info_name == "real_minecraft_version":
                 return True, self.real_minecraft_version
+            elif info_name == "use_legacy_manifest":
+                return True, self.use_legacy_manifest
+            elif info_name == "game_folder":
+                return True, self.game_folder
+            elif info_name == "assets_folder":
+                return True, self.assets_folder
+            elif info_name == "IsVanilla":
+                return True, self.IsVanilla
+            elif info_name == "Modified":
+                return True, self.Modified
+            elif info_name == "ModLoaderName":
+                return True, self.ModLoaderName
+            elif info_name == "ModLoaderVersion":
+                return True, self.ModLoaderVersion
+            elif info_name == "EnableConfig":
+                return True, self.EnableConfig
+            elif info_name == "CFGPath":
+                return True, self.CFGPath
             else:
-                return False, "UnknownArgs"
+                return False, None
 
 
 instance = class_instance()

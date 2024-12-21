@@ -141,8 +141,7 @@ def main_menu():
         elif user_input == "3":
             create_instance.create_instance()
         elif user_input == "4":
-            print("Coming soon :)", color='lightgreen')
-            time.sleep(3)
+            instance_manager.ManagerMemu()
         elif user_input == "5":
             extra_menu()
         elif user_input == "6":

@@ -213,7 +213,7 @@ class LauncherBase:
                 self.launcher_internal_version = f'beta-{major_version}-release'
                 self.launcher_version_display = self.launcher_version
         # Other stuff(for create instance, platform check...)
-        self.launcher_data_format = "dev-beta-0.9-2"
+        self.launcher_data_format = "dev-beta-0.9-3"
         self.launcher_lib_version = f"pre-0.9-lib-{dev_version}"  # Pre-0.9
         self.PlatformSupportList = ["Windows", "Darwin", "Linux"]
         self.Platform = self.get_platform("platform")
@@ -606,19 +606,20 @@ class LauncherBase:
             for host in self.PingServerHostList:
                 host = str(host)
                 # Try to establish a socket connection to the host and port
-                response = ping(host)
-                if not response:
-                    print_color(f"Ping to host {host} failed.", tag='Warning')
-                else:
+                try:
+                    response = ping(host)
                     self.InternetConnected = True
+                except Exception as e:
+                    print_color(f"Ping to host {host} failed.", tag='Warning')
                 continue
         else:
             print_color("Using exist host to check internet connection...", tag='INFO')
-            response = ping(self.PingServerIP)
-            if not response:
-                print_color(f"Ping to host {self.PingServerIP} failed.", tag='Warning')
-            else:
+            try:
+                response = ping(self.PingServerIP)
                 self.InternetConnected = True
+            except Exception as e:
+                print_color(f"Ping to host {self.PingServerIP} failed.", tag='Warning')
+
 
         if not self.InternetConnected:
             print_color("Internet connection failed :(", color='red', tag='Error')
@@ -668,7 +669,6 @@ def bake_bake():
 
         if "details" in user_input.lower():
             current_time = datetime.datetime.now()
-            elapsed_time = current_time - Base.launcher_loaded_time
             print(f"Launcher Version : {Base.launcher_version}")
             print(f"Launcher Version Type : {Base.launcher_version_type}")
             print(f"Using Lib Version : {Base.launcher_lib_version}")

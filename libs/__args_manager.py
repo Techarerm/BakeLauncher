@@ -210,7 +210,7 @@ class ArgsManager:
             print("Invalid selection! Please enter a valid number.", color='red')
             return None  # Return None to indicate an invalid choice
 
-    def get_game_args_and_edit(self, client_version, config_path):
+    def get_game_args_and_edit(self, client_version, config_path, instance_path):
         username = "${username}"
         access_token = "${access_token}"
         gameDir = "${gameDir}"
@@ -219,7 +219,7 @@ class ArgsManager:
         uuid = "${uuid}"
 
         GameArgs = launch_manager.generate_game_args(client_version, username, access_token, gameDir, assets_dir,
-                                                     assetsIndex, uuid)
+                                                     assetsIndex, uuid, instance_path)
         print("Original Game Args Example:", color='purple')
         print(GameArgs, color='green')
 
@@ -274,7 +274,7 @@ class ArgsManager:
 
             if user_input == "1":
                 self.get_game_args_and_edit(client_version,
-                                            instance_custom_config)  # Capture the return value from get_game_args_and_edit()
+                                            instance_custom_config, instance_path)  # Capture the return value from get_game_args_and_edit()
             elif user_input == "2":
                 arguments.write_args(instance_custom_config, "CustomGameArgs", "", "overwrite")
             else:

@@ -1,7 +1,11 @@
 import os
+import shutil
 import time
+import traceback
 from libs.instance.instance import instance
-from LauncherBase import Base, print_color as print
+from LauncherBase import Base, print_color as print, internal_functions_error_log_dump
+from libs.Utils.utils import find_main_class
+from libs.__duke_explorer import Duke
 
 
 class InstanceManager:
@@ -168,10 +172,10 @@ class InstanceManager:
 
     def legacy_instances_convert(self, **kwargs):
         """
-        This method will be deleted in the next update.
+        This function will be deleted in the next update.
         """
 
-        def convert_process(instance_name, client_version, version_type):
+        def convert_process(instance_name, client_version, version_type, java_major_version, main_class):
             # Convert instance to new structure
             print("Converting to new structure...", color='green')
             instance.create_instance_info(
@@ -183,6 +187,8 @@ class InstanceManager:
                 mod_loader_name=None,
                 mod_loader_version=None,
                 convert_by_legacy=True,
+                java_major_version=java_major_version,
+                main_class=main_class
             )
             print("Conversion completed successfully :)", color='blue')
 
@@ -236,8 +242,9 @@ class InstanceManager:
                 print("Bypassed rename process.", color='green')
                 self.instance_path = instance_path_old
                 self.name = self.CLIENT_VERSION
-
-            convert_process(self.name, self.CLIENT_VERSION, version_type)
+            java_major_version = Duke.get_java_version_info(self.name)
+            main_class = find_main_class(self.name)
+            convert_process(self.name, self.CLIENT_VERSION, version_type, java_major_version, main_class)
 
         else:
             print("This method does not support renaming instances!", color='red')
@@ -255,9 +262,296 @@ class InstanceManager:
                     return "FailedToConvertInstance"
                 for instance_name in instances_list_legacy:
                     version_type = instance.get_instance_type(instance_name)
-                    convert_process(instance_name, instance_name, version_type)
+                    java_major_version = Duke.get_java_version_info(instance_name)
+                    main_class = find_main_class(instance_name)
+                    convert_process(instance_name, instance_name, version_type, java_major_version, main_class)
             except Exception as e:
                 print(f"Error Message {e}", color='red')
+
+    def print_instance_info(self):
+        Status, client_version, instance_path = self.select_instance("Choose an instance to print info :"
+                                                                     , client_version=True)
+        if not Status:
+            return
+
+        instance_info = os.path.join(instance_path, "instance.bakelh.ini")
+        if not os.path.exists(instance_info):
+            print("Could not get instance info. Are you using legacy instance?", color='red')
+            time.sleep(4)
+            return
+
+        Status, instance_name = instance.get_instance_info(instance_info, info_name="instance_name")
+        if not Status:
+            print("Failed to get instance name :(", color='red')
+
+        Status, support_java_version = instance.get_instance_info(instance_info, info_name="support_java_version")
+        if not Status:
+            print("Failed to get support java version :(", color='red')
+
+        Status, version_type = instance.get_instance_info(instance_info, info_name="type")
+        if not Status:
+            print("Failed to get version type :(", color='red')
+
+        Status, created_by_launcher_version = instance.get_instance_info(instance_info, info_name="launcher_version")
+        if not Status:
+            print("Failed to get launcher version :(", color='red')
+
+        Status, instance_format = instance.get_instance_info(instance_info, info_name="instance_format")
+        if not Status:
+            print("Failed to get instance format :(", color='red')
+
+        Status, create_date = instance.get_instance_info(instance_info, info_name="create_date")
+        if not Status:
+            print("Failed to get create date :(", color='red')
+
+        Status, create_date = instance.get_instance_info(instance_info, info_name="convert_by_legacy")
+        if not Status:
+            print("Failed to get convert by legacy status :(", color='red')
+
+        Status, real_minecraft_version = instance.get_instance_info(instance_info, info_name="real_minecraft_version")
+        if not Status:
+            print("Failed to get real minecraft version :(", color='red')
+
+        Status, use_legacy_manifest = instance.get_instance_info(instance_info, info_name="use_legacy_manifest")
+        if not Status:
+            print("Failed to get use legacy manifest status :(", color='red')
+
+        Status, game_folder = instance.get_instance_info(instance_info, info_name="game_folder")
+        if not Status:
+            print("Failed to get game folder :(", color='red')
+
+        Status, assets_folder = instance.get_instance_info(instance_info, info_name="assets_folder")
+        if not Status:
+            print("Failed to get assets folder :(", color='red')
+
+        Status, IsVanilla = instance.get_instance_info(instance_info, info_name="IsVanilla")
+        if not Status:
+            print("Failed to get IsVanila status :(", color='red')
+
+        Status, Modified = instance.get_instance_info(instance_info, info_name="Modified")
+        if not Status:
+            print("Failed to get modified status :(", color='red')
+
+        Status, ModLoaderName = instance.get_instance_info(instance_info, info_name="ModLoaderName")
+        if not Status:
+            print("Failed to get ModLoaderName :(", color='red')
+
+        Status, ModLoaderVersion = instance.get_instance_info(instance_info, info_name="ModLoaderVersion")
+        if not Status:
+            print("Failed to get ModLoaderVersion :(", color='red')
+
+        Status, EnableConfig = instance.get_instance_info(instance_info, info_name="EnableConfig")
+        if not Status:
+            print("Failed to get EnableConfig status :(", color='red')
+
+        Status, CFGPath = instance.get_instance_info(instance_info, info_name="CFGPath")
+        if not Status:
+            print("Failed to get CFGPath :(", color='red')
+
+        print("Instance Info")
+        print(f"Instance Name : {instance_name}", color='green')
+        print(f"Minecraft Version : {client_version}")
+        print(f"Support Java Version : {support_java_version}")
+        print(f"Version Type : {version_type}")
+        print(f"Created By Launcher Version : {created_by_launcher_version}")
+        print(f"Create Date : {create_date}")
+        print(f"Convert By Legacy? : {use_legacy_manifest}")
+        print(f"Real Minecraft Version : {real_minecraft_version}", color='red')
+        print(f"Use Legacy Manifest : {use_legacy_manifest}", color='indigo')
+        print(f"")
+        print(f"# Instance Structure")
+        print(f"Game Folder : {game_folder}", color='lightyellow')
+        print(f"Assets Folder : {assets_folder}", color='lightmagenta')
+        print("")
+        print("# Modify Info")
+        print(f"IsVanilla : {IsVanilla}", color='green')
+        if not IsVanilla:
+            print(f"Modified: {Modified}", color='purple')
+            print(f"ModLoaderName: {ModLoaderName}", color='purple')
+            print(f"ModLoaderVersion: {ModLoaderVersion}", color='purple')
+        print("")
+        print("# Config Info")
+        print(f"EnableConfig: {EnableConfig}")
+        print(f"CFGPath : {CFGPath}")
+        print("Press enter to exit...", color='green')
+        input("")
+
+    def uninstall_instance(self):
+        # Get instance path
+        Status, client_version, instance_path = self.select_instance(
+            "Which instance is you want to uninstall?", client_version=True)
+
+        if not Status or instance_path is None:
+            return
+
+        # Get instance info
+        instance_info = os.path.join(instance_path, "instance.bakelh.ini")
+        Status, instance_name = instance.get_instance_info(instance_info, info_name="instance_name")
+        Status, use_legacy_manifest = instance.get_instance_info(instance_info, info_name="use_legacy_manifest")
+
+        if use_legacy_manifest:
+            Status, minecraft_version = instance.get_instance_info(instance_info, info_name="real_minecraft_version")
+        else:
+            Status, minecraft_version = instance.get_instance_info(instance_info, info_name="client_version")
+
+        print(f"Uninstall Instance Name : {instance_name}", color='red')
+        print(f"Minecraft Version : {minecraft_version}", color='green')
+        user_input = str(input("Are you sure you want to uninstall it? (y/n) "))
+        user_input = user_input.strip().lower()
+        if user_input == "y":
+            try:
+                print("Uninstalling...", color='green')
+                shutil.rmtree(instance_path)
+                print("Instance uninstalled successfully!", color='blue')
+                time.sleep(2)
+            except Exception as e:
+                print(f"Failed to uninstall the instance :( Cause by error {e}", color='red')
+                time.sleep(5)
+        return
+
+    def rename_instance(self):
+        # Select instance
+        Status, client_version, instance_path = self.select_instance(
+            "Choose an instance to print info:", client_version=True
+        )
+        if not Status:
+            return
+
+        # Get instance info
+        instance_info = os.path.join(instance_path, "instance.bakelh.ini")
+        Status, instance_name = instance.get_instance_info(instance_info, info_name="instance_name")
+        if not Status:
+            print("Could not find instance_name in the instance info :(", color='red')
+            time.sleep(3)
+            return
+
+        # Prompt for new name
+        while True:
+            print("Give a new name for this instance (or type 'EXIT' to cancel):", end=' ', color='blue')
+            new_name = input(":").strip()
+
+            if new_name.upper() == "EXIT":
+                print("Instance rename canceled.", color='yellow')
+                return
+
+            if not new_name:
+                print("Please enter a valid name. Name cannot be empty or spaces only.", color='red')
+                continue
+
+            # Generate new instance path
+            renamed_instance_path = os.path.join(Base.launcher_instances_dir, new_name)
+
+            # Handle duplicate names
+            if os.path.exists(renamed_instance_path):
+                counter = 2
+                while os.path.exists(renamed_instance_path):
+                    renamed_instance_path = os.path.join(Base.launcher_instances_dir, f"{new_name}({counter})")
+                    counter += 1
+
+                print(f'Instance name "{new_name}" already exists.')
+                print(f'Do you want to rename it to "{os.path.basename(renamed_instance_path)}"? (Y/N):', end=' ',
+                      color='yellow')
+                user_input = input(":").strip().upper()
+
+                if user_input == "Y":
+                    new_name = os.path.basename(renamed_instance_path)
+                else:
+                    print("Please choose a different name.", color='red')
+                    continue
+            break
+
+        # Perform the renaming
+        print("Starting rename process...", color='green')
+        try:
+            new_instance_path = os.path.join(Base.launcher_instances_dir, new_name)
+            os.rename(instance_path, new_instance_path)  # Use paths, not names
+            instance.write_instance_info("instance_name", new_name, instance_info)
+        except Exception as e:
+            print(f"Failed to rename instance :( Cause by error {e}")
+            time.sleep(3)
+        else:
+            print("Rename process finished!", color='blue')
+            time.sleep(1.5)
+
+    def launcher_instance_status(self):
+        print("Launcher Instance Status")
+        print(f"Launcher Version : {Base.launcher_version}")
+        print(f"Format : {Base.launcher_data_format}", color='lightgreen')
+        print(f"Instances Dir : {Base.launcher_instances_dir}")
+
+        # Get instance list length
+        Status, instance_list = self.instance_list(only_return_list=True)
+        if not Status:
+            print("Failed to get instance list :(", color='red')
+            time.sleep(2)
+            return
+
+        Status, legacy_instance_list = self.instance_list(only_return_legacy_list=True)
+        if not Status:
+            print("Failed to get legacy instance list :(", color='red')
+            time.sleep(2)
+            return
+
+        # Get instance length
+        full_instance_length = len(instance_list)
+        legacy_instance_length = len(legacy_instance_list)
+        new_instance_length = full_instance_length - legacy_instance_length
+
+        print("Available Instance Length : ", new_instance_length, color='green')
+        print("Legacy Format Instance Length : ", legacy_instance_length, color='yellow')
+        print("Modern Instance Length : ", new_instance_length, color='blue')
+        if legacy_instance_length > 0:
+            print("=========================================================================================")
+            print("Warning: You have legacy format instances in your instances list.", color='yellow')
+            print("Legacy instance support is about to be removed in new version.", color='red')
+            print("If you still want to play them in the future. Go to '5: Extra > 5: Convert Old Instance Structure'"
+                  " to convert it to new format.", color='yellow')
+            print("Use '5: Extra > 6: Auto-Convert Old Instance Structure' can automatically convert"
+                  " all legacy instance :)", color='blue')
+
+        print("")
+        print("Press enter to exit...", color='green')
+        input("")
+        return
+
+    def ManagerMemu(self):
+        try:
+            print("[Instance Manager]", color='orange')
+            print("1: Print Instance Info")
+            print("2: Uninstall Instance")
+            print("3: Rename Instance")
+            print("4: Launcher Instance Status")
+
+            user_input = str(input(":"))
+            user_input = user_input.strip()
+
+            if user_input == "1":
+                self.print_instance_info()
+            elif user_input == "2":
+                self.uninstall_instance()
+            elif user_input == "3":
+                self.rename_instance()
+            elif user_input == "4":
+                self.launcher_instance_status()
+            else:
+                print(f"Unknown option {user_input} :(", color='red')
+                time.sleep(2)
+                self.ManagerMemu()
+
+            return
+
+        except Exception as e:
+            if Exception is ValueError:
+                # Back to main avoid crash(when user type illegal thing)
+                print("BakeLaunch: Oops! Invalid option :O  Please enter a number.", color='red')
+                self.ManagerMemu()
+                time.sleep(1.5)
+            else:
+                print(f"Instance Manager got a error when calling a internal functions. Error: {e}", color='red')
+                function_name = traceback.extract_tb(e.__traceback__)[-1].name
+                detailed_traceback = traceback.format_exc()
+                internal_functions_error_log_dump(e, "Instance Manager", function_name, detailed_traceback)
+                time.sleep(5)
 
 
 instance_manager = InstanceManager()
