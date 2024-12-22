@@ -720,6 +720,10 @@ class Create_Instance:
             return True
 
         instance_info = os.path.join(instance_path, "instance.bakelh.ini")
+        if not os.path.exists(instance_path):
+            print("Could not reinstall instance :( Did you convert it to new format?", color='red')
+            time.sleep(4)
+            return
         Status, use_legacy_manifest = instance.get_instance_info(instance_info, info_name="use_legacy_manifest")
         Status, instance_name = instance.get_instance_info(instance_info, info_name="instance_name")
         version_data = get_version_data(client_version)
@@ -886,48 +890,53 @@ class Create_Instance:
                 print(f"You type Minecraft version {download_version} are not found :(",
                       color='red')
 
-        # Restore environment
-        self.legacy_version = False
-        self.legacy_version_type = None
+        if Base.InternetConnected:
+            # Restore environment
+            self.legacy_version = False
+            self.legacy_version_type = None
 
-        print("Which method you wanna use?", color='green')
-        print("1: List all available versions and download", color='green')
-        print("2: Type regular Minecraft version and download(include snapshot)", color='blue')
-        print("3: Download Legacy Minecraft", color='yellow')
-        print("4: Reinstall instance", color='cyan')
-        print("5: Install Mod Loder(Exp)", color='purple')
-        user_input = str(input(":"))
-        if user_input.upper() == "EXIT":
-            print("Exiting....", color='green')
-            return
+            print("Which method you wanna use?", color='green')
+            print("1: List all available versions and download", color='green')
+            print("2: Type regular Minecraft version and download(include snapshot)", color='blue')
+            print("3: Download Legacy Minecraft", color='yellow')
+            print("4: Reinstall instance", color='cyan')
+            print("5: Install Mod Loder(Exp)", color='purple')
+            user_input = str(input(":"))
+            if user_input.upper() == "EXIT":
+                print("Exiting....", color='green')
+                return
 
-        if user_input == "1":
-            download_minecraft_with_version_id()
-        elif user_input == "2":
-            download_with_regular_minecraft_version()
-        elif user_input == "3":
-            download_legacy_minecraft()
-        elif user_input == "4":
-            self.reinstall_instances()
-        elif user_input == "5":
-            mod_installer.install_mode_loader()
-        else:
-            print("Unknown options :( Please try again.", color='red')
-            self.create_instance()
-        try:
-            print("")
-        except Exception as e:
-            if Exception is ValueError:
-                # Back to main avoid crash(when user type illegal thing)
-                print("BakeLaunch: Oops! Invalid option :O  Please enter a number.", color='red')
-                self.create_instance()
-                time.sleep(1.5)
+            if user_input == "1":
+                download_minecraft_with_version_id()
+            elif user_input == "2":
+                download_with_regular_minecraft_version()
+            elif user_input == "3":
+                download_legacy_minecraft()
+            elif user_input == "4":
+                self.reinstall_instances()
+            elif user_input == "5":
+                mod_installer.install_mode_loader()
             else:
-                print(f"Create Instance got a error when calling a internal functions. Error: {e}", color='red')
-                function_name = traceback.extract_tb(e.__traceback__)[-1].name
-                detailed_traceback = traceback.format_exc()
-                internal_functions_error_log_dump(e, "Create Instance", function_name, detailed_traceback)
-                time.sleep(5)
+                print("Unknown options :( Please try again.", color='red')
+                self.create_instance()
+            try:
+                print("")
+            except Exception as e:
+                if Exception is ValueError:
+                    # Back to main avoid crash(when user type illegal thing)
+                    print("BakeLaunch: Oops! Invalid option :O  Please enter a number.", color='red')
+                    self.create_instance()
+                    time.sleep(1.5)
+                else:
+                    print(f"Create Instance got a error when calling a internal functions. Error: {e}", color='red')
+                    function_name = traceback.extract_tb(e.__traceback__)[-1].name
+                    detailed_traceback = traceback.format_exc()
+                    internal_functions_error_log_dump(e, "Create Instance", function_name, detailed_traceback)
+                    time.sleep(5)
+        else:
+            print("No Internet Connection Error :(", color='red')
+            time.sleep(4)
+            return
 
 
 create_instance = Create_Instance()

@@ -274,7 +274,8 @@ class ArgsManager:
 
             if user_input == "1":
                 self.get_game_args_and_edit(client_version,
-                                            instance_custom_config, instance_path)  # Capture the return value from get_game_args_and_edit()
+                                            instance_custom_config,
+                                            instance_path)  # Capture the return value from get_game_args_and_edit()
             elif user_input == "2":
                 arguments.write_args(instance_custom_config, "CustomGameArgs", "", "overwrite")
             else:
@@ -308,5 +309,6 @@ class ArgsManager:
             detailed_traceback = traceback.format_exc()
             internal_functions_error_log_dump(e, "ArgsManager", function_name, detailed_traceback)
             time.sleep(5)
+
 
 args_manager = ArgsManager()

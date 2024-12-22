@@ -242,6 +242,27 @@ class InstanceManager:
                 print("Bypassed rename process.", color='green')
                 self.instance_path = instance_path_old
                 self.name = self.CLIENT_VERSION
+            print(f"Convert instance name {self.name}...", color='green')
+            instance_path = os.path.join(Base.launcher_instances_dir, self.name)
+            legacy_libraries_path = os.path.join(instance_path, "libraries")
+            legacy_client_path = os.path.join(instance_path, "client.jar")
+            game_folder = os.path.join(instance_path, ".minecraft")
+            new_client_path = os.path.join(game_folder, "libraries", "net", "minecraft", self.name)
+            if os.path.exists(legacy_libraries_path):
+                print("Found legacy libraries. Moving to new folder...", color='green')
+                shutil.move(legacy_libraries_path, game_folder)
+
+            if os.path.exists(legacy_client_path):
+                target_dir = os.path.dirname(new_client_path)
+                os.makedirs(target_dir, exist_ok=True)
+                print("Found legacy client. Moving to new folder...", color='green')
+                try:
+                    # Move the file
+                    shutil.move(legacy_client_path, new_client_path)
+                    print(f"Moved client.jar to {new_client_path}", color='green')
+                except Exception as e:
+                    print(f"Failed to move client.jar. Error: {e}", color='red')
+
             version_data = get_version_data(self.CLIENT_VERSION)
             component, major_version = Duke.get_java_version_info(version_data)
             main_class = find_main_class(self.name)
@@ -263,6 +284,26 @@ class InstanceManager:
                         color='red')
                     return "FailedToConvertInstance"
                 for instance_name in instances_list_legacy:
+                    print(f"Convert instance name {instance_name}...", color='green')
+                    instance_path = os.path.join(Base.launcher_instances_dir, instance_name)
+                    legacy_libraries_path = os.path.join(instance_path, "libraries")
+                    legacy_client_path = os.path.join(instance_path, "client.jar")
+                    game_folder = os.path.join(instance_path, ".minecraft")
+                    new_client_path = os.path.join(game_folder, "libraries", "net", "minecraft", instance_name)
+                    if os.path.exists(legacy_libraries_path):
+                        print("Found legacy libraries. Moving to new folder...", color='green')
+                        shutil.move(legacy_libraries_path, game_folder)
+
+                    if os.path.exists(legacy_client_path):
+                        os.makedirs(new_client_path, exist_ok=True)
+                        print("Found legacy client. Moving to new folder...", color='green')
+                        try:
+                            # Move the file
+                            shutil.move(legacy_client_path, new_client_path)
+                            print(f"Moved client.jar to {new_client_path}", color='green')
+                        except Exception as e:
+                            print(f"Failed to move client.jar. Error: {e}", color='red')
+
                     version_type = instance.get_instance_type(instance_name)
                     version_data = get_version_data(instance_name)
                     component, major_version = Duke.get_java_version_info(version_data)
@@ -536,6 +577,8 @@ class InstanceManager:
                 self.rename_instance()
             elif user_input == "4":
                 self.launcher_instance_status()
+            elif user_input == "exit":
+                return
             else:
                 print(f"Unknown option {user_input} :(", color='red')
                 time.sleep(2)

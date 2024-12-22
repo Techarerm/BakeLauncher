@@ -174,9 +174,9 @@ class AuthManager:
                         if entry['id'] == int(target_id):
                             # Return the matching entry
                             return True, entry
-                    return False, f"NoAccountFoundWithID>{target_id}"
+                    return False, None
                 except json.JSONDecodeError:
-                    return False, "JSONDecodeError"
+                    return False, None
         else:
             return False, "AccountDataDoesNotExist"
 
@@ -225,6 +225,7 @@ class AuthManager:
                     # Use the new or existing account ID
                     lines[i] = f'DefaultAccountID = {account_id}\n'
                     found = True
+                    break
         with open(Base.global_config_path, 'w') as file:
             file.writelines(lines)
         if found:
@@ -392,7 +393,7 @@ class AuthManager:
         try:
             accessToken = account_data["AccessToken"]
             RefreshToken = account_data.get("RefreshToken")
-            if RefreshToken is None:
+            if RefreshToken is None or RefreshToken == "null":
                 print(f"Stopping refresh token! Cause by invalid token :(", color='lightred')
                 return
         except KeyError:
@@ -403,6 +404,9 @@ class AuthManager:
                 json_data = json.load(f)
         except (FileNotFoundError, json.JSONDecodeError) as e:
             return False, f"Error loading AccountData.json: {e}"
+
+        if not Base.InternetConnected:
+            return False, "Internet connection is not established!"
 
         try:
             # Check if the current Minecraft token is valid
@@ -471,18 +475,20 @@ class AuthManager:
         """
         Check login status.
         """
-        global id, account_data, message
+        global id, account_data, message, Status
 
         # Get DefaultAccountID From account data
         Status, account_id = self.get_default_account_id()
         if not Status:
             # Overwrite broken config file if DefaultAccountID not found
             print("DefaultAccountID are not found. Is your config corrupted?", color='lightyellow')
+            print("Resetting config...", color='lightgreen')
+            initialize_config(overwrite=True)
             print("Using exist launcher account...", tag='INFO')
-            write_global_config("DefaultAccountID", "1")
+            self.set_default_account_id(1)
             time.sleep(2)
             Base.MainMenuResetFlag = True
-            account_id = 1
+            return
 
         if os.path.exists('data/AccountData.json'):
             try:
@@ -507,17 +513,27 @@ class AuthManager:
                     if not Status:
                         print("Failed to change DefaultAccountID. Is your config file corrupted?", color='red')
                         time.sleep(3)
-
-                # Reset Main Menu
-                Base.MainMenuResetFlag = True
-                return
+                    # Reset Main Menu
+                    Base.MainMenuResetFlag = True
+                    return
+                else:
+                    # Reset Main Menu
+                    Base.MainMenuResetFlag = True
+                    return
             if account_data is None:
-                print(
-                    f"Can't find id '{account_id}' in the account data ! Change to use local "
-                    "account...",
-                    color='yellow')
-                account_id = 1
-                Status, account_data = self.get_account_data_use_account_id(account_id)
+                print(f"Can't find id '{account_id}' in the account data ! Change to use local account...",
+                      color='yellow')
+
+                # Set DefaultAccountID to local account
+                Status = self.set_default_account_id(1)
+                if not Status:
+                    print("Failed to change DefaultAccountID. Is your config file corrupted?", color='red')
+                    time.sleep(3)
+
+                # Reset main memu to clean warning message
+                Base.MainMenuResetFlag = True
+                time.sleep(3)
+                return
             username = account_data['Username']  # Set username here
             if account_data['Username'] == "None":
                 print("Login Status: Not logged in :(", color='lightred')
@@ -527,36 +543,45 @@ class AuthManager:
                 # print("Please log in to your account or switch to a different account.", color='lightred')
                 print("Login Status: Not logged in :(", color='lightred')
             else:
-                # Bypass check
+                # Bypass login status check(print
                 if not Base.BypassLoginStatusCheck:
+                    # Set by check_account_data_are_valid(If refresh token failed. Set it to True)
+                    # Refresh main_menu(Used to prevent errors message from remaining on the main menu)
+                    # When main_memu is reloaded, it stops refreshing tokens until the initiator is completely reset.
                     if not Base.RefreshTokenFailedFlag:
+                        # Check internet connect(If not bypass it and print "login status: Unknown")
                         if Base.InternetConnected:
                             Status, message = self.check_account_data_are_valid(account_id)
                         else:
+                            # Network not connected
                             Status = False
+                        # Continue the above code(If RefreshTokenFailedFlag = True, set MainMenuResetFlag to True
+                        # and return. Then main_memu will be reset. When calling login_status, stop refresh process
+                        # and print "Login Status: Expired session :0" Because Base.RefreshTokenFailedFlag is True)
                         if Base.RefreshTokenFailedFlag:
-                            Base.MainnResetFlag = True
+                            Base.MainMenuResetFlag = True
                             return
-                        else:
-                            Base.RefreshTokenFailedFlag = False
                     else:
                         Status = False
                 else:
                     Status = True
                 # When MainMenuResetFlag = True(After refreshing the token it will be set to True) stop print login
                 # message(until main_menu set MainMenuResetFlag = False)
+                # Used only if the refresh token succeeds or Base.RefreshTokenFailedFlag = True
                 if Base.MainMenuResetFlag:
                     return
 
                 if Status:
+                    # Print this message when the access token has not expired or Base.BypassLoginStatusCheck = True
                     print("Login Status: Already logged in :)", color='lightgreen')
                     print("Hi,", username, color="lightblue")  # Now this should work correctly
                 else:
+                    # No internet connection
                     if not Base.InternetConnected:
                         print("Login Status: Unknown", color='yellow')
                         print("Hi,", username, color="lightblue")
                     else:
-                        # Base.ErrorMessageList.append(message)
+                        # Print this message when refresh token failed.
                         print("Login Status: Expired session :0", color='lightred')
                         print("Please login your account again!", color='lightred')
                         print("Hi,", username, color="lightblue")  # Now this should work correctly
@@ -848,24 +873,29 @@ class AuthManager:
         # Append new data to old json data(or new?)
         new_account_data.append(new_data)
         print("Changing default account id...", color='green')
-        Status = self.set_default_account_id(2)
+        Status = self.set_default_account_id("2")
         if not Status:
             return False, "ChangeDefaultAccountIDFailed"
 
         # Write the updated or new data back to the AccountData
+        print("Writing new account data...", color='lightgreen')
         try:
             with open("data/AccountData.json", "w") as file:
                 json.dump(new_account_data, file, indent=4)
         except Exception as e:
             return False, f"WriteNewAccountData>Error: {e}"
-
-        return True
+        print("Update new format successfully!", color='blue')
+        time.sleep(3)
+        return True, None
 
     def AccountManager(self):
         try:
             print("[AccountManager]", color='lightblue')
             print('Options:', color='green')
-            print("1: Login New Account", color='lightblue')
+            if Base.InternetConnected:
+                print("1: Login New Account", color='lightblue')
+            else:
+                print("1: Login New Account", color='darkgray')
             print("2: Select Use Account", color='purple')
             print("3: Delete Account", color='red')
             print("4: Exit", color='green')
@@ -873,7 +903,12 @@ class AuthManager:
             if user_input == "1":
                 # Login new account
                 ClearOutput()
-                self.login_process()
+                if Base.InternetConnected:
+                    self.login_process()
+                else:
+                    print("No Internet Connection :(", color="red")
+                    time.sleep(4)
+                    return
             elif user_input == "2":
                 # Select launcher default account(Save to config.bakelh.cfg)
                 ClearOutput()
@@ -894,5 +929,6 @@ class AuthManager:
                 detailed_traceback = traceback.format_exc()
                 internal_functions_error_log_dump(e, "AccountManager", function_name, detailed_traceback)
                 time.sleep(5)
+
 
 account_manager = AuthManager()

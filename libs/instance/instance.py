@@ -252,7 +252,7 @@ class class_instance:
 
         #
         if not os.path.exists(instance_info_path):
-            return False, "InstanceInfoNotFound"
+            return False, None
 
         try:
             with open(instance_info_path, 'r') as file:

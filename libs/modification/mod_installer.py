@@ -101,7 +101,7 @@ class ModInstaller:
             response = requests.get(url)
             if response.status_code != 200:
                 print(f"Failed to retrieve data: {response.status_code}")
-                return
+                return False, None
 
             loader_data = response.json()
 
@@ -115,9 +115,10 @@ class ModInstaller:
 
             if not loader_versions:
                 print(f"No stable loader versions available for Minecraft version {client_version} :(", color='red')
-                return None
+                time.sleep(3)
+                return False, None
 
-            return loader_versions
+            return True, loader_versions
 
         # Setting some variable
         instance_libraries = os.path.join(instance_path, ".minecraft", "libraries")
@@ -131,6 +132,11 @@ class ModInstaller:
                 print(f"Failed to move libraries to .minecraft folder. Cause by error {e}", color='red')
 
         instance_info = os.path.join(instance_path, "instance.bakelh.ini")
+        if not os.path.exists(instance_info):
+            print("Failed to get instance info :( Did you convert it to new format?", color='red')
+            time.sleep(4)
+            return
+
         Status, client_version = instance.get_instance_info(instance_info, info_name="client_version")
         game_dir = os.path.join(instance_path, ".minecraft")
         if not os.path.exists(game_dir):
@@ -141,9 +147,12 @@ class ModInstaller:
             return
 
         # Start install process
-        loader_versions = get_support_fabric_loader_list(client_version)
-        loader_version = self.select_loader_version("Fabric Loader", loader_versions, client_version)
-
+        Status, loader_versions = get_support_fabric_loader_list(client_version)
+        if not Status:
+            return
+        Status, loader_version = self.select_loader_version("Fabric Loader", loader_versions, client_version)
+        if not Status:
+            return
         url = f"https://meta.fabricmc.net/v2/versions/loader/{client_version}/{loader_version}"
         response = requests.get(url)
         fabric_data = response.json()
@@ -266,22 +275,32 @@ class ModInstaller:
         except subprocess.CalledProcessError as e:
             print(f"An error occurred: {e}")
 
-    def select_loader_version(self, loader_name, loader_versions, client_version):
-        # Display available versions to the user
-        print(f"Available {loader_name} versions for Minecraft version {client_version}:")
-        for idx, version in enumerate(loader_versions, start=1):
-            print(f"{idx}. {version}")
+    @staticmethod
+    def select_loader_version(loader_name, loader_versions, client_version):
+        global selected_version
+        while True:
+            # Display available versions to the user
+            print(f"Available {loader_name} versions for Minecraft version {client_version}:")
+            for idx, version in enumerate(loader_versions, start=1):
+                print(f"{idx}. {version}")
 
-        # Prompt the user to select a version
-        try:
-            choice = int(input(f"Select a {loader_name} version (1-{len(loader_versions)}): "))
-            if 1 <= choice <= len(loader_versions):
-                selected_version = loader_versions[choice - 1]
-                return selected_version
-            else:
-                print("Invalid choice. Please select a valid number.")
-        except ValueError:
-            print("Invalid input. Please enter a number.")
+            # Prompt the user to select a version
+            try:
+                choice = int(input(f"Select a {loader_name} version (1-{len(loader_versions)}): "))
+                if str(choice).lower() == "exit":
+                    return True, "EXIT"
+                if 1 <= choice <= len(loader_versions):
+                    selected_version = loader_versions[choice - 1]
+                    return True, selected_version
+                else:
+                    print("Invalid choice. Please select a valid number.")
+            except ValueError:
+                print("Invalid input. Please enter a number.")
+            continue
+        if selected_version == "EXIT":
+            return False, None
+        else:
+            return True, selected_version
 
     def install_mode_loader(self):
         print("Warning: This feature is under testing. Not sure all method will working fine.", color='red')
@@ -296,8 +315,8 @@ class ModInstaller:
             print("Mode Loader List:", color='blue')
             print("1: Fabric", color='yellow')
             print("2: Forge(Not Working)", color='darkgray')
-
-            user_input = str(input("Which loader is you want to install?"))
+            print("Which loader is you want to install?")
+            user_input = str(input(":"))
 
             if user_input == "1":
                 self.install_fabric_loader(instance_path)

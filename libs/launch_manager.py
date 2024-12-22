@@ -1,6 +1,7 @@
 import os
 import shutil
 import time
+import unicodedata
 from json import JSONDecodeError
 from LauncherBase import Base, print_custom as print
 from libs.__assets_grabber import assets_grabber
@@ -269,6 +270,7 @@ class LauncherManager:
 
         # Full path to the Java executable
         java_executable_path = os.path.join(JavaPath, java_executable)
+
         # Check if Java executable exists
         if os.path.isfile(java_executable_path):
             JVMPath = f'"{java_executable_path}"'  # Enclose in quotes for proper execution
@@ -349,6 +351,11 @@ class LauncherManager:
 
         # Get librariesPath(Example: /path/LWJGL-1.0.jar:/path/Hopper-1.2.jar:/path/client.jar)
         InjectJARPath = None
+        legacy_client_path = os.path.join(instance_dir, "client.jar")
+        if os.path.exists(legacy_client_path):
+            print("Failed to launch Minecraft :( Did you convert it to new format?", color='red')
+            time.sleep(3)
+            return "ClientNotFound"
         libraries_paths_strings = generate_libraries_paths(minecraft_version, "libraries")
         # Inject jar file to launch chain
         # Get MainClass Name And Set Args(-cp "libraries":client.jar net.minecraft.client.main.Main or
@@ -360,8 +367,7 @@ class LauncherManager:
         else:
             main_class = find_main_class(minecraft_version)
 
-        print(f"Using {main_class} as the Main Class.",
-              color='blue' if "net.minecraft.client.main.Main" in main_class else 'purple')
+        print(f"Using {main_class} as the Main Class." ,color='blue')
 
         # Get assetsIndex and assets_dir
         assetsIndex = assets_grabber.get_assets_index_version(minecraft_version)

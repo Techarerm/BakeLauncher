@@ -218,11 +218,16 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
 
     if EnableMultitasking:
         if not Base.DontPrintColor:
-            print("Please check the launcher already created a new terminal.", color='purple')
-            print("If it didn't create it please check the output and report it to GitHub!", color='green')
+            if Base.LaunchMultiClientWithOutput:
+                print("Please check the launcher already created a new terminal and Minecraft is running",
+                      color='lightyellow')
+            else:
+                print("Please check if Minecraft is running.", color="lightyellow")
+            print("If you can't find it, report the platform operation and launcher output to GitHub!",
+                  color='lightyellow')
         else:
             print("Please check the launcher already created a new terminal.")
-            print("If it didn't create it please check the output and report it to GitHub!")
+            print("If you can't find it, report the platform operation and launcher output to GitHub!")
         if Base.LaunchMultiClientWithOutput:
             print("EnableExperimentalMultitasking is Enabled!", color='purple')
             print("Creating mew client thread with log output...", color='green')
@@ -240,13 +245,12 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
 
     else:
         print("EnableExperimentalMultitasking is Disabled!", color='green')
-        print('"Launch Mode: Legacy', color='green')
+        print('Launch Mode: Legacy', color='green')
         if Base.Platform == "Windows":
-            local = os.getcwd()
             subprocess.run(f"{JVMExecutable} {minecraft_command_one_thread}")
             print("Minecraft has stopped running! (Thread terminated)", color='green')
-            back_to_main_memu = input("Press any key to continue. . .")
+            input("Press any key to continue. . .")
         else:
             os.system(minecraft_command)
             print("Minecraft has stopped running! (Thread terminated)", color='green')
-            back_to_main_memu = input("Press any key to continue. . .")
+            input("Press any key to continue. . .")

@@ -6,7 +6,7 @@ BakeLauncher Main Menu
 import os
 import time
 from libs.__account_manager import account_manager
-from LauncherBase import Base, bake_bake, ClearOutput, print_custom as print, timer
+from LauncherBase import Base, bake_bake, ClearOutput, print_custom as print, timer, initialize_config
 from libs.launch_manager import launch_manager
 from libs.__create_instance import create_instance
 from libs.__duke_explorer import Duke
@@ -41,7 +41,7 @@ def extra_menu():
             print("1: [Exp]Custom Args        5: Convert Old Instance Structure ")
             print("2: Reset AccountData.json  6: Auto-Convert Old Instance Structure")
             print("3: Clear JVM config file   7: Search Java Runtimes(Duke)")
-            print("4: Clear ErrorMessage")
+            print("4: Clear ErrorMessage      8: Clear Global Config")
         user_input = str(input(":"))
         if user_input == "1":
             print("Warning: This is a re-code version. Not sure all functions will working fine.", color='red')
@@ -74,7 +74,10 @@ def extra_menu():
         elif user_input.upper() == "7":
             Duke.duke_finder()
             return
-        elif user_input.upper() == "8" or user_input.upper() == "EXIT":
+        elif user_input.upper() == "8":
+            initialize_config(overwrite=True)
+            return
+        elif user_input.upper() == "EXIT":
             return True
         else:
             print("Unknown options :O", color='red')
@@ -139,7 +142,11 @@ def main_menu():
             AccountMSCMessage = account_manager.AccountManager()
             error_return(AccountMSCMessage, "Write")
         elif user_input == "3":
-            create_instance.create_instance()
+            if Base.InternetConnected:
+                create_instance.create_instance()
+            else:
+                print("No Internet Connection Error :(", color='red')
+                time.sleep(4)
         elif user_input == "4":
             instance_manager.ManagerMemu()
         elif user_input == "5":

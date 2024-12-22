@@ -10,8 +10,8 @@ from modules.print_colorx.print_color import print as print_color
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
 # dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
 # Example = "LB041224" Years: 2024 Month: 12 Date: 04
-dev_version = "LF211224"  # If version type is release set it blank
-version_type = "Dev"
+dev_version = "RC"  # If version type is release set it blank
+version_type = "Pre-Release"
 major_version = "0.9"
 
 BetaWarningMessage = ("You are running beta version of BakeLauncher.\n"
@@ -44,10 +44,10 @@ NoInternetConnectionCheck = false
 AutomaticOpenOptions = false
 Option = None
 NoList = false
-QuickLaunch = True
+QuickLaunch = False
 # Support red, orange, blue, green, yellow, white, gray, lightred, lightblue(recommended), lightyellow, lightgreen
 # , lightyellow, indigo, pink....
-LauncherTitleColor = red
+LauncherTitleColor = lightblue
 
 <LaunchManager>
 # Create a new terminal when launching Minecraft. The new terminal will not be killed when the main stop working.
@@ -114,7 +114,7 @@ def initialize_config(**kwargs):
     overwrite = kwargs.get('overwrite', False)
     if overwrite:
         with open(Base.global_config_path, "w") as config:
-            config.write(Base.global_config_path)
+            config.write(global_config)
         print("Global config has been reset.")
         return
     if not os.path.exists("data"):
@@ -164,7 +164,6 @@ def internal_functions_error_log_dump(error_data, main_function_name, crash_func
         with open(error_log_save_path, "w") as f:
             f.write(error_log_data)
         print(f"Exception event output has been saved to the existing error log. Saved to: {error_log_save_path}")
-
 
     return True
 
@@ -285,7 +284,7 @@ class LauncherBase:
             self.load_setting()
 
         # Check workdir(If launcher running in a non-ASCII path)(Seems like it patched when BakeLauncher added
-        # instance_info support?)
+        # instance_info support?) (Now this bug appears again...)
         try:
             if self.LauncherWorkDir is not None and self.LauncherWorkDir != "None":
                 if len(self.LauncherWorkDir) > 0:
@@ -600,6 +599,7 @@ class LauncherBase:
             host = "InternalList"
 
         if Base.NoInternetConnectionCheck:
+            self.InternetConnected = True
             return True, "BypassCheckInternetConnection"
 
         if host == "InternalList":
@@ -608,7 +608,8 @@ class LauncherBase:
                 # Try to establish a socket connection to the host and port
                 try:
                     response = ping(host)
-                    self.InternetConnected = True
+                    if response is not None:
+                        self.InternetConnected = True
                 except Exception as e:
                     print_color(f"Ping to host {host} failed.", tag='Warning')
                 continue
@@ -616,10 +617,10 @@ class LauncherBase:
             print_color("Using exist host to check internet connection...", tag='INFO')
             try:
                 response = ping(self.PingServerIP)
-                self.InternetConnected = True
+                if response is not None:
+                    self.InternetConnected = True
             except Exception as e:
                 print_color(f"Ping to host {self.PingServerIP} failed.", tag='Warning')
-
 
         if not self.InternetConnected:
             print_color("Internet connection failed :(", color='red', tag='Error')

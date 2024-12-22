@@ -72,10 +72,10 @@ def download_file(url, dest_path):
             for chunk in response.iter_content(chunk_size=8192):
                 file.write(chunk)
         if Base.UsingLegacyDownloadOutput:
-            print(f"Download successful: {dest_path}")
+            print(f"Download successful: {dest_path}", color='lightblue')
         return True  # Indicate success
     except requests.exceptions.RequestException as e:
-        print(f"Failed to download {url}: {e}")
+        print(f"Failed to download {url}: {e}", color='red')
         return False  # Indicate failure
 
 
