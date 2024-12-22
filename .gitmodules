@@ -1,0 +1,3 @@
+[submodule "modules/print_colorx"]
+	path = modules/print_colorx
+	url = https://github.com/Techarerm/print-color.git

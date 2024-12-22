@@ -21,7 +21,7 @@
 
 void run_python_script() {
     // Run the Python script
-    if (system("python3 __main__.py") == -1) {
+    if (system("python3 main.py") == -1) {
         perror("Error running Python script");
         exit(EXIT_FAILURE);
     }

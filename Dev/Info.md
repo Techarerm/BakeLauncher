@@ -25,7 +25,7 @@ To build the project, install the necessary tools depending on your operating sy
 
 - **macOS:** Python3 and Homebrew are already installed.
 - **Windows:** Python3 and scoop are already installed.
-- **Windows:** Python3 are already installed(apt-get are available).
+- **Linux:** Python3 are already installed(apt-get are available).
 
 Ensure you have `gcc` installed as it's required for building.
 
