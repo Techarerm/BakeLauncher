@@ -37,10 +37,9 @@ class DukeCute:
 
     def test_java_executable(self, runtimes_dir, mode):
         # test java runtimes are executable
-        os.chdir(runtimes_dir)
-
+        JavaExecutable = os.path.join(runtimes_dir, self.JavaExecutableName)
         # executable it
-        result = subprocess.run([self.JavaExecutableName, '-version'], stderr=subprocess.PIPE, stdout=subprocess.PIPE,
+        result = subprocess.run([JavaExecutable, '-version'], stderr=subprocess.PIPE, stdout=subprocess.PIPE,
                                 text=True)
 
         # Get output
@@ -118,6 +117,7 @@ class DukeCute:
 
         if self.FoundDuke:
             for RuntimeDir in self.ExecutableJavaList:
+                print(f"Testing runtime path {RuntimeDir} executable...", color='green')
                 major_version = self.test_java_executable(RuntimeDir, mode="GetMajorVersion")
                 self.write_runtimes_data(RuntimeDir, major_version)
         print("Search Java Runtimes process finished.", color='blue')
