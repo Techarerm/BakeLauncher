@@ -37,8 +37,10 @@ class DukeCute:
 
     def test_java_executable(self, runtimes_dir, mode):
         # test java runtimes are executable
+
+        # Using absolute path
         JavaExecutable = os.path.join(runtimes_dir, self.JavaExecutableName)
-        print(JavaExecutable)
+
         # executable it
         result = subprocess.run([JavaExecutable, '-version'], stderr=subprocess.PIPE, stdout=subprocess.PIPE,
                                 text=True)
@@ -48,7 +50,12 @@ class DukeCute:
 
         # Get major version (e.g., "21.0.3") and full version in the output
         match = re.search(r'java version "(\d+)(?:\.(\d+))?', output)
-        os.chdir(Base.launcher_root_dir)
+        java_name = "Java"
+        # Is for install by launcher runtimes(Because is openjdk not oracle java....)
+        if not match:
+            java_name = "OpenJDK"
+            match = re.search(r'openjdk version "(\d+)(?:\.(\d+))?', output)
+
         if match:
             major_version = match.group(1)
             # Special case for Java 8 where we need to use the second part (8) instead of 1
@@ -57,7 +64,7 @@ class DukeCute:
             if mode == "GetMajorVersion":
                 return major_version
             else:
-                print(f"Major Version: {major_version}", color='blue')
+                print(f"{java_name} Major Version: {major_version}", color='blue')
             return True
         else:
             return False
@@ -97,15 +104,18 @@ class DukeCute:
         else:
             print("Could not find available Java runtimes in the launcher 'runtimes' folder :0", color='yellow')
 
-        # Append all list
-        if self.FoundJavaRuntimeInLauncherInternal:
-            for runtime in self.FoundJavaRuntimeList_LauncherInternal:
-                self.FoundJavaRuntimeList.append(runtime)
-
         # test executable
-        print("Testing Java runtimes executable...", color='green')
+        print("Testing whether Java runtimes system-installed can execute normally...", color='green')
         for RuntimeDir in self.FoundJavaRuntimeList:
-            print(f"RuntimeDir : {RuntimeDir}")
+            print(f"Testing runtime path {RuntimeDir} executable...", color='green')
+            Status = self.test_java_executable(RuntimeDir, mode="normal")
+            if Status:
+                self.ExecutableJavaList.append(RuntimeDir)
+            else:
+                print(f"Runtime directory {RuntimeDir} cannot be executed. Is it corrected?", color='yellow')
+
+        print("Testing whether Java runtimes installed by the launcher can execute normally...", color='green')
+        for RuntimeDir in self.FoundJavaRuntimeList_LauncherInternal:
             print(f"Testing runtime path {RuntimeDir} executable...", color='green')
             Status = self.test_java_executable(RuntimeDir, mode="normal")
             if Status:
