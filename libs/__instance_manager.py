@@ -46,15 +46,21 @@ class InstanceManager:
 
     @staticmethod
     def instance_list(**kwargs):
+        global instances_list_original
         only_print_legacy = kwargs.get('only_print_legacy', False)
         only_return_list = kwargs.get('only_return_list', False)
         without_drop_no_instance_error = kwargs.get('without_drop_no_instance_available_error', False)
         only_return_legacy_list = kwargs.get('only_return_legacy_list', False)
         if not os.path.exists(Base.launcher_instances_dir):
-            return False, "NoInstancesAreAvailable"
+            if not without_drop_no_instance_error:
+                print("No instances are available.", color='red')
+                time.sleep(3)
+                return False, "NoInstancesAreAvailable"
         else:
             instances_list_original = os.listdir(Base.launcher_instances_dir)
             if len(instances_list_original) == 0:
+                print("No instances are available.", color='red')
+                time.sleep(3)
                 return False, "NoInstancesAreAvailable"
 
         if not instances_list_original:
@@ -62,6 +68,7 @@ class InstanceManager:
                 print("No instances are available.", color='red')
                 print("Go to step 3: Create Instance. After it's installed, you can try this method again!",
                       color='yellow')
+                time.sleep(3)
                 return False, "NoInstancesAreAvailable"
             else:
                 print("[You are looking to the null space]", color='darkwhite')
@@ -128,6 +135,7 @@ class InstanceManager:
 
         if not Status:
             print(f"Failed to get instance list. Cause by error {instance_list}", color='red')
+            time.sleep(3)
             return False, Message, None
 
         while True:
@@ -456,7 +464,7 @@ class InstanceManager:
     def rename_instance(self):
         # Select instance
         Status, client_version, instance_path = self.select_instance(
-            "Choose an instance to print info:", client_version=True
+            "Which instance is you want to rename?", client_version=True
         )
         if not Status:
             return

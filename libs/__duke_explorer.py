@@ -95,7 +95,7 @@ class DukeCute:
         if len(self.FoundJavaRuntimeList_LauncherInternal) > 0:
             self.FoundJavaRuntimeInLauncherInternal = True
         else:
-            print("Could not find available Java runtimes in the launcher 'runtimes' folder :(", color='red')
+            print("Could not find available Java runtimes in the launcher 'runtimes' folder :0", color='yellow')
 
         # test executable
         print("Testing Java runtimes executable...", color='green')
@@ -186,8 +186,13 @@ class DukeCute:
                 print(f"Get Java Path successfully! | Using Java {major_version}!", color='blue')
                 return Java_path
             else:
-                print(f"Java version {major_version} not found in Java_HOME.json", color='red')
-                return None
+                legacy_name = f"Java_{major_version}"
+                Java_path = data.get(str(legacy_name))
+                if Java_path:
+                    print(f"Java version {major_version} not found in Java_HOME.json", color='red')
+                    return None
+                else:
+                    return Java_path
 
         except FileNotFoundError:
             print(f"Java_HOME.json file not found", color='red')
