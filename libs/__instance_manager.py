@@ -53,19 +53,22 @@ class InstanceManager:
         only_return_legacy_list = kwargs.get('only_return_legacy_list', False)
         if not os.path.exists(Base.launcher_instances_dir):
             if not without_drop_no_instance_error:
-                print("No instances are available.", color='red')
+                print("No instances are available :|", color='red')
                 time.sleep(3)
                 return False, "NoInstancesAreAvailable"
+            else:
+                print("[You are looking to the null space]", color='darkwhite')
+                return True, "NoInstancesAreAvailable"
         else:
             instances_list_original = os.listdir(Base.launcher_instances_dir)
             if len(instances_list_original) == 0:
-                print("No instances are available.", color='red')
+                print("No instances are available :|", color='red')
                 time.sleep(3)
                 return False, "NoInstancesAreAvailable"
 
         if not instances_list_original:
             if not without_drop_no_instance_error:
-                print("No instances are available.", color='red')
+                print("No instances are available :|", color='red')
                 print("Go to step 3: Create Instance. After it's installed, you can try this method again!",
                       color='yellow')
                 time.sleep(3)

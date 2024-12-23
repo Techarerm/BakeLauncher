@@ -1,16 +1,16 @@
 import datetime
 import os
 import shutil
+import subprocess
 import textwrap
 import time
 import platform
-from ping3 import ping
 from modules.print_colorx.print_color import print as print_color
 
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
 # dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
 # Example = "LB041224" Years: 2024 Month: 12 Date: 04
-dev_version = "RC"  # If version type is release set it blank
+dev_version = "RC2"  # If version type is release set it blank
 version_type = "Pre-Release"
 major_version = "0.9"
 
@@ -168,6 +168,26 @@ def internal_functions_error_log_dump(error_data, main_function_name, crash_func
     return True
 
 
+def ping_a_host(host):
+    # Link: https://stackoverflow.com/questions/2953462/pinging-servers-in-python
+    try:
+        # Execute the ping command
+        # Option for the number of packets as a function of
+        param = '-n' if platform.system().lower() == 'windows' else '-c'
+
+        # Building the command. Ex: "ping -c 1 google.com"
+        command = (['ping', param, '1', host])
+
+        # Check if the command was successful(grabber stdout)
+        if subprocess.call(command, stdout=subprocess.DEVNULL) == 0:
+            return True
+        else:
+            return False
+    except Exception as e:
+        print(f"Error while executing ping: {e}")
+        return False
+
+
 def timer(message, seconds):
     for remaining in range(seconds, 0, -1):
         # Determine the color based on the remaining time
@@ -212,8 +232,8 @@ class LauncherBase:
                 self.launcher_internal_version = f'beta-{major_version}-release'
                 self.launcher_version_display = self.launcher_version
         # Other stuff(for create instance, platform check...)
-        self.launcher_data_format = "dev-beta-0.9-3"
-        self.launcher_lib_version = f"pre-0.9-lib-{dev_version}"  # Pre-0.9
+        self.launcher_data_format = "Beta-0.9"
+        self.launcher_lib_version = f"0.9-lib-{version_type}"  # Pre-0.9
         self.PlatformSupportList = ["Windows", "Darwin", "Linux"]
         self.Platform = self.get_platform("platform")
         self.LibrariesPlatform = self.get_platform("libraries")
@@ -607,7 +627,7 @@ class LauncherBase:
                 host = str(host)
                 # Try to establish a socket connection to the host and port
                 try:
-                    response = ping(host)
+                    response = ping_a_host(host)
                     if response is not None:
                         self.InternetConnected = True
                 except Exception as e:
@@ -616,7 +636,7 @@ class LauncherBase:
         else:
             print_color("Using exist host to check internet connection...", tag='INFO')
             try:
-                response = ping(self.PingServerIP)
+                response = ping_a_host(self.PingServerIP)
                 if response is not None:
                     self.InternetConnected = True
             except Exception as e:
