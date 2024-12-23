@@ -104,6 +104,7 @@ class DukeCute:
         # test executable
         print("Testing Java runtimes executable...", color='green')
         for RuntimeDir in self.FoundJavaRuntimeList:
+            print(f"Testing runtime path {RuntimeDir} executable...", color='green')
             Status = self.test_java_executable(RuntimeDir, mode="normal")
             if Status:
                 self.ExecutableJavaList.append(RuntimeDir)
@@ -117,7 +118,7 @@ class DukeCute:
 
         if self.FoundDuke:
             for RuntimeDir in self.ExecutableJavaList:
-                print(f"Testing runtime path {RuntimeDir} executable...", color='green')
+                print(f"Getting runtimes major version...", color='green')
                 major_version = self.test_java_executable(RuntimeDir, mode="GetMajorVersion")
                 self.write_runtimes_data(RuntimeDir, major_version)
         print("Search Java Runtimes process finished.", color='blue')
