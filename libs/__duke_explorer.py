@@ -97,6 +97,11 @@ class DukeCute:
         else:
             print("Could not find available Java runtimes in the launcher 'runtimes' folder :0", color='yellow')
 
+        # Append all list
+        if self.FoundJavaRuntimeInLauncherInternal:
+            for runtime in self.FoundJavaRuntimeList_LauncherInternal:
+                self.FoundJavaRuntimeList.append(runtime)
+
         # test executable
         print("Testing Java runtimes executable...", color='green')
         for RuntimeDir in self.FoundJavaRuntimeList:
@@ -106,7 +111,7 @@ class DukeCute:
             else:
                 print(f"Runtime directory {RuntimeDir} cannot be executed. Is it corrected?", color='yellow')
 
-        if len(self.ExecutableJavaList) > 0:
+        if self.ExecutableJavaList:
             self.FoundDuke = True
         else:
             print("Could not find any Java runtimes in the launcher 'runtimes' folder :(", color='red')
