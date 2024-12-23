@@ -62,9 +62,13 @@ class InstanceManager:
         else:
             instances_list_original = os.listdir(Base.launcher_instances_dir)
             if len(instances_list_original) == 0:
-                print("No instances are available :|", color='red')
-                time.sleep(3)
-                return False, "NoInstancesAreAvailable"
+                if without_drop_no_instance_error:
+                    print("[You are looking to the null space]", color='darkwhite')
+                    return True, "NoInstancesAreAvailable"
+                else:
+                    print("No instances are available :|", color='red')
+                    time.sleep(3)
+                    return False, "NoInstancesAreAvailable"
 
         if not instances_list_original:
             if not without_drop_no_instance_error:
