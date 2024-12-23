@@ -64,7 +64,7 @@ class BakeLauncher:
             BakeLauncher()
             return
         else:
-            input("Press any key to continue...")
+            EXIT_CODE = str(input("Press any key to continue..."))
 
     def main(self):
         # DEBUG for platform check
