@@ -38,6 +38,7 @@ class DukeCute:
     def test_java_executable(self, runtimes_dir, mode):
         # test java runtimes are executable
         JavaExecutable = os.path.join(runtimes_dir, self.JavaExecutableName)
+        print(JavaExecutable)
         # executable it
         result = subprocess.run([JavaExecutable, '-version'], stderr=subprocess.PIPE, stdout=subprocess.PIPE,
                                 text=True)
@@ -104,6 +105,7 @@ class DukeCute:
         # test executable
         print("Testing Java runtimes executable...", color='green')
         for RuntimeDir in self.FoundJavaRuntimeList:
+            print(f"RuntimeDir : {RuntimeDir}")
             print(f"Testing runtime path {RuntimeDir} executable...", color='green')
             Status = self.test_java_executable(RuntimeDir, mode="normal")
             if Status:
