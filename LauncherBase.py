@@ -1,17 +1,17 @@
 import datetime
 import os
 import shutil
+import subprocess
 import textwrap
 import time
 import platform
-from ping3 import ping
 from modules.print_colorx.print_color import print as print_color
 
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
 # dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
 # Example = "LB041224" Years: 2024 Month: 12 Date: 04
-dev_version = "RC"  # If version type is release set it blank
-version_type = "Pre-Release"
+dev_version = ""  # If version type is release set it blank
+version_type = "Release"
 major_version = "0.9"
 
 BetaWarningMessage = ("You are running beta version of BakeLauncher.\n"
@@ -19,10 +19,44 @@ BetaWarningMessage = ("You are running beta version of BakeLauncher.\n"
                       "Please run it only if you know what you are doing.\n")
 
 ChangeLog = ("Changelog:\n"
-             "In Pre-0.9, launcher are unstable :( If you want to get a stable Dev version.\n"
-             "Go to Github Actions and find version Dev-KB112624(Download Build version for you :).\n"
-             "Is the last one not support installation of mod loaders (but it is indeed stable and supports"
-             " the new instance structure).\n"
+             "\n"
+             "<Christmas Update>\n"
+             "\n"
+             "Added:\n"
+             "Instance Manager: The launcher now natively supports custom instances. Check out Option 4: Manage "
+             "Instance. \n"
+             "DukeExplorer: Searching for Java runtimes is now faster and more stable. You should no longer encounter "
+             "issues while searching for Java runtimes.\n"
+             "Create Instance: You can now assign a name while installing an instance.\n"
+             "Mod Installer: Added support for the Fabric loader! (Other mod loader support is still under testing.)\n"
+             "Legacy Minecraft: The Create Instance feature now supports downloading legacy Minecraft versions!"
+             "(Uses Internet Archive as the source, providing versions unavailable in most launchers.)\n"
+             "LaunchClient: Introduced a new method for creating multi-client setups.\n"
+             "Config: More settings are now available for customization!\n"
+             "\n"
+             "Changed:\n"
+             "The instance structure has been updated to Beta-0.9. The old instance structure is now considered legacy."
+             "To continue using old instances, go to:"
+             " 5: Extra > 5: Convert Old Instance Structure to convert them to the new format.\n"
+             "Old instances can still be launched in this version, but support may end in the next update."
+             " (Version 0.6 instances might not be supported.)\n"
+             "Upgrading the launcher from Version <0.8 to 0.9 allows you to convert your AccountData for compatibility."
+             " Prevents crashes when upgrading directly from Version <0.8 to 0.8.\n"
+             "When you account's token expired. After refresh token process, launcher will clear output again to clean"
+             "refresh token output."
+             "\n"
+             "When your account token expires, the launcher will clear the output after"
+             " the refresh token process to tidy up the logs."
+             "\n"
+             "ArgsManager: The argument modification process has been optimized, reducing the likelihood of crashes.\n"
+             "The launcher now includes two crash log dumpers to prevent sudden crashes."
+             " Crash logs are saved in the log folder.\n"
+             "Several managers now have their own error dumpers:"
+             " (AccountManager, ArgsManager, Create Instance, Instance Manager).\n"
+             "\n"
+             "Removed:"
+             "\n"
+             "JVM Tool : Has been replaced by DukeExplorer."
              "\n")
 
 global_config = """[BakeLauncher Configuration]
@@ -41,8 +75,8 @@ NoInternetConnectionCheck = false
 
 <MainMenu>
 # Automatic open you want option when launcher load MainMenu
-AutomaticOpenOptions = false
-Option = None
+# AutomaticOpenOptions = false
+# Option = None
 NoList = false
 QuickLaunch = False
 # Support red, orange, blue, green, yellow, white, gray, lightred, lightblue(recommended), lightyellow, lightgreen
@@ -97,6 +131,7 @@ MaxReleaseVersionPerLine = 10
 # If the same version is already installed in the runtime folder, reinstall it instead of asking user.
 OverwriteJVMIfExist = false
 DoNotAskJVMExist = false
+# Legacy output(Similar Versions>0.9 download output)
 UsingLegacyDownloadOutput = false
 """
 
@@ -168,6 +203,26 @@ def internal_functions_error_log_dump(error_data, main_function_name, crash_func
     return True
 
 
+def ping_a_host(host):
+    # Link: https://stackoverflow.com/questions/2953462/pinging-servers-in-python
+    try:
+        # Execute the ping command
+        # Option for the number of packets as a function of
+        param = '-n' if platform.system().lower() == 'windows' else '-c'
+
+        # Building the command. Ex: "ping -c 1 google.com"
+        command = (['ping', param, '1', host])
+
+        # Check if the command was successful(grabber stdout)
+        if subprocess.call(command, stdout=subprocess.DEVNULL) == 0:
+            return True
+        else:
+            return False
+    except Exception as e:
+        print(f"Error while executing ping: {e}")
+        return False
+
+
 def timer(message, seconds):
     for remaining in range(seconds, 0, -1):
         # Determine the color based on the remaining time
@@ -212,8 +267,8 @@ class LauncherBase:
                 self.launcher_internal_version = f'beta-{major_version}-release'
                 self.launcher_version_display = self.launcher_version
         # Other stuff(for create instance, platform check...)
-        self.launcher_data_format = "dev-beta-0.9-3"
-        self.launcher_lib_version = f"pre-0.9-lib-{dev_version}"  # Pre-0.9
+        self.launcher_data_format = "Beta-0.9"
+        self.launcher_lib_version = f"0.9-lib"  # Pre-0.9
         self.PlatformSupportList = ["Windows", "Darwin", "Linux"]
         self.Platform = self.get_platform("platform")
         self.LibrariesPlatform = self.get_platform("libraries")
@@ -273,6 +328,11 @@ class LauncherBase:
         self.account_data_path = os.path.join(self.launcher_root_dir, "data/AccountData.json")
         self.PingServerHostList = ["8.8.8.8", "210.2.4.8", "1.1.1.1"]  # Test internet Connection
         self.launcher_loaded_time = None
+        time = datetime.datetime.today()
+        if time.month == 12 and time.day == 25:
+            self.ChristmasPoint = True
+        else:
+            self.ChristmasPoint = False
 
     @property
     def Initialize(self):
@@ -607,7 +667,7 @@ class LauncherBase:
                 host = str(host)
                 # Try to establish a socket connection to the host and port
                 try:
-                    response = ping(host)
+                    response = ping_a_host(host)
                     if response is not None:
                         self.InternetConnected = True
                 except Exception as e:
@@ -616,7 +676,7 @@ class LauncherBase:
         else:
             print_color("Using exist host to check internet connection...", tag='INFO')
             try:
-                response = ping(self.PingServerIP)
+                response = ping_a_host(self.PingServerIP)
                 if response is not None:
                     self.InternetConnected = True
             except Exception as e:
@@ -656,7 +716,7 @@ def bake_bake():
     print_color(" ")
     print_color(ChangeLog, color='cyan')
     print_color("Type 'exit' to back to main menu.", color='green')
-    print_color('"Details" for more information :)', color='purple')
+    print_color('"Details" for more information.', color='purple')
     type_time = 1
     while True:
         user_input = str(input("BakeLauncher> "))

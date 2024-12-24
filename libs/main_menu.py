@@ -154,8 +154,14 @@ def main_menu():
         elif user_input == "6":
             bake_bake()
         elif user_input.upper() == "EXIT":
-            print("Exiting launcher...", color='lightgreen')
-            print("Bye :)", color='lightblue')
+            print("Exiting launcher...", color='lightyellow')
+            # ???
+            if Base.ChristmasPoint:
+                print("Merry ", color='lightred', end="")
+                print("Christmas !", color='lightgreen')
+            else:
+                print("Have a nice day !", color='lightblue')
+                print("Bye :)", color='lightgreen')
             print(" ")
             return
         elif user_input.upper() == "RELOAD":

@@ -307,7 +307,7 @@ class ModInstaller:
         Status, client_version, instance_path = instance_manager.select_instance(
             "Which instance is you want to install mode loader?", client_version=True)
 
-        if Status is None:
+        if not Status:
             print("Failed to get instance path.", color='red')
             return
 

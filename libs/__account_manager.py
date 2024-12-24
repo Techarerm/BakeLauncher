@@ -395,7 +395,7 @@ class AuthManager:
             RefreshToken = account_data.get("RefreshToken")
             if RefreshToken is None or RefreshToken == "null":
                 print(f"Stopping refresh token! Cause by invalid token :(", color='lightred')
-                return
+                return False, "InvalidRefreshToken"
         except KeyError:
             return False, "CheckMinecraftToken>GetAccountDataFailed", ""
 
