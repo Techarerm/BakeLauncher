@@ -268,7 +268,7 @@ class LauncherBase:
                 self.launcher_version_display = self.launcher_version
         # Other stuff(for create instance, platform check...)
         self.launcher_data_format = "Beta-0.9"
-        self.launcher_lib_version = f"0.9-lib"  # Pre-0.9
+        self.launcher_lib_version = f"0.9-lib-2"  # Pre-0.9
         self.PlatformSupportList = ["Windows", "Darwin", "Linux"]
         self.Platform = self.get_platform("platform")
         self.LibrariesPlatform = self.get_platform("libraries")
