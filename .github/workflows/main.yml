@@ -52,7 +52,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          submodules: recursive # For submodules
+          submodules: recursive
           fetch-depth: 0
 
       - name: Set up Python
