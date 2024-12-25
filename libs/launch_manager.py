@@ -351,11 +351,10 @@ class LauncherManager:
 
         # Get librariesPath(Example: /path/LWJGL-1.0.jar:/path/Hopper-1.2.jar:/path/client.jar)
         InjectJARPath = None
-        legacy_client_path = os.path.join(instance_dir, "client.jar")
-        if os.path.exists(legacy_client_path):
-            print("Failed to launch Minecraft :( Did you convert it to new format?", color='red')
-            time.sleep(3)
-            return "ClientNotFound"
+        legacy_client_path = os.path.join(libraries_path, "net", "minecraft", minecraft_version, "client.jar")
+        if not os.path.exists(legacy_client_path):
+            print("Could not find client in the recommended location :(", color='red')
+
         libraries_paths_strings = generate_libraries_paths(minecraft_version, "libraries")
         # Inject jar file to launch chain
         # Get MainClass Name And Set Args(-cp "libraries":client.jar net.minecraft.client.main.Main or

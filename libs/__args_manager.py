@@ -18,12 +18,10 @@ class ArgsManager:
         print(message, color='green')
         status, client_version, instance_path = instance_manager.select_instance(
             "Which instance is you want to modify?", client_version=True)
-        if not status:
-            if isinstance(status, str) and status.lower() == 'exit':
-                return
+        if not instance_path:
             print("Could not get instance path. Exiting...", color='yellow')
             time.sleep(2)
-            return
+            return instance_path, None, None
 
         instance_custom_config = os.path.join(instance_path, "instance.bakelh.cfg")
         if not os.path.exists(instance_path):
@@ -33,6 +31,10 @@ class ArgsManager:
     def args_editor(self):
         instance_path, instance_custom_config, client_version = self.select_modify_instance(
             "ArgsManager requires an instance to modify.")
+
+        if not instance_path:
+            return
+
         # Mode selection
         while True:
             print("Which mode do you want to use?", color='green')
@@ -136,6 +138,9 @@ class ArgsManager:
     def custom_jvm_args_menu(self):
         instance_path, instance_custom_config, client_version = self.select_modify_instance(
             "Modify JVM arguments requires an instance to modify.")
+
+        if not instance_path:
+            return
 
         while True:
             print("List:")
@@ -264,6 +269,9 @@ class ArgsManager:
         instance_path, instance_custom_config, client_version = self.select_modify_instance(
             "Modify game arguments requires an instance to modify.")
 
+        if not instance_path:
+            return
+
         while True:
             print("Options list:", color='green')
             print("1: List support args and enter you want", color='blue')
@@ -277,7 +285,13 @@ class ArgsManager:
                                             instance_custom_config,
                                             instance_path)  # Capture the return value from get_game_args_and_edit()
             elif user_input == "2":
+                print("Cleaning...", color='green')
                 arguments.write_args(instance_custom_config, "CustomGameArgs", "", "overwrite")
+                print(f"Game args has been cleaned.", color='blue')
+                time.sleep(2)
+            elif user_input.lower() == "exit":
+                print("Exiting...", color='green')
+                return True
             else:
                 print("Unknown option :0", color='red')
 
@@ -297,6 +311,9 @@ class ArgsManager:
                 self.custom_game_args_menu()
             elif user_input == "3":
                 self.args_editor()
+            elif user_input.lower() == "exit":
+                print("Exiting...", color='green')
+                return True
             else:
                 print(f"Invalid input {user_input}", color='red')
                 time.sleep(1)

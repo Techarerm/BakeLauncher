@@ -263,13 +263,14 @@ class InstanceManager:
             legacy_client_path = os.path.join(instance_path, "client.jar")
             game_folder = os.path.join(instance_path, ".minecraft")
             new_client_path = os.path.join(game_folder, "libraries", "net", "minecraft", self.name)
+            new_libraries_path = os.path.join(game_folder, "libraries")
             if os.path.exists(legacy_libraries_path):
-                print("Found legacy libraries. Moving to new folder...", color='green')
-                shutil.move(legacy_libraries_path, game_folder)
+                if not os.path.exists(new_libraries_path):
+                    print("Found legacy libraries. Moving to new folder...", color='green')
+                    shutil.move(legacy_libraries_path, game_folder)
 
             if os.path.exists(legacy_client_path):
-                target_dir = os.path.dirname(new_client_path)
-                os.makedirs(target_dir, exist_ok=True)
+                os.makedirs(new_client_path, exist_ok=True)
                 print("Found legacy client. Moving to new folder...", color='green')
                 try:
                     # Move the file
@@ -277,6 +278,13 @@ class InstanceManager:
                     print(f"Moved client.jar to {new_client_path}", color='green')
                 except Exception as e:
                     print(f"Failed to move client.jar. Error: {e}", color='red')
+
+                try:
+                    if os.path.exists(legacy_client_path):
+                        print("Cleaning up client...", color='green')
+                        os.remove(legacy_client_path)
+                except Exception as e:
+                    print(f"Failed to clean up client.jar. Error: {e}", color='red')
 
             version_data = get_version_data(self.CLIENT_VERSION)
             component, major_version = Duke.get_java_version_info(version_data)
@@ -305,9 +313,11 @@ class InstanceManager:
                     legacy_client_path = os.path.join(instance_path, "client.jar")
                     game_folder = os.path.join(instance_path, ".minecraft")
                     new_client_path = os.path.join(game_folder, "libraries", "net", "minecraft", instance_name)
+                    new_libraries_path = os.path.join(game_folder, "libraries")
                     if os.path.exists(legacy_libraries_path):
-                        print("Found legacy libraries. Moving to new folder...", color='green')
-                        shutil.move(legacy_libraries_path, game_folder)
+                        if not os.path.exists(new_libraries_path):
+                            print("Found legacy libraries. Moving to new folder...", color='green')
+                            shutil.move(legacy_libraries_path, game_folder)
 
                     if os.path.exists(legacy_client_path):
                         os.makedirs(new_client_path, exist_ok=True)
@@ -318,6 +328,13 @@ class InstanceManager:
                             print(f"Moved client.jar to {new_client_path}", color='green')
                         except Exception as e:
                             print(f"Failed to move client.jar. Error: {e}", color='red')
+
+                        try:
+                            if os.path.exists(legacy_client_path):
+                                print("Cleaning up client...", color='green')
+                                os.remove(legacy_client_path)
+                        except Exception as e:
+                            print(f"Failed to clean up client.jar. Error: {e}", color='red')
 
                     version_type = instance.get_instance_type(instance_name)
                     version_data = get_version_data(instance_name)
@@ -330,7 +347,7 @@ class InstanceManager:
     def print_instance_info(self):
         Status, client_version, instance_path = self.select_instance("Choose an instance to print info :"
                                                                      , client_version=True)
-        if not Status:
+        if not instance_path:
             return
 
         instance_info = os.path.join(instance_path, "instance.bakelh.ini")
@@ -473,7 +490,8 @@ class InstanceManager:
         Status, client_version, instance_path = self.select_instance(
             "Which instance is you want to rename?", client_version=True
         )
-        if not Status:
+
+        if not instance_path:
             return
 
         # Get instance info
