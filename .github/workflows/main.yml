@@ -52,7 +52,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: recursive # For submodules
           fetch-depth: 0
 
       - name: Set up Python
@@ -125,6 +125,4 @@ jobs:
           git tag -f Latest
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} Latest --force
           git pull
-
-
 
