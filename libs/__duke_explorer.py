@@ -9,6 +9,11 @@ from libs.Utils.utils import get_version_data
 
 class DukeCute:
     def __init__(self):
+        self.ExecutableJavaList_CustomPath = None
+        self.FoundJavaRuntimeInCustomPath = None
+        self.FoundJavaRuntimeList_CustomPath = None
+        self.ExecutableJavaList_LauncherInstalled = []
+        self.ExecutableJavaList_SysInstalled = []
         self.ExecutableJavaList = []
         self.JavaRuntimeList = None
         self.JavaHomeDataPath = os.path.join(Base.launcher_root_dir, "data", "Java_HOME.json")
@@ -70,7 +75,7 @@ class DukeCute:
             return False
 
     def duke_finder(self):
-        print("Search available Java runtimes on your computer...", color='green')
+        print("Search available Java runtimes on your computer...")
 
         # Set platform-specific directories
         if Base.Platform == "Windows":
@@ -94,7 +99,7 @@ class DukeCute:
         else:
             print("Could not find available Java runtimes on your computer.", color='yellow')
 
-        print("Now search Java runtimes in launcher root dir...", color='green')
+        print("Now search Java runtimes in launcher root dir...")
         self.FoundJavaRuntimeList_LauncherInternal = self.file_search(self.JavaRuntime_LauncherInternal,
                                                                       self.JavaExecutableName)
 
@@ -104,65 +109,182 @@ class DukeCute:
         else:
             print("Could not find available Java runtimes in the launcher 'runtimes' folder :0", color='yellow')
 
+        if Base.SearchJVMInCustomPath:
+            print("Now search Java runtimes in custom path...", color='purple')
+            self.FoundJavaRuntimeList_CustomPath = self.file_search(Base.CustomJVMInstallPath,
+                                                                          self.JavaExecutableName)
+
+            # Check if any Java runtime was found in launcher internal
+            if len(self.FoundJavaRuntimeList_CustomPath) > 0:
+                self.FoundJavaRuntimeInCustomPath = True
+            else:
+                print("Could not find available Java runtimes in the launcher 'runtimes' folder :0", color='yellow')
+
         # Test executable
-        print("Testing whether Java runtimes system-installed can execute normally...", color='green')
+        print("Testing whether Java runtimes system-installed can execute normally...", color="orange")
         for RuntimeDir in self.FoundJavaRuntimeList:
             print(f"Testing runtime path {RuntimeDir} executable...", color='green')
             Status = self.test_java_executable(RuntimeDir, mode="normal")
             if Status:
-                self.ExecutableJavaList.append(RuntimeDir)
+                self.ExecutableJavaList_SysInstalled.append(RuntimeDir)
             else:
                 print(f"Runtime directory {RuntimeDir} cannot be executed. Is it corrected?", color='yellow')
 
+        if self.ExecutableJavaList_SysInstalled:
+            self.FoundDuke = True
+        else:
+            print("Unable to find the JVM executable installed on the system :(", color='red')
+            time.sleep(2)
+
+        if self.FoundDuke:
+            print("Saving data...", color='green')
+            for RuntimeDir in self.ExecutableJavaList_SysInstalled:
+                print(f"Getting runtimes major version...")
+                major_version = self.test_java_executable(RuntimeDir, mode="GetMajorVersion")
+                print("Saving Java HOME Path...", color='lightgreen')
+                self.write_runtimes_data(RuntimeDir, major_version, "System-Installed")
+            self.FoundDuke = False
+
         # Test "installed by the launcher" Java runtimes executable
-        print("Testing whether Java runtimes installed by the launcher can execute normally...", color='green')
+        print("Testing whether Java runtimes installed by the launcher can execute normally...", color='lightyellow')
         for RuntimeDir in self.FoundJavaRuntimeList_LauncherInternal:
             print(f"Testing runtime path {RuntimeDir} executable...", color='green')
             Status = self.test_java_executable(RuntimeDir, mode="normal")
             if Status:
-                self.ExecutableJavaList.append(RuntimeDir)
+                self.ExecutableJavaList_LauncherInstalled.append(RuntimeDir)
             else:
                 print(f"Runtime directory {RuntimeDir} cannot be executed. Is it corrected?", color='yellow')
 
         # Check length of the list
-        if self.ExecutableJavaList:
+        if self.ExecutableJavaList_LauncherInstalled:
             self.FoundDuke = True
         else:
-            print("Unable to find executable JVM :(", color='red')
+            print("Unable to find executable JVM which installed by launcher:(", color='red')
             time.sleep(2)
 
         if self.FoundDuke:
-            for RuntimeDir in self.ExecutableJavaList:
+            print("Saving data...", color='green')
+            for RuntimeDir in self.ExecutableJavaList_LauncherInstalled:
                 print(f"Getting runtimes major version...", color='green')
                 major_version = self.test_java_executable(RuntimeDir, mode="GetMajorVersion")
-                self.write_runtimes_data(RuntimeDir, major_version)
+                print("Saving Java HOME Path...", color='lightgreen')
+                self.write_runtimes_data(RuntimeDir, major_version, "Launcher-Installed")
+            self.FoundDuke = False
+
+        if Base.SearchJVMInCustomPath:
+            print("Testing custom Java runtimes can execute normally...",color='lightyellow')
+            for RuntimeDir in self.FoundJavaRuntimeList_CustomPath:
+                print(f"Testing runtime path {RuntimeDir} executable...", color='green')
+                Status = self.test_java_executable(RuntimeDir, mode="normal")
+                if Status:
+                    self.ExecutableJavaList_CustomPath.append(RuntimeDir)
+                else:
+                    print(f"Runtime directory {RuntimeDir} cannot be executed. Is it corrected?", color='yellow')
+
+            # Check length of the list
+            if self.ExecutableJavaList_CustomPath:
+                self.FoundDuke = True
+            else:
+                print("Unable to find executable JVM in the custom JVM installed path :(", color='red')
+                time.sleep(2)
+
+            if self.FoundDuke:
+                print("Saving data...", color='green')
+                for RuntimeDir in self.ExecutableJavaList_CustomPath:
+                    print(f"Getting runtimes major version...", color='green')
+                    major_version = self.test_java_executable(RuntimeDir, mode="GetMajorVersion")
+                    print("Saving Java HOME Path...", color='lightgreen')
+                    self.write_runtimes_data(RuntimeDir, major_version, "Launcher-Installed")
         print("Search Java Runtimes process finished.", color='blue')
         time.sleep(3)
 
-    def write_runtimes_data(self, java_bin_dir, runtime_version):
+    def write_runtimes_data(self, java_bin_dir, runtime_version, mode):
+        """
+        Writes runtime data to config file.
+        java_bin_dir : The path of the JVM binary directory.
+        runtime_version : Runtime version.
+        mode : Runtime mode. (System-Installed or Launcher-Installed)
+        """
+        global system_runtimes_path_data, launcher_runtimes_path_data
+
+        system_runtimes_path_data = {
+            "JVMPathType": "System-Installed"
+        }
+
+        launcher_runtimes_path_data = {
+            "JVMPathType": "Launcher-Installed"
+        }
+
+        # Ensure the config file exists or initialize it
+        if not os.path.exists(Base.jvm_setting_path):
+            self.initialize_jvm_config()
+
+        # Read the jvm_setting data
         try:
-            # Read existing data, or create an empty structure
-            if os.path.isfile(self.JavaHomeDataPath):
-                with open(self.JavaHomeDataPath, "r") as file:
-                    try:
-                        data = json.load(file)
-                    except json.JSONDecodeError:
-                        print("Error: Corrupted JSON file. Recreating it.", color='red')
-                        data = {}
+            with open(Base.jvm_setting_path, "r") as file:
+                jvm_setting_data = json.load(file)
+        except (json.JSONDecodeError, FileNotFoundError) as e:
+            print(f"Failed to read the JVM settings file :( Cause by error {e}", color='red')
+            print("Resting the JVM settings file...", color='green')
+            self.initialize_jvm_config()
+            with open(Base.jvm_setting_path, "r") as file:
+                jvm_setting_data = json.load(file)
+
+        # Prepare variables for existing data
+        exist_system_runtimes_path_data = None
+        exist_launcher_runtimes_path_data = None
+
+        # Get exist data (If it can't find same value write new data)
+        for entry in jvm_setting_data:
+            if entry.get("JVMPathType") == "System-Installed":
+                exist_system_runtimes_path_data = entry
+            elif entry.get("JVMPathType") == "Launcher-Installed":
+                exist_launcher_runtimes_path_data = entry
+
+        # New data
+        new_path = {runtime_version: java_bin_dir}
+
+        if mode == "System-Installed":
+            if exist_system_runtimes_path_data:
+                # Overwrite or add new runtime version
+                exist_system_runtimes_path_data.update(new_path)
             else:
-                print("Java_HOME.json not found, creating a new file.", color='yellow')
-                data = {}
+                system_runtimes_path_data.update(new_path)
+                jvm_setting_data.append(system_runtimes_path_data)
+        else:
+            if exist_launcher_runtimes_path_data:
+                # Overwrite or add new runtime version
+                exist_launcher_runtimes_path_data.update(new_path)
+            else:
+                launcher_runtimes_path_data.update(new_path)
+                jvm_setting_data.append(launcher_runtimes_path_data)
 
-            # Update or add new JVM version information
-            data[runtime_version] = java_bin_dir
-
-            # Write the updated data back to the file
-            with open(self.JavaHomeDataPath, "w") as file:
-                json.dump(data, file, indent=4)
-                print(f"Successfully saved JVM path for {java_bin_dir}.", color='green')
-
+        # Write updated configuration back to the file
+        try:
+            with open(Base.jvm_setting_path, "w") as file:
+                json.dump(jvm_setting_data, file, indent=4)
+            return True
         except Exception as e:
-            print(f"Error: Failed to write JSON data due to {e}", color='red')
+            print(f"Failed to write the JVM settings file. Error: {e}")
+            return False
+
+    @staticmethod
+    def get_java_path_from_jvm_data(runtime_version, mode):
+        if os.path.exists(Base.jvm_setting_path):
+            with open(Base.jvm_setting_path, 'r') as f:
+                try:
+                    json_data = json.load(f)
+                    # Loop through the data and find the matching ID
+                    for entry in json_data:
+                        if entry['JVMPathType'] == str(mode):
+                            # Return the matching entry as part of a tuple
+                            return True, entry.get(str(runtime_version), None)
+                    # If no match is found
+                    return False, None
+                except json.JSONDecodeError:
+                    return False, None
+        else:
+            return False, "JVMSettingDoesNotExist"
 
     def java_version_check(self, version_id, **kwargs):
         """
@@ -199,28 +321,29 @@ class DukeCute:
             major_version = str("8")
 
         try:
-            with open("data/Java_HOME.json", "r") as file:
-                data = json.load(file)
-
-            Java_path = data.get(str(major_version))
-            if Java_path:
-                print(f"Get Java Path successfully! | Using Java {major_version}!", color='blue')
-                return Java_path
+            if Base.PrioUseSystemInstalledJVM:
+                Status, JVMPath = self.get_java_path_from_jvm_data(major_version, "System-Installed")
             else:
-                legacy_name = f"Java_{major_version}"
-                Java_path = data.get(str(legacy_name))
-                if Java_path:
-                    print(f"Java version {major_version} not found in Java_HOME.json", color='red')
-                    return None
-                else:
-                    return Java_path
+                Status, JVMPath = self.get_java_path_from_jvm_data(major_version, "Launcher-Installed")
 
-        except FileNotFoundError:
-            print(f"Java_HOME.json file not found", color='red')
+            if not Status:
+                print(f"Java version {major_version} not found in Java_HOME.json", color='red')
+                return None
+            else:
+                print(f"Get Java Path successfully! | Using Java {major_version}!", color='blue')
+                return JVMPath
+
+        except Exception as e:
+            if Exception is FileNotFoundError:
+                print(f"Java_HOME.json file not found", color='red')
+            elif Exception is json.JSONDecodeError:
+                print(f"Error decoding JSON from Java_HOME.json", color='red')
+            else:
+                print("Failed to get Java runtimes path when reading setting :(", color='red')
+                print(f"Error Message : {e}")
+            time.sleep(2)
             return None
-        except json.JSONDecodeError:
-            print(f"Error decoding JSON from Java_HOME.json", color='red')
-            return None
+
 
     def get_java_version_info(self, version_data):
         global major_version
@@ -234,14 +357,16 @@ class DukeCute:
 
     @staticmethod
     def initialize_jvm_config():
-        print("Cleaning JVM config file...")
-        if os.path.exists("data/Java_HOME.json"):
-            os.remove("data/Java_HOME.json")
-            print("JVM config file has been removed.", color='blue')
-            time.sleep(2)
-        else:
-            print("Failed to remove JVM config file. Cause by config file not found.", color='red')
-            time.sleep(2)
+        if os.path.exists(Base.jvm_setting_path):
+            try:
+                os.remove(Base.jvm_setting_path)
+            except PermissionError:
+                return False
+
+        with open(Base.jvm_setting_path, "w") as file:
+            json.dump([], file, indent=4)
+        print("JVM config file has been reset.", color='blue')
+        time.sleep(2)
 
 
 Duke = DukeCute()

@@ -222,7 +222,7 @@ class LauncherManager:
         else:
             LegacyFlag = False
         # Get required Java version path
-        if os.path.isfile('data/Java_HOME.json'):
+        if os.path.isfile(Base.jvm_setting_path):
             print("Found exist Java Path config!", color='blue')
         else:
             print("Can't find exist Java Path config :(", color='red')

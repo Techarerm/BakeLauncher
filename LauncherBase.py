@@ -10,9 +10,9 @@ from modules.print_colorx.print_color import print as print_color
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
 # dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
 # Example = "LB041224" Years: 2024 Month: 12 Date: 04
-dev_version = ""  # If version type is release set it blank
-version_type = "Release"
-major_version = "0.9"
+dev_version = "LG291224"  # If version type is release set it blank
+version_type = "Dev"
+major_version = "0.9.1"
 
 BetaWarningMessage = ("You are running beta version of BakeLauncher.\n"
                       "This is an 'Experimental' version with potential instability.\n"
@@ -119,6 +119,11 @@ RefreshToken = None
 Token = None
 Username = None
 UUID = None
+
+<DukeExplorer>
+PrioUseSystemInstalledJVM = True
+CustomJVMInstallPath = None
+SearchJVMInCustomPath = False
 
 <Create_Instance>
 # Automatic download you want Minecraft version
@@ -312,6 +317,10 @@ class LauncherBase:
         self.DefaultGameScreenWidth = 1280
         self.JVMUsageRamSizeMinLimit = 2048
         self.JVMUsageRamSizeMax = 4096
+        # Duke
+        self.PrioUseSystemInstalledJVM = True
+        self.CustomJVMInstallPath = None
+        self.SearchJVMInCustomPath = False
         # Create Instance stuff
         self.OverwriteJVMIfExist = False
         self.DoNotAskJVMExist = False
@@ -326,6 +335,7 @@ class LauncherBase:
         self.launcher_tmp_session = os.path.join(self.launcher_root_dir, "tmp", "in.session")  # session file
         self.global_config_path = os.path.join(self.launcher_root_dir, "data/config.bakelh.cfg")  # config(global)
         self.account_data_path = os.path.join(self.launcher_root_dir, "data/AccountData.json")
+        self.jvm_setting_path = os.path.join(self.launcher_root_dir, "data/java_home_list.json")
         self.PingServerHostList = ["8.8.8.8", "210.2.4.8", "1.1.1.1"]  # Test internet Connection
         self.launcher_loaded_time = None
         time = datetime.datetime.today()
@@ -476,6 +486,15 @@ class LauncherBase:
                 if "QuickLaunch" in line:
                     self.QuickLaunch = line.split('=')[1].strip().upper() == "TRUE"
 
+                if "PrioUseSystemInstalledJVM" in line:
+                    self.PrioUseSystemInstalledJVM = line.split('=')[1].strip().upper() == "TRUE"
+
+                if "CustomJVMInstallPath" in line:
+                    self.CustomJVMInstallPath = line.split('=')[1].strip().strip('"').strip("'")
+
+                if "SearchJVMInCustomPath" in line:
+                    self.SearchJVMInCustomPath = line.split('=')[1].strip().upper() == "TRUE"
+
                 if "OverwriteJVMIfExist" in line:
                     self.OverwriteJVMIfExist = line.split('=')[1].strip().upper() == "TRUE"
 
@@ -502,7 +521,6 @@ class LauncherBase:
                     try:
                         self.MaxInstancesPerRow = int(MaxInstancesPerRow)
                     except ValueError:
-                        print("ddddd")
                         self.ErrorMessageList.append("MaxInstancesPerRowNotAnInteger")
                         self.MaxInstancesPerRow = 20
 
@@ -565,23 +583,25 @@ class LauncherBase:
                     except ValueError:
                         self.JVMUsageRamSizeMax = 4096
 
+        if self.Debug:
+            if self.DontPrintColor:
+                print_color("Colorful text has been disabled.", tag='Global')
+            if self.DisableClearOutput:
+                print_color("Clear Output has been disabled.", tag='Global')
+            if self.NoList:
+                print_color("Print list Has been disabled.", tag='Global')
+            if self.LauncherWorkDir is not None:
+                if not self.LauncherWorkDir == "None" or Base.LauncherWorkDir == "null":
+                    print_color("Launcher workDir has been set by exist config.", tag='Global')
+            if self.NoInternetConnectionCheck:
+                print_color("Check internet connection has been disabled.", tag='Global')
+                self.NoInternetConnectionCheck = True
+
         if not self.NoPrintConfigInfo:
-            if self.Debug:
-                if self.DontPrintColor:
-                    print_color("Colorful text has been disabled.", tag='Global')
-                if self.DisableClearOutput:
-                    print_color("Clear Output has been disabled.", tag='Global')
-                if self.NoList:
-                    print_color("Print list Has been disabled.", tag='Global')
-                if self.LauncherWorkDir is not None:
-                    if not self.LauncherWorkDir == "None" or Base.LauncherWorkDir == "null":
-                        print_color("Launcher workDir has been set by exist config.", tag='Global')
-                if self.NoInternetConnectionCheck:
-                    print_color("Check internet connection has been disabled.", tag='Global')
-                    self.NoInternetConnectionCheck = True
-                if not isinstance(self.MaxInstancesPerRow, int):
-                    print_color("MaxInstancesPerRow are not a valid number. Setting back to 20...", tag='Global')
-                    self.MaxInstancesPerRow = 20
+            if not isinstance(self.MaxInstancesPerRow, int):
+                print_color("MaxInstancesPerRow are not a valid number. Setting back to 20...", tag='Global')
+                self.MaxInstancesPerRow = 20
+
 
     def get_platform(self, mode):
         # Get "normal" platform name

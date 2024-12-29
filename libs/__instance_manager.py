@@ -189,6 +189,7 @@ class InstanceManager:
         """
         This function will be deleted in the next update.
         """
+        global convert_status, instance_name
 
         def convert_process(instance_name, client_version, version_type, java_major_version, main_class):
             # Convert instance to new structure
@@ -210,6 +211,7 @@ class InstanceManager:
         automatic_convert = kwargs.get('automatic_convert', False)
 
         if not automatic_convert:
+            convert_status = True
             instances_list = os.listdir(Base.launcher_instances_dir)
 
             # Selecting an instance
@@ -287,9 +289,16 @@ class InstanceManager:
                     print(f"Failed to clean up client.jar. Error: {e}", color='red')
 
             version_data = get_version_data(self.CLIENT_VERSION)
-            component, major_version = Duke.get_java_version_info(version_data)
-            main_class = find_main_class(self.name)
-            convert_process(self.name, self.CLIENT_VERSION, version_type, major_version, main_class)
+            if not version_data:
+                print("Failed to get version data. Has your legacy instance has corrupted?.", color='red')
+                convert_status = False
+            else:
+                component, major_version = Duke.get_java_version_info(version_data)
+                main_class = find_main_class(self.name)
+                convert_process(self.name, self.CLIENT_VERSION, version_type, major_version, main_class)
+            if not convert_status:
+                print(f"Failed to convert instance name {self.name}. :(", color='red')
+                time.sleep(3)
 
         else:
             print("This method does not support renaming instances!", color='red')
@@ -305,8 +314,10 @@ class InstanceManager:
                     print(
                         f"Failed to convert all instances to new structure :( Caused by error {instances_list_legacy}",
                         color='red')
-                    return "FailedToConvertInstance"
+                    convert_status = False
+
                 for instance_name in instances_list_legacy:
+                    convert_status = True
                     print(f"Convert instance name {instance_name}...", color='green')
                     instance_path = os.path.join(Base.launcher_instances_dir, instance_name)
                     legacy_libraries_path = os.path.join(instance_path, "libraries")
@@ -338,9 +349,18 @@ class InstanceManager:
 
                     version_type = instance.get_instance_type(instance_name)
                     version_data = get_version_data(instance_name)
-                    component, major_version = Duke.get_java_version_info(version_data)
-                    main_class = find_main_class(instance_name)
-                    convert_process(instance_name, instance_name, version_type, major_version, main_class)
+                    if not version_data:
+                        print("Failed to get version data. Has your legacy instance has corrupted?.", color='red')
+                        convert_status = False
+                    else:
+                        component, major_version = Duke.get_java_version_info(version_data)
+                        main_class = find_main_class(instance_name)
+                        convert_process(instance_name, instance_name, version_type, major_version, main_class)
+                    if not convert_status:
+                        print(f"Failed to convert instance name {instance_name}. :(", color='red')
+                print("Convert process finished!", color='green')
+                time.sleep(4)
+
             except Exception as e:
                 print(f"Error Message {e}", color='red')
 
