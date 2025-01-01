@@ -10,7 +10,7 @@ from modules.print_colorx.print_color import print as print_color
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
 # dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
 # Example = "LB041224" Years: 2024 Month: 12 Date: 04
-dev_version = "LG291224"  # If version type is release set it blank
+dev_version = "AC010125"  # If version type is release set it blank
 version_type = "Dev"
 major_version = "0.9.1"
 
@@ -601,7 +601,6 @@ class LauncherBase:
             if not isinstance(self.MaxInstancesPerRow, int):
                 print_color("MaxInstancesPerRow are not a valid number. Setting back to 20...", tag='Global')
                 self.MaxInstancesPerRow = 20
-
 
     def get_platform(self, mode):
         # Get "normal" platform name

@@ -209,7 +209,7 @@ class AssetsGrabber:
         os.chdir(instance_dir)
         # If .minecraft does not exist, create it.
         if os.path.exists(".minecraft"):
-            print(".minecraft already created!", color='green')
+            print(".minecraft already created!", color='lightgreen')
         else:
             print("Can't find .minecraft folder! Creating...", color='yellow')
             os.makedirs(".minecraft", exist_ok=True)
@@ -218,7 +218,7 @@ class AssetsGrabber:
         os.chdir(game_folder)
         # If assets does not exist, create it.
         if os.path.exists("assets"):
-            print("Assets already created!", color='green')
+            print("Assets already created!", color='lightgreen')
         else:
             print("Can't find assets folder! Creating...", color='yellow')
             os.makedirs("assets", exist_ok=True)
@@ -227,7 +227,7 @@ class AssetsGrabber:
         os.chdir("assets")
         # If indexes does not exist, create it...
         if os.path.exists("indexes"):
-            print("Indexes already created!", color='green')
+            print("Indexes already created!", color='lightgreen')
         else:
             print("Can't find indexes folder! Creating...", color='yellow')
             os.makedirs("indexes", exist_ok=True)
@@ -249,7 +249,7 @@ class AssetsGrabber:
             version_data = get_version_data(version_id)
             self.get_assets_index_data(version_data, instance_dir)
 
-        # Read assets index version(prepare to check if this version of minecraft are using old assets?)
+        # Read assets index version(prepare to check if these versions of minecraft are using old assets?)
         try:
             with open(assets_index_json, "r") as file:
                 data = json.load(file)
@@ -258,7 +258,7 @@ class AssetsGrabber:
             print("Failed to get assets index! Trying to recreate it again...", color='red')
 
         if assetsIndex == "pre-1.6" or assetsIndex == "legacy":
-            print("This version require legacy assets.", color='green', tag="DEBUG")
+            print("This version require legacy assets.", color='lightyellow', tag="DEBUG")
             print("Downloading legacy assets...", color='green')
             assets_dir = os.path.join(game_folder, "assets")
             if assetsIndex == "pre-1.6":

@@ -146,7 +146,7 @@ class InstanceManager:
             return False, Message, None
 
         while True:
-            print(f"{Message}", color='blue')
+            print(f"{Message}", color='lightblue')
             instance_name = str(input(":"))
             if instance_name.upper() == "EXIT":
                 return "EXIT", None, None

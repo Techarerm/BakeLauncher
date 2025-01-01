@@ -1,6 +1,7 @@
 import os
 import tempfile
 import subprocess
+import threading
 import time
 import multiprocessing
 from LauncherBase import Base, print_custom as print
@@ -120,9 +121,8 @@ def launch_process(launch_command):
 
 def create_new_client_thread(launch_command):
     try:
-        client = multiprocessing.Process(target=launch_process
-                                         , args=(launch_command,))
-        client.start()
+        client_thread = threading.Thread(args=(launch_command,), target=launch_process)
+        client_thread.start()
     except Exception as e:
         print(f"Failed to create launch process. Cause: {e}")
 
@@ -152,8 +152,8 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
         f'-Djava.library.path="{NativesPath}" -cp "{libraries_paths_strings}" '
         f'{MainClass} {GameArgs} {custom_game_args}'
     )
-    # if Base.Debug:
-    # print(args)
+    if Base.Debug:
+        print(args)
 
     green = "\033[32m"
     blue = "\033[34m"
@@ -249,8 +249,8 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
         if Base.Platform == "Windows":
             subprocess.run(f"{JVMExecutable} {minecraft_command_one_thread}")
             print("Minecraft has stopped running! (Thread terminated)", color='green')
-            input("Press any key to continue. . .")
+            EXIT = input("Press any key to continue. . .")
         else:
             os.system(minecraft_command)
             print("Minecraft has stopped running! (Thread terminated)", color='green')
-            input("Press any key to continue. . .")
+            EXIT = input("Press any key to continue. . .")

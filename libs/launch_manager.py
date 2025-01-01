@@ -24,6 +24,7 @@ class LauncherManager:
         (About argument "-Djava.library.path=", check launch_client for more information :)
         """
         without_ram_args = kwargs.get("without_ram_args", False)
+        append_args = kwargs.get("append_args", False)
 
         # Grabbing args list(Added saved arguments process)
         if os.path.exists("launch.data"):
@@ -83,6 +84,9 @@ class LauncherManager:
                     value = jvm_entry.get("value", [])
                     if isinstance(value, list) and "-XstartOnFirstThread" in value:
                         OtherArgs += "-XstartOnFirstThread "
+
+        if append_args:
+            OtherArgs += f" {append_args}"
 
         if without_ram_args:
             return OtherArgs
@@ -149,7 +153,7 @@ class LauncherManager:
         return minecraft_args
 
     def launch_game(self, **kwargs):
-        global JVMArgs, CustomRAMArgs, JavaPath, LegacyFlag, main_class
+        global JVMArgs, CustomRAMArgs, JavaPath, LegacyFlag, main_class, append_jvm_args
         QuickLaunch = kwargs.get("QuickLaunch", False)
 
         # Check folder "versions" are available in root (To avoid some user forgot to install)
@@ -395,6 +399,10 @@ class LauncherManager:
 
             ModLoaderClass = instance.read_custom_config(instance_custom_config, "ModLoaderClass")
 
+            ModLoaderGameArgs = instance.read_custom_config(instance_custom_config, "ModLoaderGameArgs")
+
+            ModLoaderJVMArgs = instance.read_custom_config(instance_custom_config, "ModLoaderJVMArgs")
+
             # Check if CustomJVMArgs(or CustomGameArgs) is None or has a length of 0 (ignoring spaces)
             if CustomJVMArgs is None or len(CustomJVMArgs.strip()) == 0:
                 # print("CustomJVMArgs is empty or not provided, ignoring...", color='yellow')
@@ -412,6 +420,25 @@ class LauncherManager:
                 print("Replacing Main Class to Mod Loader Class...", color='green')
                 main_class = ModLoaderClass
 
+            if ModLoaderGameArgs is None or len(ModLoaderGameArgs.strip()) == 0:
+                # print("ModLoaderGameArgs is empty or not provided, ignoring...", color='yellow')
+                ModLoaderGameArgs = None  # Replace Custom Args to a spaces(if is empty)
+            else:
+                print(f"Adding exist ModLoaderGameArgs data ( {ModLoaderGameArgs} ) to launch-chain...", color='green')
+                if CustomJVMArgs is None:
+                    CustomGameArgs = ModLoaderGameArgs
+                else:
+                    CustomGameArgs += f" {ModLoaderGameArgs}"
+
+            if ModLoaderJVMArgs is None or len(ModLoaderJVMArgs.strip()) == 0:
+                # print("ModLoaderJVMArgs is empty or not provided, ignoring...", color='yellow')
+                ModLoaderJVMArgs = None  # Replace Custom Args to a spaces(if is empty)
+            else:
+                print(f"Adding exist ModLoaderJVMArgs data ( {ModLoaderJVMArgs} ) to launch-chain...", color='green')
+                if CustomJVMArgs is None:
+                    CustomJVMArgs = ModLoaderJVMArgs
+                else:
+                    CustomJVMArgs += f" {ModLoaderJVMArgs}"
         else:
             CustomGameArgs = " "
             CustomJVMArgs = None

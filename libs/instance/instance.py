@@ -146,7 +146,9 @@ class class_instance:
         CustomGameArgs = 
         InjectJARFile = 
         InjectJARPath = 
-
+        ModLoaderGameArgs = 
+        ModLoaderJVMArgs = 
+        
         """)
         if overwrite:
             if os.path.exists(config_file_path):
@@ -173,39 +175,55 @@ class class_instance:
         for line in lines:
             line = line.strip()
             if item in line and '=' in line:
-                data = line.split('=')[1].strip()
+                data = line.split('=', 1)[1].strip()
                 return data
 
         return None
 
     @staticmethod
-    def write_custom_config(custom_config_path, item, data):
-        global custom_item
-        item = str(item)
-        if item.lower() == "jvmargs" or item.lower() == "customjvmargs":
-            custom_item = "CustomJVMArgs"
-        elif item.lower() == "gameargs" or item.lower() == "customgameargs":
-            custom_item = "CustomGameArgs"
-        elif item.lower() == "injectjarpath":
-            custom_item = "InjectJARPath"
-        elif item.lower() == "modloderclass":
-            custom_item = "ModLoaderClass"
-        elif item.lower() == "memoryjvmargs":
-            custom_item = "MemoryJVMArgs"
+    def write_custom_config(custom_config_path, item, data, **kwargs):
+        # Define the mapping of items to their corresponding config keys
+        item_map = {
+            "jvmargs": "CustomJVMArgs",
+            "customjvmargs": "CustomJVMArgs",
+            "gameargs": "CustomGameArgs",
+            "customgameargs": "CustomGameArgs",
+            "injectjarpath": "InjectJARPath",
+            "modloaderclass": "ModLoaderClass",
+            "memoryjvmargs": "MemoryJVMArgs",
+            "modloadergameargs": "ModLoaderGameArgs",
+            "modloaderjvmargs": "ModLoaderJVMArgs",
+        }
 
-        with open(custom_config_path, 'r') as file:
-            lines = file.readlines()
+        # Normalize item to lowercase and map to config key
+        custom_item = item_map.get(item.lower())
+        if not custom_item:
+            raise ValueError(f"Invalid item: {item}")
+
+        try:
+            with open(custom_config_path, 'r') as file:
+                lines = file.readlines()
+
+            found = False
             for i in range(len(lines)):
                 if custom_item in lines[i]:
-                    # Use the new or existing account ID
                     lines[i] = f'{custom_item} = {data}\n'
                     found = True
-        with open(custom_config_path, 'w') as file:
-            file.writelines(lines)
-        if found:
-            return True
-        else:
-            return False
+                    break
+
+            # If not found and write_new_if_not_found is True, add a new entry
+            write_new_if_not_found = kwargs.get('write_new_if_not_found', False)
+            if not found and write_new_if_not_found:
+                lines.append(f'{custom_item} = {data}\n')
+
+            with open(custom_config_path, 'w') as file:
+                file.writelines(lines)
+
+            return found
+        except FileNotFoundError:
+            raise FileNotFoundError(f"The file {custom_config_path} does not exist.")
+        except Exception as e:
+            raise RuntimeError(f"An error occurred: {e}")
 
     @staticmethod
     def write_instance_info(item_name, new_data, instance_info_path):

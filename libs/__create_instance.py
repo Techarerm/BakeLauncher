@@ -255,7 +255,7 @@ class Create_Instance:
         client_dest = os.path.join(version_dir, ".minecraft", 'libraries', 'net', 'minecraft', minecraft_version,
                                    "client.jar")
 
-        print(f"Downloading client.jar to {client_dest}...", color='green')
+        print(f"Downloading client.jar to {client_dest}...")
         download_file(client_url, client_dest)
 
     def download_libraries(self, version_data, install_dir):
@@ -306,7 +306,7 @@ class Create_Instance:
 
         # Download natives(Separated from download is for other functions can easily call it)
         multi_thread_download(download_queue, "libraries")
-        print("Downloading natives...", color='green')
+        print("Downloading natives...", color='lightgreen')
         time.sleep(1)
         self.download_natives(libraries, libraries_dir)
 
@@ -512,10 +512,10 @@ class Create_Instance:
         version_data = get_version_data(version_id)
         if not without_download_client:
             # Download game file( libraries, .jar files...)
-            print("Downloading client...", color='blue')
+            print("Downloading client...", color='lightblue')
             self.download_client(version_data, version_id, install_dir)
 
-        print("Downloading libraries...", color='blue')
+        print("Downloading libraries...", color='lightblue')
         self.download_libraries(version_data, install_dir)
         self.mac_os_libraries_bug_fix(install_dir)
         # Delay time to make old output don't print with new output
@@ -622,7 +622,7 @@ class Create_Instance:
 
         while True:
             # Prompt for instance name
-            print("Give a name for this instance (or type 'EXIT' to cancel):", end='', color='blue')
+            print("Give a name for this instance (or type 'EXIT' to cancel):", end='', color='lightblue')
             name = input(":").strip()
 
             if name.upper() == "EXIT":
@@ -663,7 +663,7 @@ class Create_Instance:
                     print("Please choose a different name.", color='red')
                     continue
 
-            print(f'Creating instance at {instance_path}', color='green')
+            print(f'Creating instance at {instance_path}', color='lightgreen')
 
             # Avoid macOS hide game folder
             game_folder = os.path.join(instance_path, ".minecraft")

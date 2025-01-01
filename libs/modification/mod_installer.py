@@ -1,5 +1,7 @@
 import json
+import lzma
 import os
+import re
 import shutil
 import subprocess
 import requests
@@ -7,7 +9,6 @@ import xml.etree.ElementTree as ET
 import time
 from LauncherBase import Base, print_custom as print
 from libs.__instance_manager import instance_manager
-from libs.__duke_explorer import Duke
 from libs.Utils.utils import download_file, multi_thread_download, extract_zip
 from libs.Utils.libraries import libraries_check
 from libs.instance.instance import instance
@@ -64,23 +65,26 @@ class ModInstaller:
                                          f"intermediary-{client_version}.jar")
         download_file(intermediary_url, intermediary_dest)
 
-    def download_forge_libraries(self, version_data_path, libraries_path):
-        forge_maven_url = "https://files.minecraftforge.net/maven/"
+    @staticmethod
+    def download_forge_libraries(version_data_path, libraries_path):
+        forge_maven_url = "https://maven.minecraftforge.net/"
         download_queue = []
 
         with open(version_data_path, "r") as file:
             data = json.load(file)
 
             for library in data["libraries"]:
-                # Extract the 'name' key which is in the format 'group:artifact:version'
-                library_name = library["name"]
+                # Get download url and path from version data
+                if "forge" in library["name"]:
+                    continue
 
-                # Split the 'name' into group_id, artifact_id, and version
-                group_id, artifact_id, version = library_name.split(":")
-
-                # Construct the file path
-                path = f"{group_id.replace('.', '/')}/{artifact_id}/{version}/{artifact_id}-{version}.jar"
-                url = forge_maven_url + path
+                download_url = library["downloads"]["artifact"]["url"]
+                path = library["downloads"]["artifact"]["path"]
+                if not download_url:
+                    # If download_url is None, add minecraft_libraries_url to the header of the url
+                    # This method only working when the library is from mojang.
+                    # If download_url is not None, using original download url (forge maven)
+                    download_url = forge_maven_url + path
 
                 destination = os.path.join(libraries_path, path)
 
@@ -88,10 +92,10 @@ class ModInstaller:
                 os.makedirs(os.path.dirname(destination), exist_ok=True)
 
                 forge_lib_url_and_dest = [
-                    (url, destination)
+                    (download_url, destination)
                 ]
                 download_queue.append(forge_lib_url_and_dest)
-        multi_thread_download(download_queue, "Forge Libraries")
+        multi_thread_download(download_queue, "Forge libraries")
 
     def install_fabric_loader(self, instance_path):
         def get_support_fabric_loader_list(client_version):
@@ -170,8 +174,8 @@ class ModInstaller:
         instance_cfg = os.path.join(instance_path, "instance.bakelh.cfg")
         instance.create_custom_config(instance_cfg)
 
-        instance.write_custom_config(instance_cfg, "modloderclass"
-                                             , "net.fabricmc.loader.impl.launch.knot.KnotClient")
+        instance.write_custom_config(instance_cfg, "ModLoaderClass"
+                                     , "net.fabricmc.loader.impl.launch.knot.KnotClient")
         instance.write_instance_info("IsVanilla", False, instance_info)
         instance.write_instance_info("Modified", True, instance_info)
         instance.write_instance_info("ModLoaderName", "Fabric", instance_info)
@@ -181,27 +185,28 @@ class ModInstaller:
         print("Install Fabric loader successfully!", color='blue')
         time.sleep(3)
 
+    def fetch_support_forge_versions(self, client_version):
+        print("Fetching Forge metadata...", color='lightgreen')
+
+        # Fetch metadata(xml)
+        response = requests.get(self.ForgeMetadataURL)
+        if response.status_code != 200:
+            print(f"Failed to fetch Forge metadata. Status code: {response.status_code}", color='red')
+            return False, None
+        root = ET.fromstring(response.content)
+        versions = root.find("./versioning/versions")
+        all_versions = [version.text for version in versions.findall("version")]
+
+        if client_version:
+            filtered_versions = [
+                v for v in all_versions if v.startswith(client_version)
+            ]
+            return True, filtered_versions
+        return False, None
+
     def install_forge_loader(self, instance_path):
-        def fetch_support_forge_versions(client_version):
-            print("Fetching Forge metadata...", color='lightgreen')
-
-            # Fetch metadata(xml)
-            response = requests.get(self.ForgeMetadataURL)
-            if response.status_code != 200:
-                print(f"Failed to fetch Forge metadata. Status code: {response.status_code}", color='red')
-                return []
-            root = ET.fromstring(response.content)
-            versions = root.find("./versioning/versions")
-            all_versions = [version.text for version in versions.findall("version")]
-
-            if client_version:
-                filtered_versions = [
-                    v for v in all_versions if v.startswith(client_version)
-                ]
-                return filtered_versions
-            return None
-
         # Setting some variable
+        global result, full_game_args, full_jvm_args, final_args
         instance_libraries = os.path.join(instance_path, ".minecraft", "libraries")
         os.chdir(instance_path)
 
@@ -213,6 +218,9 @@ class ModInstaller:
                 print(f"Failed to move libraries to .minecraft folder. Cause by error {e}", color='red')
         os.chdir(Base.launcher_root_dir)
         instance_info = os.path.join(instance_path, "instance.bakelh.ini")
+        instance_custom_config = os.path.join(instance_path, "instance.bakelh.cfg")
+        if not os.path.exists(instance_custom_config):
+            instance.create_custom_config(instance_custom_config)
         Status, client_version = instance.get_instance_info(instance_info, info_name="client_version")
         game_dir = os.path.join(instance_path, ".minecraft")
         if not os.path.exists(game_dir):
@@ -223,12 +231,15 @@ class ModInstaller:
             return False
 
         # Fetch support forge version
-        forge_versions = fetch_support_forge_versions(client_version)
-        if len(forge_versions) == 0:
+        Status, forge_versions = self.fetch_support_forge_versions(client_version)
+        if not Status:
             print(f"Can't Minecraft version {client_version} support Forge version :(", color='red')
             time.sleep(3)
             return False
-        loader_version = self.select_loader_version("Forge", forge_versions, client_version)
+
+        Status, loader_version = self.select_loader_version("Forge", forge_versions, client_version)
+        if not Status:
+            return
 
         print("Downloading forge installer...", color='green')
         ForgeInstallerURL = (f"https://maven.minecraftforge.net/net/minecraftforge/forge/"
@@ -242,38 +253,105 @@ class ModInstaller:
             print("Downloaded forge installer successfully!", color='green')
         else:
             print("Failed to download forge installer :(", color='red')
+            time.sleep(3)
             return False
 
         print("Preparing to install Forge...", color='green')
-        print("Searching exist java config...", color='green')
-        JavaPath = Duke.java_version_check("", JAVA8=True)
-        print("Checking installer type...", color='cyan')
-        ExecutableName = "java.exe" if Base.Platform == "Windows" else "java"
-        JavaExecutable = os.path.join(JavaPath, ExecutableName)
-        try:
-            result = subprocess.run(
-                [JavaExecutable, "-jar", ForgeInstallerDest, "-help"], stderr=subprocess.PIPE, stdout=subprocess.PIPE,
-                text=True)
-            output = result.stderr
-            SupportInCLI = any("installClient" in line for line in output.splitlines())
+        print("Unzipping forge installer...", color='green')
+        unzip_dest = os.path.join(Base.launcher_tmp_dir, "forge_installer_unzipped")
+        if os.path.exists(unzip_dest):
+            shutil.rmtree(unzip_dest)
 
-            if SupportInCLI:
-                print("Install forge installer using modern method...", color='green')
-                subprocess.run(
-                    [JavaExecutable, "-jar", ForgeInstallerDest, "--installClient", "--installDir", game_dir],
-                    check=True
-                )
-            else:
-                print("Install forge installer using legacy method...", color='green')
-                subprocess.run([JavaExecutable, "-jar", ForgeInstallerDest, "--extract"])
-                ForgeInstallerUniversal = os.path.join(Base.launcher_tmp_dir, f"forge-{loader_version}-universal.jar")
-                if os.path.exists(f"{Base.launcher_tmp_dir}/UniversalTmp"):
-                    shutil.rmtree(f"{Base.launcher_tmp_dir}/UniversalTmp")
-                extract_zip(ForgeInstallerUniversal, f"{Base.launcher_tmp_dir}/UniversalTmp")
-                forge_version_data = os.path.join(Base.launcher_tmp_dir, "UniversalTmp", "version.json")
-                self.download_forge_libraries(forge_version_data, instance_libraries)
-        except subprocess.CalledProcessError as e:
-            print(f"An error occurred: {e}")
+        extract_zip(ForgeInstallerDest, unzip_dest)
+
+        version_json_path = os.path.join(unzip_dest, "version.json")
+        if not os.path.exists(version_json_path):
+            print("Could not find version.json. Is it unzip correctly?", color='red')
+            time.sleep(3)
+            return False
+
+        print("Downloading depends libraries...", color='green')
+        self.download_forge_libraries(version_json_path, instance_libraries)
+
+        print("Moving forge library...", color='green')
+        forge_client_core_lzma = os.path.join(Base.launcher_tmp_dir, unzip_dest, "data", "client.lzma")
+        forge_client_core = os.path.join(instance_libraries, "net", "minecraftforge", "forge", loader_version,
+                                         f"forge-{loader_version}-client.jar")
+        if not os.path.exists(forge_client_core_lzma):
+            print("Could not find client.lzma. ignoring...", color='yellow')
+        else:
+            with lzma.open(forge_client_core_lzma) as f_in:
+                with open(forge_client_core, "wb") as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+
+        new_path = f"net/minecraftforge/forge/{loader_version}/forge-{loader_version}.jar"
+        forge_library_path = os.path.join(Base.launcher_tmp_dir, unzip_dest, "maven", "net", "minecraftforge", "forge",
+                                f"{loader_version}", f"forge-{loader_version}.jar")
+        final_path = os.path.join(instance_libraries, new_path)
+        final_dir = os.path.dirname(final_path)
+        if not os.path.exists(final_dir):
+            os.makedirs(final_dir)
+
+        try:
+            shutil.move(forge_library_path, final_path)
+        except FileNotFoundError:
+            print("Failed to move forge library. Is it download correctly?", color='red')
+            time.sleep(3)
+            return False
+        except Exception as e:
+            print(f"Failed to move forge library. Cause by a unknown error {e}", color='red')
+            return False
+
+        print("Confining custom arguments...", color='green')
+        with open(version_json_path, "r") as file:
+            data = json.load(file)
+
+        loader_main_class = data.get("mainClass", None)
+        if not loader_main_class:
+            print("Failed to get mod loader class :(", color='red')
+            time.sleep(3)
+            return False
+        else:
+            instance.write_custom_config(instance_custom_config, "ModLoaderClass", loader_main_class)
+
+        minecraft_Arguments = data.get("minecraftArguments", None)
+        if minecraft_Arguments:
+            match = re.search(r'--tweakClass (.*)', minecraft_Arguments)
+
+            if match:
+                result = match.group(1)
+                final_args = f" --tweakClass {result}"
+                print(f"Adding these arguments ( {final_args} ) to custom config...", color='green')
+            instance.write_custom_config(instance_custom_config, "ModLoaderGameArgs", final_args)
+        else:
+            try:
+                game_args = data.get('arguments', {}).get('game', None)
+                jvm_args = data.get('arguments', {}).get('jvm', None)
+                full_game_args = ""
+                full_jvm_args = ""
+                for argument in game_args:
+                    full_game_args += f" {argument}"
+
+                for argument in jvm_args:
+                    full_jvm_args += f" {argument}"
+                print(f"ModLoaderGameArgs : {full_game_args}")
+                print(f"ModLoaderJVMArgs : {full_jvm_args}")
+                instance.write_custom_config(instance_custom_config, "ModLoaderGameArgs", full_game_args, write_new_if_not_found=True)
+                instance.write_custom_config(instance_custom_config, "ModLoaderJvmArgs", full_jvm_args, write_new_if_not_found=True)
+            except KeyError:
+                print("Failed to confining custom arguments :(", color='red')
+            except Exception as e:
+                print(f"Failed to confining custom arguments : {e}", color='red')
+
+
+        instance.write_instance_info("IsVanilla", False, instance_info)
+        instance.write_instance_info("Modified", True, instance_info)
+        instance.write_instance_info("ModLoaderName", "Forge", instance_info)
+        instance.write_instance_info("ModLoaderVersion", loader_version, instance_info)
+        # print("Checking duplicates...", color='green')
+        # libraries_check(instance_libraries)
+        print("Forge install process finished!", color='green')
+        time.sleep(2)
 
     @staticmethod
     def select_loader_version(loader_name, loader_versions, client_version):
@@ -314,7 +392,7 @@ class ModInstaller:
         while True:
             print("Mode Loader List:", color='blue')
             print("1: Fabric", color='yellow')
-            print("2: Forge(Not Working)", color='darkgray')
+            print("2: Forge", color='blue')
             print("Which loader is you want to install?")
             user_input = str(input(":"))
 
@@ -322,8 +400,7 @@ class ModInstaller:
                 self.install_fabric_loader(instance_path)
                 return True
             if user_input == "2":
-                # self.install_forge_loader(instance_path)
-                print("The install forge method has been discontinued in this version.", color='yellow')
+                self.install_forge_loader(instance_path)
                 time.sleep(5)
                 return True
             elif user_input.upper() == "EXIT":
