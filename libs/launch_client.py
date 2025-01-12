@@ -148,13 +148,15 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
 
     # Debug jvm args
     args = (
-        f'{cleaned_jvm_path} {JVMExecutable} {JVMArgs} '
+        f'{JVMExecutable} {JVMArgs} '
         f'-Djava.library.path="{NativesPath}" -cp "{libraries_paths_strings}" '
         f'{MainClass} {GameArgs} {custom_game_args}'
     )
+    """
     if Base.Debug:
+        print(libraries_paths_strings)
         print(args)
-
+    """
     green = "\033[32m"
     blue = "\033[34m"
     light_yellow = "\033[93m"

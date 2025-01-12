@@ -10,7 +10,7 @@ from modules.print_colorx.print_color import print as print_color
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
 # dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
 # Example = "LB041224" Years: 2024 Month: 12 Date: 04
-dev_version = "AC010125"  # If version type is release set it blank
+dev_version = "AG120125"  # If version type is release set it blank
 version_type = "Dev"
 major_version = "0.9.1"
 
@@ -336,6 +336,7 @@ class LauncherBase:
         self.global_config_path = os.path.join(self.launcher_root_dir, "data/config.bakelh.cfg")  # config(global)
         self.account_data_path = os.path.join(self.launcher_root_dir, "data/AccountData.json")
         self.jvm_setting_path = os.path.join(self.launcher_root_dir, "data/java_home_list.json")
+        self.assets_dir = os.path.join(self.launcher_root_dir, "assets")
         self.PingServerHostList = ["8.8.8.8", "210.2.4.8", "1.1.1.1"]  # Test internet Connection
         self.launcher_loaded_time = None
         time = datetime.datetime.today()
@@ -393,7 +394,7 @@ class LauncherBase:
             return False, Message
 
         # Create tmp folder
-        # In pre-0.9, I'm trying to add temp folder for some functions(like mod loader installer).
+        # In pre-0.9, I'm trying to add temp folder for some functions (like mod loader installer).
         # But I have no luck when feature "add check tmp folder status" :(
         # Check if any other launchers are already running...
         if not os.path.exists(self.launcher_tmp_dir):
@@ -407,13 +408,14 @@ class LauncherBase:
         # time.sleep(2)
 
         # Clean up tmp folder
+        """
         if len(Base.launcher_tmp_dir) != 0:
             try:
                 shutil.rmtree(self.launcher_tmp_dir)
             except Exception as e:
                 print(f"Failed to clean tmp folder. Cause by error {e}")
             os.makedirs(self.launcher_tmp_dir, exist_ok=True)
-
+        """
         # Check config file status
         if os.path.exists("data/config.bakelh.cfg"):
             with open("data/config.bakelh.cfg", "r", encoding="utf-8") as file:

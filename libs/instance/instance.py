@@ -105,7 +105,7 @@ class class_instance:
 
             # Instance Structure
             game_folder = ".minecraft"  # Path to the main game folder
-            assets_folder = ".minecraft/assets"  # Path to the assets folder
+            assets_folder = "$[LAUNCHER_LOCAL_ASSETS_DIR]"  # Path to the assets folder
 
             # Modify Info
             IsVanilla = {is_vanilla}
@@ -260,15 +260,15 @@ class class_instance:
         """
         Args list:
         instance_info_path: Path to the instance info file.
-        info_name: Get selected instance information data(not found return False and None)
+        info_name: Get selected instance information data (not found return False and None)
         # If info_name is not found return True, {All available data}...
-        ignore_not_found: Legacy stuff(don't print instance info file not found error)
+        ignore_not_found: Legacy stuff (don't print instance info file not found error)
         """
 
         info_name = kwargs.get('info_name', None)
         ignore_not_found = kwargs.get('ignore_not_found')
 
-        #
+        # instance.bakelh.ini file not found (instance types might be legacy).
         if not os.path.exists(instance_info_path):
             return False, None
 

@@ -1,3 +1,4 @@
+import hashlib
 import sys
 import zipfile
 import requests
@@ -182,7 +183,20 @@ def write_global_config(item_name, new_item_data):
     else:
         return False
 
+
 def find_main_class(client_version):
     version_data = get_version_data(client_version)
     main_class = version_data.get("mainClass")
     return main_class
+
+
+def verify_checksum(file_path, expected_sha1):
+    sha1 = hashlib.sha1()
+    with open(file_path, "rb") as f:
+        while True:
+            data = f.read(65536)  # Read in 64KB chunks
+            if not data:
+                break
+            sha1.update(data)
+    file_sha1 = sha1.hexdigest()
+    return file_sha1 == expected_sha1

@@ -1,10 +1,11 @@
 import os
 import json
+import time
 import requests
 from tqdm import tqdm
-from LauncherBase import Base, print_custom as print
+from LauncherBase import Base, print_custom as print, ClearOutput
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from libs.Utils.utils import get_version_data
+from libs.Utils.utils import get_version_data, verify_checksum
 
 
 class AssetsGrabber:
@@ -70,7 +71,7 @@ class AssetsGrabber:
         except FileNotFoundError:
             print("Failed to get assetsIndex version. Cause by FileNotFoundError.", color='red')
 
-    def download_asset_file(self, asset_name, asset_info, objects_dir):
+    def download_asset_file(self, asset_name, asset_info, objects_dir, hash):
 
         asset_hash = asset_info['hash']
         hash_prefix = asset_hash[:2]
@@ -81,6 +82,10 @@ class AssetsGrabber:
 
         # Create the directory if it doesn't exist
         os.makedirs(os.path.dirname(asset_save_path), exist_ok=True)
+
+        # Check if the file already exists and verify checksum
+        if os.path.exists(asset_save_path) and verify_checksum(asset_save_path, hash):
+            return
 
         # Download and save the asset file
         try:
@@ -93,10 +98,14 @@ class AssetsGrabber:
                         f.write(chunk)
             if Base.UsingLegacyDownloadOutput:
                 print(f"Downloaded: {asset_name} -> {asset_hash}")
+
+            if not verify_checksum(asset_save_path, hash):
+                print(f"WARNING: Assets name '{asset_hash}' checksum mismatch.", color='yellow')
+                os.remove(asset_save_path)
         except Exception as e:
             print(f"Failed to download: {asset_name}. Error: {e}")
 
-    def download_legacy_assets(self, asset_name, asset_info, assets_dir):
+    def download_legacy_assets(self, asset_name, asset_info, assets_dir, hash):
         hash_value = asset_info['hash']
         hash_prefix = hash_value[:2]
         download_url = f'https://resources.download.minecraft.net/{hash_prefix}/{hash_value}'
@@ -104,6 +113,10 @@ class AssetsGrabber:
 
         # Create the directory if it doesn't exist
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+        # Check if the file already exists and verify checksum
+        if os.path.exists(file_path) and verify_checksum(file_path, hash):
+            return
 
         # Download the asset if it doesn't already exist
         if not os.path.exists(file_path):
@@ -116,12 +129,16 @@ class AssetsGrabber:
             else:
                 print(f"Failed to download {asset_name}: Status code {response.status_code}")
 
+            if not verify_checksum(file_path, hash):
+                print(f"WARNING: Assets name '{file_path}' checksum mismatch.", color='yellow')
+                os.remove(file_path)
+
     def download_assets_plus(self, asset_index, objects_dir, mode):
         if mode == "ModernAssets":
             assets = asset_index['objects']
             total_assets = len(assets)
             with ThreadPoolExecutor(max_workers=10) as executor:
-                futures = {executor.submit(self.download_asset_file, asset_name, asset_info, objects_dir): asset_name
+                futures = {executor.submit(self.download_asset_file, asset_name, asset_info, objects_dir, asset_info["hash"]): asset_name
                            for asset_name, asset_info in assets.items()}
                 if Base.UsingLegacyDownloadOutput:
                     for future in as_completed(futures):
@@ -131,7 +148,7 @@ class AssetsGrabber:
                         except Exception as e:
                             print(f"Error downloading {asset_name}: {e}", color='red')
                 else:
-                    with tqdm(total=total_assets, desc="Downloading Assets", colour='cyan') as pbar:
+                    with tqdm(total=total_assets, desc="Downloading assets", colour='cyan') as pbar:
                         for future in as_completed(futures):
                             asset_name = futures[future]
                             try:
@@ -154,7 +171,7 @@ class AssetsGrabber:
             # Use ThreadPoolExecutor to download concurrently
             with ThreadPoolExecutor(max_workers=10) as executor:
                 futures = {
-                    executor.submit(self.download_legacy_assets, asset_name, asset_info, objects_dir): asset_name
+                    executor.submit(self.download_legacy_assets, asset_name, asset_info, objects_dir, asset_info["hash"]): asset_name
                     for asset_name, asset_info in objects.items()
                 }
                 if Base.UsingLegacyDownloadOutput:
@@ -165,7 +182,7 @@ class AssetsGrabber:
                         except Exception as e:
                             print(f"Error downloading {asset_name}: {e}", color='red')
                 else:
-                    with tqdm(total=total_assets, desc="Downloading Legacy Assets", colour='cyan') as pbar:
+                    with tqdm(total=total_assets, desc="Downloading legacy assets", colour='cyan') as pbar:
                         for future in as_completed(futures):
                             asset_name = futures[future]
                             try:
@@ -176,23 +193,34 @@ class AssetsGrabber:
 
             print("Legacy assets have been downloaded :)", color='blue')
 
-    @staticmethod
-    def get_assets_dir(version_id):
-        legacy_assets_dir = os.path.join("assets", "virtual", "legacy")
+    def get_assets_dir(self, minecraft_version, instance_dir):
+        legacy_assets_dir = os.path.join(Base.assets_dir, "virtual", "legacy")
         try:
             with open("assets_index.json", "r") as file:
                 data = json.load(file)
                 AssetsIndex = data['id']
-                if AssetsIndex == "pre-1.6" or AssetsIndex == "legacy":
-                    return legacy_assets_dir
-                else:
-                    return "assets"
         except FileNotFoundError:
-            print("Failed to get assets dir :( Try using the second method...", color='red')
-            if version_id == "pre-1.6" or version_id == "legacy":
-                return legacy_assets_dir
+            print("Could not find assets_index.json. Using recommended assets dir...", color='yellow')
+            return Base.assets_dir
+
+        assets_index_version_json = os.path.join(Base.assets_dir, "indexes", f"{AssetsIndex}.json")
+        if not os.path.exists(assets_index_version_json):
+            print("Could not find assets version file.", color='yellow')
+            print("Do you want to re-download the assets file?", color='green')
+            user_input = str(input("Y/N : ")).lower()
+            if user_input.strip("") == "y":
+                ClearOutput()
+                print("Re-downloading assets file...", color='purple')
+                self.assets_file_grabber(minecraft_version, instance_dir)
+                print("Re-download assets file finished!", color='blue')
             else:
-                return "assets"
+                print("Bypassing re-download assets. Using recommended assets dir instead... ", color='lightyellow')
+                return Base.assets_dir
+
+        if AssetsIndex == "legacy" or AssetsIndex == "pre-1.6":
+            return legacy_assets_dir
+        else:
+            return Base.assets_dir
 
     def assets_file_grabber(self, version_id, instance_dir):
         # Get version data
@@ -201,19 +229,23 @@ class AssetsGrabber:
         # Set select instance, game_folder(.minecraft), assets_index_json, save_dir path
         game_folder = os.path.join(instance_dir, ".minecraft")
         assets_index_json = os.path.join(game_folder, "assets_index.json")
-        save_dir = os.path.join(game_folder, "assets", "indexes")  # Assets file save path
-
+        launcher_assets_indexes_dir = os.path.join(Base.assets_dir, "indexes")  # Assets file save path
+        launcher_assets_objects_dir = os.path.join(Base.assets_dir, "objects")
+        """
         # Change work directory to instance(instances/{version_id})
         if not os.path.exists(instance_dir):
             os.makedirs(instance_dir, exist_ok=True)
-        os.chdir(instance_dir)
-        # If .minecraft does not exist, create it.
-        if os.path.exists(".minecraft"):
-            print(".minecraft already created!", color='lightgreen')
-        else:
-            print("Can't find .minecraft folder! Creating...", color='yellow')
-            os.makedirs(".minecraft", exist_ok=True)
+        """
 
+        # If .minecraft does not exist, create it.
+
+        if os.path.exists(game_folder):
+            print("Game folder already created!", color='lightgreen')
+        else:
+            print("Can't find game folder! Creating...", color='yellow')
+            os.makedirs(game_folder, exist_ok=True)
+
+        """
         # Change work directory to instance(instances/{version_id}/.minecraft)
         os.chdir(game_folder)
         # If assets does not exist, create it.
@@ -222,7 +254,15 @@ class AssetsGrabber:
         else:
             print("Can't find assets folder! Creating...", color='yellow')
             os.makedirs("assets", exist_ok=True)
+        """
+        # If assets does not exist, create it.
+        if os.path.exists(Base.assets_dir):
+            print("Assets already created!", color='lightgreen')
+        else:
+            print("Can't find assets folder! Creating...", color='yellow')
+            os.makedirs(Base.assets_dir, exist_ok=True)
 
+        """
         # Change work directory to instance(instances/{version_id}/.minecraft/assets) (preparing to download assets)
         os.chdir("assets")
         # If indexes does not exist, create it...
@@ -231,18 +271,26 @@ class AssetsGrabber:
         else:
             print("Can't find indexes folder! Creating...", color='yellow')
             os.makedirs("indexes", exist_ok=True)
+        """
+        # If indexes does not exist, create it...
+        if os.path.exists(launcher_assets_indexes_dir):
+            print("Indexes already created!", color='lightgreen')
+        else:
+            print("Can't find indexes folder! Creating...", color='yellow')
+            os.makedirs(launcher_assets_indexes_dir, exist_ok=True)
 
         if version_data:
-            asset_index = self.grab_asset_index_file(version_data, "indexes")
+            asset_index = self.grab_asset_index_file(version_data, launcher_assets_indexes_dir)
 
             # Now download the actual asset files into the objects directory
-            objects_dir = os.path.join(game_folder, "assets", "objects")
-            self.download_assets_plus(asset_index, objects_dir, "ModernAssets")
+            self.download_assets_plus(asset_index, launcher_assets_objects_dir, "ModernAssets")
         else:
             print("Failed to get version_data! Cause by unknown Minecraft version.", color='red')
 
+        """
         # Change work directory back to instance path
         os.chdir(instance_dir)
+        """
 
         # Is for LaunchManager to get assets index version
         if not os.path.exists(assets_index_json):
@@ -250,22 +298,18 @@ class AssetsGrabber:
             self.get_assets_index_data(version_data, instance_dir)
 
         # Read assets index version(prepare to check if these versions of minecraft are using old assets?)
-        try:
-            with open(assets_index_json, "r") as file:
-                data = json.load(file)
-                assetsIndex = data["id"]
-        except FileNotFoundError:
-            print("Failed to get assets index! Trying to recreate it again...", color='red')
+        assetsIndex = version_data.get("assetIndex", {}).get("id", None)
+        if not assetsIndex:
+            print("Warning: Could not get assets version. Ignoring check require legacy assets...", color='yellow')
 
         if assetsIndex == "pre-1.6" or assetsIndex == "legacy":
             print("This version require legacy assets.", color='lightyellow', tag="DEBUG")
             print("Downloading legacy assets...", color='green')
-            assets_dir = os.path.join(game_folder, "assets")
             if assetsIndex == "pre-1.6":
-                self.download_assets_plus("pre-1.6", assets_dir, "LegacyAssets")
+                self.download_assets_plus("pre-1.6", Base.assets_dir, "LegacyAssets")
             else:
                 if assetsIndex == "legacy":
-                    self.download_assets_plus("legacy", assets_dir, "LegacyAssets")
+                    self.download_assets_plus("legacy", Base.assets_dir, "LegacyAssets")
                 else:
                     print("??? Can't found assets name! Bypass it....)", color='red')
 

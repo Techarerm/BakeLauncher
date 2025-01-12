@@ -1,8 +1,3 @@
-"""
-Main
-(BakeLauncher Main)
-CheckArch(Call LauncherBase)>GetPlatformName>Load Main_Memu>Ended
-"""
 import multiprocessing
 import traceback
 import textwrap
@@ -13,11 +8,6 @@ from libs.main_menu import main_menu
 
 
 class BakeLauncher:
-    """
-    Main(Just main :D )
-    Check platform and arch support > check args > main_memu or parse_arguments > terminated
-    """
-
     def __init__(self):
         self.StartStatus = False
         self.Message = None
@@ -34,7 +24,7 @@ class BakeLauncher:
             print(f"Detailed traceback:\n{tb}")
             self.generate_crash_log(tb, function_name, e, BaseInitialized=False)
 
-        # Start launcher process if loading base pass
+        # Start the launcher process if loading base pass
         if self.StartStatus:
             try:
                 self.main()

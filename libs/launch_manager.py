@@ -379,7 +379,7 @@ class LauncherManager:
             time.sleep(3)
             return "FailedToGetAssetsIndexVer"
 
-        assets_dir = assets_grabber.get_assets_dir(minecraft_version)
+        assets_dir = assets_grabber.get_assets_dir(minecraft_version, instance_dir)
 
         # Get GameArgs
         GameArgs = self.generate_game_args(minecraft_version, username, access_token, gameDir, assets_dir, assetsIndex,

@@ -517,10 +517,9 @@ class InstanceManager:
         # Get instance info
         instance_info = os.path.join(instance_path, "instance.bakelh.ini")
         Status, instance_name = instance.get_instance_info(instance_info, info_name="instance_name")
-        if not Status:
-            print("Could not find instance_name in the instance info :(", color='red')
-            time.sleep(3)
-            return
+        Status, minecraft_version = instance.get_instance_info(instance_info, info_name="real_minecraft_version")
+        print(f"Old Name : {instance_name}")
+        print(f"Minecraft Version : {minecraft_version}")
 
         # Prompt for new name
         while True:

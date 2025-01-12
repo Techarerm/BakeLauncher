@@ -1,23 +1,10 @@
 import os
-import hashlib
 import requests
 from tqdm import tqdm
 from LauncherBase import Base, print_custom as print
-
+from libs.Utils.utils import verify_checksum
 
 class class_jvm_installer:
-
-    @staticmethod
-    def verify_checksum(file_path, expected_sha1):
-        sha1 = hashlib.sha1()
-        with open(file_path, "rb") as f:
-            while True:
-                data = f.read(65536)  # Read in 64KB chunks
-                if not data:
-                    break
-                sha1.update(data)
-        file_sha1 = sha1.hexdigest()
-        return file_sha1 == expected_sha1
 
     @staticmethod
     def create_directories(file_path, destination_folder):
@@ -37,7 +24,7 @@ class class_jvm_installer:
         self.create_directories(file_path, destination_folder)
 
         # Check if the file already exists and verify checksum
-        if os.path.exists(full_file_path) and self.verify_checksum(full_file_path, expected_sha1):
+        if os.path.exists(full_file_path) and verify_checksum(full_file_path, expected_sha1):
             return
 
         # Download file
@@ -46,9 +33,9 @@ class class_jvm_installer:
             with open(full_file_path, "wb") as f:
                 f.write(response.content)
             if Base.UsingLegacyDownloadOutput:
-                if self.verify_checksum(full_file_path, expected_sha1):
+                if verify_checksum(full_file_path, expected_sha1):
                     print(f"Downloaded and verified {file_name} to {full_file_path}", color='green')
-            if not self.verify_checksum(full_file_path, expected_sha1):
+            if not verify_checksum(full_file_path, expected_sha1):
                 print(f"Checksum mismatch for {file_name}.", color='yellow')
                 os.remove(full_file_path)
         else:
