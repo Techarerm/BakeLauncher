@@ -5,11 +5,9 @@ requests==2.32.3
 pyinstaller==6.10.0
 psutil==5.9.8
 tqdm==4.66.5
-ping3==4.0.8
-pywin32==1.1.0; sys_platform == 'windows'
+pywin32==307; sys_platform == 'windows'
 psutil==5.9.8
 pyobjc==10.3.2; sys_platform == 'darwin'
-pywin32==307
 requests==2.32.3
 tqdm==4.66.5
 traitlets==5.14.3
