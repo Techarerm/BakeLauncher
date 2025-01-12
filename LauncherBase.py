@@ -10,7 +10,7 @@ from modules.print_colorx.print_color import print as print_color
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
 # dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
 # Example = "LB041224" Years: 2024 Month: 12 Date: 04
-dev_version = "AG120125"  # If version type is release set it blank
+dev_version = "MultiTest-1"  # If version type is release set it blank
 version_type = "Dev"
 major_version = "0.9.1"
 
@@ -272,8 +272,8 @@ class LauncherBase:
                 self.launcher_internal_version = f'beta-{major_version}-release'
                 self.launcher_version_display = self.launcher_version
         # Other stuff(for create instance, platform check...)
-        self.launcher_data_format = "Beta-0.9"
-        self.launcher_lib_version = f"0.9-lib-2"  # Pre-0.9
+        self.launcher_data_format = "Beta-0.9.1"
+        self.launcher_lib_version = f"0.9.1-lib-2"  # Pre-0.9
         self.PlatformSupportList = ["Windows", "Darwin", "Linux"]
         self.Platform = self.get_platform("platform")
         self.LibrariesPlatform = self.get_platform("libraries")

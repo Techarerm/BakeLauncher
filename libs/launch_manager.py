@@ -71,8 +71,8 @@ class LauncherManager:
             # JVM_Args_HeapDump(It will save heap dump when Minecraft Encountered OutOfMemoryError? "Only For Windows!")
             OtherArgs += "-XX:HeapDumpPath=MojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump "
         elif Base.Platform == "Darwin":
-            # Check whether the startup version of macOS requires the parameter "-XstartOnFirstThread" parameter
-            # In LWJGL 3.x, macOS requires this args to make lwjgl running on the JVM starts with thread 0) (from wiki.vg)
+            # Check whether the startup version of macOS requires the parameter "-XstartOnFirstThread" parameter In
+            # LWJGL 3.x, macOS requires this args to make lwjgl running on the JVM starts with thread 0) (from wiki.vg)
             for jvm_entry in jvm_args_list:
                 if not isinstance(jvm_entry, dict):  # Only process if it's a dictionary
                     continue
@@ -217,7 +217,7 @@ class LauncherManager:
                                                                        ignore_not_found=True)
         if not InfoStatus:
             LegacyFlag = True
-            print("Warning: You are trying to launch a who built with an older version of BakeLauncher.",
+            print("Warning: You are trying to launch an instance created with a previous version of BakeLauncher.",
                   color='yellow')
             print("Old instances support will be drop soon. ", end='', color='red')
             print("Please go to Extra>Convert Old Instance Structure to convert instance to new structure.",
@@ -225,6 +225,7 @@ class LauncherManager:
             minecraft_version = self.instance_name
         else:
             LegacyFlag = False
+
         # Get required Java version path
         if os.path.isfile(Base.jvm_setting_path):
             print("Found exist Java Path config!", color='blue')

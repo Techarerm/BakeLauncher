@@ -1,10 +1,12 @@
 import os
 import tempfile
 import subprocess
+import textwrap
 import threading
 import time
 import multiprocessing
 from LauncherBase import Base, print_custom as print
+from libs.multi.launch_client import launch_client_2
 
 terminals = [
     "gnome-terminal",
@@ -168,13 +170,15 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
 
     # Create the full launch command with version logging and Minecraft command
     if Base.Platform == 'Windows':
-        launch_command = [
+        launch_command = " && ".join([
+            f"title {title}",
             f'echo {light_yellow}BakeLauncher Version: {Base.launcher_version}{reset}',
             f'echo {light_blue}Minecraft Log Output: {reset}',
-            'echo ================================================',
+            f'echo ================================================',
             f'{minecraft_command}',
-            f'echo {green}Minecraft has stopped running! (Thread terminated){reset}'
-        ]
+            f'echo {green}Minecraft has stopped running! (Thread terminated){reset}',
+            'pause'
+        ])
     elif Base.Platform == 'Darwin':
         launch_command = [
             f'echo -ne "\033]0;{title}\007\n"',
@@ -206,8 +210,7 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
         ]
 
     # Join the commands with newline characters for the batch file
-    launch_command = '\n'.join(launch_command)
-
+    # launch_command = '\n'.join(launch_command)
     # For unix-like...
     if not Base.Platform == "Windows":
         if os.path.exists("LaunchLoadCommandTemp.sh"):
@@ -217,7 +220,9 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
             f.write(launch_command)
 
     print("Baking Minecraft! :)", color='blue')  # Bring it back :)
-
+    print("Multi-Test-Version")
+    launch_client_2(launch_command, work_instance_dir)
+    """
     if EnableMultitasking:
         if not Base.DontPrintColor:
             if Base.LaunchMultiClientWithOutput:
@@ -256,3 +261,4 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
             os.system(minecraft_command)
             print("Minecraft has stopped running! (Thread terminated)", color='green')
             EXIT = input("Press any key to continue. . .")
+    """
