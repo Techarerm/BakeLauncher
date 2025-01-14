@@ -211,12 +211,14 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
     # Join the commands with newline characters for the batch file
     # launch_command = '\n'.join(launch_command)
     # For unix-like...
+    """
     if not Base.Platform == "Windows":
         if os.path.exists("LaunchLoadCommandTemp.sh"):
             os.remove("LaunchLoadCommandTemp.sh")
 
         with open("LaunchLoadCommandTemp.sh", "w+") as f:
             f.write(launch_command)
+    """
 
     print("Baking Minecraft! :)", color='blue')  # Bring it back :)
     print("Multi-Test-Version")
