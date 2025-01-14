@@ -9,7 +9,7 @@ from modules.print_colorx.print_color import print as print_color
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
 # dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
 # Example = "LB041224" Years: 2024 Month: 12 Date: 04
-dev_version = "MultiTest-2"  # If version type is release set it blank
+dev_version = "MultiTest-3"  # If version type is release set it blank
 version_type = "Dev"
 major_version = "0.9.1"
 
