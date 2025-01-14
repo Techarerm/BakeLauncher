@@ -179,17 +179,17 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
             'pause'
         ])
     elif Base.Platform == 'Darwin':
-        launch_command = [
-            f'echo -ne "\033]0;{title}\007\n"',
-            f'cd {work_instance_dir}\n',
-            f'clear\n',
+        launch_command = "; ".join([
+            f'echo -ne "\\033]0;{title}\\007"',
+            f'cd "{work_instance_dir}"',
+            'clear',
             f'printf "{light_yellow}BakeLauncher Version: {Base.launcher_version}{reset}\\n"',
             f'printf "{light_blue}Minecraft Log Output: {reset}\\n"',
             'echo "==============================================="',
-            f'{minecraft_command}',
+            minecraft_command,
             f'printf "{green}Minecraft has stopped running! (Thread terminated){reset}\\n"',
-            f'exit\n'
-        ]
+            'exit'
+        ])
     elif Base.Platform == "Linux":
         launch_command = [
             f'echo -ne "\033]0;{title}\007"',
