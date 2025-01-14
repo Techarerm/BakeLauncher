@@ -9,16 +9,14 @@ def create_terminal(launch_command, workDir):
         workDir = os.getcwd()
 
     full_script = f'''
-   tell application "Terminal"
-       -- Open a new Terminal window
-       do script ""
-       set win to front window
-       set position of win to {0, 0}
-       set bounds of win to {0, 0, 800, 600}
-       do script "{launch_command}" in win
-       do shell script "echo $$"
-   end tell
-   '''
+    tell application "Terminal"
+        do script ""
+        set win to front window
+        set position of win to {{0, 0}}
+        set bounds of win to {{0, 0, 800, 600}}
+        do script "{launch_command}" in win
+    end tell
+    '''
 
     script = NSAppleScript.alloc().initWithSource_(full_script)
 
