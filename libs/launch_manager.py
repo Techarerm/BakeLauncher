@@ -100,7 +100,7 @@ class LauncherManager:
             version_data = get_version_data(version_id)
             minecraftArguments = version_data.get("minecraftArguments", "")
             with open("launch.data", "w") as data:
-                data.write(f"minecraftArguments={minecraftArguments}")
+                data.write(f"minecraftArguments={minecraftArguments}\n")
         else:
             with open("launch.data", "r") as data:
                 for line in data:
