@@ -181,8 +181,8 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
     elif Base.Platform == 'Darwin':
         launch_command = "; ".join([
             f'echo -ne "{title}"',
-            f'@cd "{work_instance_dir}"',
-            '@clear',
+            f'cd "{work_instance_dir}"',
+            'clear',
             f'echo "BakeLauncher Version: {Base.launcher_version}"',
             f'echo "Minecraft Log Output:"',
             'echo "==============================================="',
