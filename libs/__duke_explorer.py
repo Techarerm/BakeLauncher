@@ -324,10 +324,12 @@ class DukeCute:
             Status, JVMPath = self.get_java_path_from_jvm_data(major_version, "System-Installed")
             if not Status:
                 Status, JVMPath = self.get_java_path_from_jvm_data(major_version, "Launcher-Installed")
-
-            if not Status:
-                print(f"Java version {major_version} not found in Java_HOME.json", color='red')
-                return None
+                if not Status:
+                    print(f"Java version {major_version} not found in Java_HOME.json", color='red')
+                    return None
+                else:
+                    print(f"Get Java Path successfully! | Using OpenJDK {major_version}!", color='blue')
+                    return JVMPath
             else:
                 print(f"Get Java Path successfully! | Using Java {major_version}!", color='blue')
                 return JVMPath
