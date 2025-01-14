@@ -278,7 +278,7 @@ class DukeCute:
                     for entry in json_data:
                         if entry['JVMPathType'] == str(mode):
                             # Return the matching entry as part of a tuple
-                            return True, entry.get(str(runtime_version), None)
+                            return True, entry.get(str(runtime_version), None)  # ???
                     # If no match is found
                     return False, None
                 except json.JSONDecodeError:
@@ -322,9 +322,9 @@ class DukeCute:
 
         try:
             Status, JVMPath = self.get_java_path_from_jvm_data(major_version, "System-Installed")
-            if not Status:
+            if not Status or JVMPath is None:
                 Status, JVMPath = self.get_java_path_from_jvm_data(major_version, "Launcher-Installed")
-                if not Status:
+                if not Status or JVMPath is None:
                     print(f"Java version {major_version} not found in Java_HOME.json", color='red')
                     return None
                 else:
