@@ -183,11 +183,11 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
             f'echo -ne "\\033]0;{title}\\007"',
             f'cd "{work_instance_dir}"',
             'clear',
-            f'printf "{light_yellow}BakeLauncher Version: {Base.launcher_version}{reset}\\n"',
-            f'printf "{light_blue}Minecraft Log Output: {reset}\\n"',
+            f'printf "{light_yellow}BakeLauncher Version: {Base.launcher_version}{reset}"',
+            f'printf "{light_blue}Minecraft Log Output: {reset}"',
             'echo "==============================================="',
             minecraft_command,
-            f'printf "{green}Minecraft has stopped running! (Thread terminated){reset}\\n"',
+            f'printf "{green}Minecraft has stopped running! (Thread terminated){reset}"',
             'exit'
         ])
     elif Base.Platform == "Linux":
