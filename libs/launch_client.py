@@ -181,13 +181,13 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
     elif Base.Platform == 'Darwin':
         launch_command = "; ".join([
             f'echo -ne "{title}"',
-            f'cd "{work_instance_dir}"',
-            '@clear',  # Suppress display of the clear command
-            f'@echo "BakeLauncher Version: {Base.launcher_version}"',
-            f'@echo "Minecraft Log Output:"',
-            '@echo "==============================================="',
+            f'@cd "{work_instance_dir}"',
+            '@clear',
+            f'echo "BakeLauncher Version: {Base.launcher_version}"',
+            f'echo "Minecraft Log Output:"',
+            'echo "==============================================="',
             minecraft_command,
-            f'@echo "Minecraft has stopped running! (Thread terminated)"',
+            f'echo "Minecraft has stopped running! (Thread terminated)"',
             'exit'
         ])
         launch_command = launch_command.replace('"', '\\"')
