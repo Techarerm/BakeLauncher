@@ -120,7 +120,7 @@ Username = None
 UUID = None
 
 <DukeExplorer>
-PrioUseSystemInstalledJVM = True
+PrioUseSystemInstalledJVM = False
 CustomJVMInstallPath = None
 SearchJVMInCustomPath = False
 

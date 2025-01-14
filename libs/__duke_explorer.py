@@ -321,9 +321,8 @@ class DukeCute:
             major_version = str("8")
 
         try:
-            if Base.PrioUseSystemInstalledJVM:
-                Status, JVMPath = self.get_java_path_from_jvm_data(major_version, "System-Installed")
-            else:
+            Status, JVMPath = self.get_java_path_from_jvm_data(major_version, "System-Installed")
+            if not Status:
                 Status, JVMPath = self.get_java_path_from_jvm_data(major_version, "Launcher-Installed")
 
             if not Status:
