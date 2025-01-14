@@ -86,3 +86,24 @@ def generate_libraries_paths(client_version, libraries_dir):
     if client_jar_path:
         jar_paths_string += client_jar_path
     return jar_paths_string
+
+
+def convert_library_name_to_artifact_path(library_path):
+    try:
+        # Split the library path into components
+        components = library_path.split(":")
+        if len(components) != 3:
+            return False, None
+
+        group_id, artifact_id, artifact_version = components
+
+        # Convert group_id to group_path by replacing '.' with the file separator
+        group_path = os.path.join(*group_id.split("."))
+
+        # Construct the artifact path
+        artifact_path = os.path.join(group_path, artifact_id, artifact_version, f"{artifact_id}-{artifact_version}.jar")
+
+        return True, artifact_path
+
+    except Exception as e:
+        return False, None

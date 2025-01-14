@@ -170,8 +170,7 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
 
     # Create the full launch command with version logging and Minecraft command
     if Base.Platform == 'Windows':
-        launch_command = " && ".join([
-            f"title {title}",
+        launch_command = " & ".join([
             f'echo {light_yellow}BakeLauncher Version: {Base.launcher_version}{reset}',
             f'echo {light_blue}Minecraft Log Output: {reset}',
             f'echo ================================================',
