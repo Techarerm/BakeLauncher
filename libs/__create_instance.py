@@ -363,9 +363,8 @@ class Create_Instance:
                 print("Do you want to create JVMConfig?", color='blue')
                 print("This config is require when launching Minecraft (Find Usage JVM Path).", color='green')
                 user_input = input("Y/N : ")
-                if user_input == "Y":
+                if user_input.upper() == "Y":
                     Duke.duke_finder()
-
 
         if not len(Message) == 0:
             return True, f"InstallJVMFinished[{Message}]"

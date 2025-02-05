@@ -38,12 +38,12 @@ jobs:
 
       - name: BakeLauncher Dev Version For Windows
         run: |
-          pyinstaller main.py -D --icon=bread.ico --name BakeLauncher
+          pyinstaller main.py -D --icon=bread.ico --name BakeLauncher --hidden-import=libs.multi.nt
 
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
-          name: BakeLauncher-Dev-AG120125.Windows
+          name: BakeLauncher-Dev-BD060225.Windows
           path: dist/
 
   macos-build:
@@ -68,12 +68,12 @@ jobs:
 
       - name: BakeLauncher Dev Version For macOS(x86-64)
         run: |
-          pyinstaller main.py -D --icon=bread.ico --name BakeLauncher
+          pyinstaller main.py -D --icon=bread.ico --name BakeLauncher --hidden-import=libs.multi.nt
 
       - name: Upload APP
         uses: actions/upload-artifact@v4
         with:
-          name: BakeLauncher-Dev-AG120125.macOS
+          name: BakeLauncher-Dev-BD060225.macOS
           path: dist/
 
   linux-build:
@@ -98,12 +98,12 @@ jobs:
 
       - name: BakeLauncher Dev Version For Linux
         run: |
-          pyinstaller main.py -D --icon=bread.ico --name BakeLauncher
+          pyinstaller main.py -D --icon=bread.ico --name BakeLauncher --hidden-import=libs.multi.nt
 
       - name: Upload Linux binary
         uses: actions/upload-artifact@v4
         with:
-          name: BakeLauncher-Dev-AG120125.Linux
+          name: BakeLauncher-Dev-BD060225.Linux
           path: dist/
 
   create-latest-tag:
