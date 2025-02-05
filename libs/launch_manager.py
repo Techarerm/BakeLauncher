@@ -1,16 +1,15 @@
 import os
 import shutil
 import time
-import unicodedata
 from json import JSONDecodeError
 from LauncherBase import Base, print_custom as print
 from libs.__assets_grabber import assets_grabber
 from libs.__duke_explorer import Duke
 from libs.__account_manager import account_manager
-from libs.launch_client import LaunchClient
+from libs.launch.launch_client import LaunchClient
 from libs.__instance_manager import instance_manager
 from libs.Utils.utils import get_version_data, find_main_class
-from libs.Utils.libraries import generate_libraries_paths
+from libs.libraries.libraries import generate_libraries_paths
 from libs.instance.instance import instance
 
 
@@ -71,19 +70,10 @@ class LauncherManager:
             # JVM_Args_HeapDump(It will save heap dump when Minecraft Encountered OutOfMemoryError? "Only For Windows!")
             OtherArgs += "-XX:HeapDumpPath=MojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump "
         elif Base.Platform == "Darwin":
-            # Check whether the startup version of macOS requires the parameter "-XstartOnFirstThread" parameter
-            # In LWJGL 3.x, macOS requires this args to make lwjgl running on the JVM starts with thread 0) (from wiki.vg)
-            for jvm_entry in jvm_args_list:
-                if not isinstance(jvm_entry, dict):  # Only process if it's a dictionary
-                    continue
-                rules = jvm_entry.get("rules", [])
-                for rule in rules:
-                    os_data = rule.get("os", {})
-                    if not os_data.get("name") == "osx":  # Check if the OS is macOS
-                        continue
-                    value = jvm_entry.get("value", [])
-                    if isinstance(value, list) and "-XstartOnFirstThread" in value:
-                        OtherArgs += "-XstartOnFirstThread "
+            # Check whether the startup version of macOS requires the parameter "-XstartOnFirstThread" parameter In
+            # LWJGL 3.x, macOS requires this args to make lwjgl running on the JVM starts with thread 0) (from wiki.vg)
+            if "-XstartOnFirstThread" in jvm_args_list:
+                OtherArgs += "-XstartOnFirstThread "
 
         if append_args:
             OtherArgs += f" {append_args}"
@@ -100,7 +90,7 @@ class LauncherManager:
             version_data = get_version_data(version_id)
             minecraftArguments = version_data.get("minecraftArguments", "")
             with open("launch.data", "w") as data:
-                data.write(f"minecraftArguments={minecraftArguments}")
+                data.write(f"minecraftArguments={minecraftArguments}\n")
         else:
             with open("launch.data", "r") as data:
                 for line in data:
@@ -217,7 +207,7 @@ class LauncherManager:
                                                                        ignore_not_found=True)
         if not InfoStatus:
             LegacyFlag = True
-            print("Warning: You are trying to launch a who built with an older version of BakeLauncher.",
+            print("Warning: You are trying to launch an instance created with a previous version of BakeLauncher.",
                   color='yellow')
             print("Old instances support will be drop soon. ", end='', color='red')
             print("Please go to Extra>Convert Old Instance Structure to convert instance to new structure.",
@@ -225,6 +215,7 @@ class LauncherManager:
             minecraft_version = self.instance_name
         else:
             LegacyFlag = False
+
         # Get required Java version path
         if os.path.isfile(Base.jvm_setting_path):
             print("Found exist Java Path config!", color='blue')
@@ -303,6 +294,8 @@ class LauncherManager:
                 print("Sorry :( You can't launch game without login in this version.", color='red')
                 time.sleep(3)
                 return "AccountDataInvalid"
+            else:
+                access_token = f"[HIDDEN]{access_token}[HIDDEN]"
 
         except JSONDecodeError or ValueError:
             print("Failed to launch Minecraft :( Cause by invalid AccountData", color='red')
@@ -459,21 +452,17 @@ class LauncherManager:
         # Bake Minecraft :)
         if Base.Platform == "Windows":
             LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, FinalArgs, GameArgs,
-                         CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking,
-                         Base.LaunchMultiClientWithOutput)
+                         CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking)
         elif Base.Platform == "Darwin":
             LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class,
                          FinalArgs, GameArgs,
-                         CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking,
-                         Base.LaunchMultiClientWithOutput)
+                         CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking)
         elif Base.Platform == "Linux":
             LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, FinalArgs, GameArgs,
-                         CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking,
-                         Base.LaunchMultiClientWithOutput)
+                         CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking)
         else:
             LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, FinalArgs, GameArgs,
-                         CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking,
-                         Base.LaunchMultiClientWithOutput)
+                         CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking)
 
         os.chdir(Base.launcher_root_dir)
         time.sleep(2)

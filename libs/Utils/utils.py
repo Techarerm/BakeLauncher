@@ -200,3 +200,30 @@ def verify_checksum(file_path, expected_sha1):
             sha1.update(data)
     file_sha1 = sha1.hexdigest()
     return file_sha1 == expected_sha1
+
+
+def find_jar_file_main_class(jar_file_path):
+    manifest_path = 'META-INF/MANIFEST.MF'
+    try:
+        with zipfile.ZipFile(jar_file_path, 'r') as jar:
+            if manifest_path in jar.namelist():
+                manifest = jar.read(manifest_path).decode('utf-8')
+                for line in manifest.splitlines():
+                    if line.startswith('Main-Class:'):
+                        # Return the class name specified in the Main-Class entry
+                        return line.split(':')[1].strip()
+    except Exception as e:
+        return None
+
+def check_url_status(url):
+    try:
+        # Send a HEAD request to save bandwidth
+        response = requests.head(url, allow_redirects=True, timeout=5)
+        if response.status_code == 200:
+            return True
+        elif response.status_code == 404:
+            return False
+        else:
+            return False
+    except Exception as e:
+        return False

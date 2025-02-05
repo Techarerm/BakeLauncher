@@ -10,7 +10,7 @@ from modules.print_colorx.print_color import print as print_color
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
 # dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
 # Example = "LB041224" Years: 2024 Month: 12 Date: 04
-dev_version = "AG120125"  # If version type is release set it blank
+dev_version = "BD060225"  # If version type is release set it blank
 version_type = "Dev"
 major_version = "0.9.1"
 
@@ -276,10 +276,8 @@ class LauncherBase:
         self.launcher_lib_version = f"0.9-lib-2"  # Pre-0.9
         self.PlatformSupportList = ["Windows", "Darwin", "Linux"]
         self.Platform = self.get_platform("platform")
-        self.LibrariesPlatform = self.get_platform("libraries")
-        self.LibrariesPlatform2nd = self.get_platform("libraries_2nd")
-        self.LibrariesPlatform2ndOld = self.get_platform("libraries_2nd_old")
         self.Arch = self.get_platform("Arch")
+        self.FullArch = self.get_platform("FullArch")
         # ============================I'm a line==============================
         # Flag and list(Set by launcher)
         self.EndLoadFlag = False  # If load process failed(platform check failed), Set to True
@@ -289,6 +287,7 @@ class LauncherBase:
         self.StartUsingErrorLog = False
         self.RefreshTokenFailedFlag = False
         self.LauncherFullResetFlag = False
+        self.UnknownPlatform = False
         # ============================I'm a line==============================
         # Config file stuff
         # Global stuff
@@ -379,6 +378,20 @@ class LauncherBase:
             continue_load = str(input("Enter Y to ignore this warning: "))
             if not continue_load.upper() == "Y":
                 return False, "WorkDirUnicodeEncodeError"
+
+
+        # Platform check
+        if Base.Platform not in self.PlatformSupportList:
+            print_color(f"You are running on a unsupported platform name {Base.Platform}", color='yellow',
+                        tag_color='yellow', tag='Warning')
+            print_color(
+                "You can still continue running the launcher. However, you may get some error when you create "
+                "instance.", color='yellow', tag_color='yellow', tag='Warning')
+            print_color("If you still want to launch Minecraft. You need to build LWJGL and JDK for your platform.",
+                        tag_color='blue', tag='Note')
+            continue_running = str(input("Enter Y to ignore: "))
+            if not continue_running.upper() == "Y":
+                return False, "UnknownPlatformError"
 
         # Set window(terminal?) title
         if self.Platform == "Windows":
@@ -608,61 +621,25 @@ class LauncherBase:
         # Get "normal" platform name
         Platform = platform.system()
         Arch = platform.architecture()
+        FullArch = platform.uname().machine
 
-        # Get special platform name for some method
-        LibrariesPlatform = Platform.lower()
-        if Platform == "Darwin":
-            LibrariesPlatform2nd = "macos"
-            LibrariesPlatform2ndOld = "osx"
-        else:
-            LibrariesPlatform2nd = LibrariesPlatform
-            LibrariesPlatform2ndOld = LibrariesPlatform
+        # In 0.9.1, LauncherBase no longer stash except normal platform name and architecture
 
         # Check platform support
         if Arch[0] == "64bit":
-            if Platform not in self.PlatformSupportList:
-                print_color(f"You are running on a unsupported platform name {Platform}", color='yellow',
-                            tag_color='yellow', tag='Warning')
-                print_color(
-                    "You can still continue running the launcher. However, you may get some error when you create "
-                    "instance.", color='yellow', tag_color='yellow', tag='Warning')
-                print_color("If you still want to launch Minecraft. You need to build LWJGL and JDK for your platform.",
-                            tag_color='blue', tag='Note')
-                continue_running = str(input("Enter Y to ignore: "))
-                if continue_running.upper() == "Y":
-                    if mode.upper() == "PLATFORM":
-                        return Platform
-                    elif mode.upper() == "LIBRARIES":
-                        return LibrariesPlatform
-                    elif mode.upper() == "LIBRARIES_2ND":
-                        return LibrariesPlatform2nd
-                    elif mode.upper() == "LIBRARIES_2ND_OLD":
-                        return LibrariesPlatform2ndOld
-                    elif mode.upper() == "ARCH":
-                        return Arch
-                    else:
-                        print_color(f"Base: Unknown args {mode}")
-                else:
-                    self.EndLoadFlag = True
-                    return
+            if mode.upper() == "PLATFORM":
+                return Platform
+            elif mode.upper() == "ARCH":
+                return Arch
+            elif mode.upper() == "FULLARCH":
+                return FullArch
             else:
-                if mode.upper() == "PLATFORM":
-                    return Platform
-                elif mode.upper() == "LIBRARIES":
-                    return LibrariesPlatform
-                elif mode.upper() == "LIBRARIES_2ND":
-                    return LibrariesPlatform2nd
-                elif mode.upper() == "LIBRARIES_2ND_OLD":
-                    return LibrariesPlatform2ndOld
-                elif mode.upper() == "ARCH":
-                    return Arch
-                else:
-                    print_color(f"Base: Unknown args {mode}")
-                    self.EndLoadFlag = True
-                    return None
+                print_color(f"Base: Unknown args {mode}")
+                self.EndLoadFlag = True
+                return None
         else:
-            print_color(f"BakeLauncher for 32bit(or other arch) architecture support is untested.")
-            print_color(f"You can still continue running the launcher. But you may get some weired bug during use.")
+            print_color(f"BakeLauncher for 32bit(or other arch) architecture support is untested.", color='lightred')
+            print_color(f"You can still continue running the launcher. But you may get some bug during use.", color='lightyellow')
             continue_running = str(input("Enter Y to ignore: "))
             if not continue_running.upper == "Y":
                 self.EndLoadFlag = True
@@ -760,7 +737,6 @@ def bake_bake():
             print("System Info")
             print(f"OS Name : {Base.Platform}")
             print(f"Architecture : {Base.Arch[0]}")
-            print(f"Libraries Name : {Base.LibrariesPlatform}")
             print(f"Internet Connection : {Base.InternetConnected}")
             print(f"")
             print("Setting & Flag")

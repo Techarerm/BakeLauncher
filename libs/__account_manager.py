@@ -49,7 +49,7 @@ import requests
 import json
 import os
 from LauncherBase import Base, ClearOutput, initialize_config, print_custom as print, internal_functions_error_log_dump
-from libs.Utils.utils import write_global_config
+from libs.account.msa import *
 
 
 class AuthManager:
@@ -57,84 +57,6 @@ class AuthManager:
         self.RefreshTokenFlag = False
         self.grant_type = None
         self.request_data = None
-        self.oauth20_token = "https://login.live.com/oauth20_token.srf"
-
-    def get_microsoft_account_token(self, code, mode):
-        """
-        Code example M.C559_SN1.2.U.09fd18c9-f260-0000-test-221f3eb387b4
-        """
-        try:
-            if mode == "AuthToken":
-                # Microsoft token + Microsoft refresh token
-                self.request_data = requests.post(self.oauth20_token, data={
-                    "client_id": "00000000402B5328",
-                    "scope": "service::user.auth.xboxlive.com::MBI_SSL",
-                    "code": code,
-                    "redirect_uri": "https://login.live.com/oauth20_desktop.srf",
-                    "grant_type": "authorization_code"
-                })
-            elif mode == "RefreshToken":
-                self.request_data = requests.post("https://login.live.com/oauth20_token.srf", data={
-                    "client_id": "00000000402B5328",
-                    "scope": "service::user.auth.xboxlive.com::MBI_SSL",
-                    "refresh_token": code,
-                    "redirect_uri": "https://login.live.com/oauth20_desktop.srf",
-                    "grant_type": "refresh_token"
-                })
-            self.request_data.raise_for_status()
-            microsoft_token = self.request_data.json()["access_token"]
-            microsoft_refresh_token = self.request_data.json()["refresh_token"]
-            return True, microsoft_token, microsoft_refresh_token
-        except Exception as e:
-            return False, e, None
-
-    def get_xbl_token(self, microsoft_token):
-        try:
-            # XBL token
-            r = requests.post("https://user.auth.xboxlive.com/user/authenticate", json={
-                "Properties": {
-                    "AuthMethod": "RPS",
-                    "SiteName": "user.auth.xboxlive.com",
-                    "RpsTicket": microsoft_token
-                },
-                "RelyingParty": "http://auth.xboxlive.com",
-                "TokenType": "JWT"
-            })
-            r.raise_for_status()
-            xbl_token = r.json()["Token"]
-            return True, xbl_token
-        except Exception as e:
-            return False, e
-
-    def get_xsts_token(self, xbl_token):
-        try:
-            # XSTS token
-            r = requests.post("https://xsts.auth.xboxlive.com/xsts/authorize", json={
-                "Properties": {
-                    "SandboxId": "RETAIL",
-                    "UserTokens": [xbl_token]
-                },
-                "RelyingParty": "rp://api.minecraftservices.com/",
-                "TokenType": "JWT"
-            })
-            r.raise_for_status()
-            xsts_userhash = r.json()["DisplayClaims"]["xui"][0]["uhs"]
-            xsts_token = r.json()["Token"]
-            return True, xsts_userhash, xsts_token
-        except Exception as e:
-            return False, e, None
-
-    def get_access_token(self, xsts_userhash, xsts_token):
-        try:
-            # Minecraft token
-            r = requests.post("https://api.minecraftservices.com/authentication/login_with_xbox", json={
-                "identityToken": f"XBL3.0 x={xsts_userhash};{xsts_token}"
-            })
-            r.raise_for_status()
-            access_token = r.json()["access_token"]
-            return True, access_token
-        except Exception as e:
-            return False, e
 
     def get_account_data(self, minecraft_token):
         try:
@@ -259,42 +181,42 @@ class AuthManager:
         print("Please login your account in your web browser.", color='c')
         print("After logging in, please copy the URL and paste it into the launcher.", color='lightgreen')
         print("Or you can type 'Exit' to go back to the main menu.", color='cyan')
-
         webbrowser.open(
-            "https://login.live.com/oauth20_authorize.srf?client_id=00000000402B5328&redirect_uri=https://login.live.com/oauth20_desktop.srf&response_type=code&scope=service::user.auth.xboxlive.com::MBI_SSL"
+            "https://login.live.com/oauth20_authorize.srf?client_id=00000000402B5328&redirect_uri=https://login.live"
+            ".com/oauth20_desktop.srf&response_type=code&scope=service::user.auth.xboxlive.com::MBI_SSL"
         )
 
         blank_page_url = input("URL:")
         if blank_page_url.lower() == "exit":
             print("Back to main menu...")
-            return
+            return True
 
         try:
             code = blank_page_url.split("code=")[1].split("&")[0]
         except IndexError:
             print("Invalid URL. Please try again.", color='lightred')
-            return "CheckURLValidFailed"
+            return False
 
         # Start get token process...
-        Status, microsoft_token, microsoft_refresh_token = self.get_microsoft_account_token(code, "AuthToken")
+        Status, microsoft_token, microsoft_refresh_token = get_microsoft_account_token(code, "AuthToken")
         if not Status:
             print(f"Failed to get microsoft account token :( Cause by error {microsoft_token}", color='red')
             time.sleep(3)
-            return microsoft_token + microsoft_refresh_token
+            return f"GetMSAccountTokenFailed>ERR:{microsoft_token}"
 
-        Status, xbl_token = self.get_xbl_token(microsoft_token)
+        Status, xbl_token = get_xbl_token(microsoft_token)
         if not Status:
             print(f"Failed to get XBL token :( Cause by error {xbl_token}", color='red')
             time.sleep(3)
             return xbl_token
 
-        Status, xsts_userhash, xsts_token = self.get_xsts_token(xbl_token)
+        Status, xsts_userhash, xsts_token = get_xsts_token(xbl_token)
         if not Status:
             print(f"Failed to get XBL token :( Cause by error {xsts_userhash}", color='red')
             time.sleep(3)
             return xsts_userhash + xsts_token
 
-        Status, access_token = self.get_access_token(xsts_userhash, xsts_token)
+        Status, access_token = get_access_token(xsts_userhash, xsts_token)
         if not Status:
             print(f"Failed to get access token :( Cause by error {access_token}", color='red')
             time.sleep(3)
@@ -422,7 +344,7 @@ class AuthManager:
             print("Your Minecraft token has expired. Refreshing...", color='lightyellow')
 
             # Refresh Microsoft token using the refresh token
-            Status, new_microsoft_token, new_refresh_token = self.get_microsoft_account_token(RefreshToken,
+            Status, new_microsoft_token, new_refresh_token = get_microsoft_account_token(RefreshToken,
                                                                                               "RefreshToken")
             if not Status:
                 print(f"Failed to refresh Microsoft token. Cause by error {new_microsoft_token}", color='red')
@@ -434,19 +356,19 @@ class AuthManager:
 
             # Get a new Minecraft token using the refreshed Microsoft token
             self.RefreshTokenFlag = True
-            Status, xbl_token = self.get_xbl_token(new_microsoft_token)
+            Status, xbl_token = get_xbl_token(new_microsoft_token)
             if not Status:
                 print(f"Failed to get XBL token :( Cause by error {xbl_token}", color='red')
                 time.sleep(3)
                 return False, f"GettingXBLToken>{xbl_token}"
 
-            Status, xsts_userhash, xsts_token = self.get_xsts_token(xbl_token)
+            Status, xsts_userhash, xsts_token = get_xsts_token(xbl_token)
             if not Status:
                 print(f"Failed to get XBL token :( Cause by error {xsts_userhash}", color='red')
                 time.sleep(3)
                 return False, f"GettingXSTSToken>{xsts_userhash}"
 
-            Status, access_token = self.get_access_token(xsts_userhash, xsts_token)
+            Status, access_token = get_access_token(xsts_userhash, xsts_token)
             if not Status:
                 print(f"Failed to get Minecraft token :( Cause by error {access_token}", color='red')
                 time.sleep(3)

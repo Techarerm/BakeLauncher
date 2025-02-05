@@ -70,12 +70,12 @@ class class_jvm_installer:
 
     @staticmethod
     def find_selected_java_version_manifest_url(manifest_data, component, major_version):
-        if Base.LibrariesPlatform == 'windows':
+        if Base.Platform == 'Windows':
             JavaPlatformName = 'windows-x64'
-        elif Base.LibrariesPlatform == 'darwin':
+        elif Base.Platform == 'Darwin':
             JavaPlatformName = 'mac-os'
         else:
-            JavaPlatformName = Base.LibrariesPlatform
+            JavaPlatformName = Base.Platform.lower()
 
         if JavaPlatformName not in manifest_data:
             raise Exception(f"No {Base.Platform} platform data found in the manifest.")

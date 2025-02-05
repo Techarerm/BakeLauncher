@@ -2,7 +2,7 @@ import os
 import time
 import traceback
 from libs.instance.instance import instance
-from libs.Utils.utils import get_version_data
+from libs.version.version import get_version_data
 from libs.arguments.arguments import arguments
 from libs.launch_manager import launch_manager
 from libs.__instance_manager import instance_manager
@@ -18,6 +18,7 @@ class ArgsManager:
         print(message, color='green')
         status, client_version, instance_path = instance_manager.select_instance(
             "Which instance is you want to modify?", client_version=True)
+
         if not instance_path:
             print("Could not get instance path. Exiting...", color='yellow')
             time.sleep(2)

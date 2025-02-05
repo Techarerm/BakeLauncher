@@ -3,17 +3,19 @@ import subprocess
 import time
 import shutil
 import zipfile
-import requests
 import traceback
+import requests
 from libs.__duke_explorer import Duke
 from libs.instance.instance import instance
 from libs.java.jvm_installer import jvm_installer
 from libs.__instance_manager import instance_manager
 from libs.__assets_grabber import assets_grabber
 from libs.modification.mod_installer import mod_installer
-from libs.Utils.utils import get_version_data, download_file, multi_thread_download, find_main_class
+from libs.Utils.utils import download_file, multi_thread_download, find_main_class
+from libs.version.version import *
 from LauncherBase import Base, ClearOutput, print_custom as print, internal_functions_error_log_dump
-
+from libs.libraries.libraries import download_libraries, mac_os_libraries_bug_fix, download_natives
+from libs.platform.platfrom import get_special_platform_name
 
 class Create_Instance:
     def __init__(self):
@@ -158,86 +160,6 @@ class Create_Instance:
         return None
 
     @staticmethod
-    def download_natives(libraries, libraries_dir):
-        print(f"Platform: {Base.LibrariesPlatform} LibrariesPlatform: {Base.LibrariesPlatform}", tag='Debug',
-              color='green')
-
-        # Map platforms to native keys
-        native_keys = {
-            'windows': 'natives-windows',
-            'linux': 'natives-linux',
-            'darwin': 'natives-macos',
-            'windows-arm64': 'natives-windows-arm64',
-            'macos-arm64': 'natives-macos-arm64',
-        }
-        native_key = native_keys.get(Base.LibrariesPlatform)
-
-        if not native_key:
-            print(f"Warning: No native key found for {Base.LibrariesPlatform}", color='yellow')
-            return "NativeKeyCheckFailed"
-
-        download_queue = []  # Collect (url, destination) pairs for batch downloading
-
-        def add_to_queue(url, dest):
-            os.makedirs(os.path.dirname(dest), exist_ok=True)
-            natives_url_and_dest = [
-                (url, dest)
-            ]
-            download_queue.append(natives_url_and_dest)
-
-        found_any_native = False
-
-        for lib in libraries:
-            lib_downloads = lib.get('downloads', {})
-
-            # Check platform compatibility via rules
-            rules = lib.get('rules')
-            if rules:
-                allowed = any(
-                    rule.get('action') == 'allow' and
-                    (not rule.get('os') or rule['os'].get('name') == Base.LibrariesPlatform2ndOld)
-                    for rule in rules
-                )
-                disallowed = any(
-                    rule.get('action') == 'disallow' and
-                    rule.get('os', {}).get('name') == Base.LibrariesPlatform2ndOld
-                    for rule in rules
-                )
-                if not allowed or disallowed:
-                    continue
-
-            # Handle artifact downloads
-            artifact = lib_downloads.get('artifact')
-            if artifact and native_key in (lib.get('name', '') or artifact.get('path', '')):
-                add_to_queue(artifact['url'], os.path.join(libraries_dir, artifact['path']))
-                found_any_native = True
-
-            # Handle classifier downloads
-            classifiers = lib_downloads.get('classifiers')
-            if classifiers and native_key in classifiers:
-                classifier_info = classifiers[native_key]
-                add_to_queue(classifier_info['url'], os.path.join(libraries_dir, classifier_info['path']))
-                found_any_native = True
-
-        # Fallback for macOS to 'natives-osx'
-        if not found_any_native and Base.LibrariesPlatform == 'darwin':
-            fallback_key = 'natives-osx'
-            for lib in libraries:
-                classifiers = lib.get('downloads', {}).get('classifiers')
-                if classifiers and fallback_key in classifiers:
-                    classifier_info = classifiers[fallback_key]
-                    add_to_queue(classifier_info['url'], os.path.join(libraries_dir, classifier_info['path']))
-                    found_any_native = True
-                    break
-
-        # Perform the batch download
-        if download_queue:
-            multi_thread_download(download_queue, "natives")
-        else:
-            print(f"No native library found for key: {native_key}", color='yellow')
-            return "NativeLibrariesNotFound"
-
-    @staticmethod
     def download_client(version_data, minecraft_version, install_dir, **kwargs):
         version_dir = os.path.join(Base.launcher_instances_dir, install_dir)
         libraries_dir = os.path.join(version_dir, ".minecraft", "libraries")
@@ -252,69 +174,24 @@ class Create_Instance:
             client_info = version_data['downloads']['client']
             client_url = client_info['url']
 
-        client_dest = os.path.join(version_dir, ".minecraft", 'libraries', 'net', 'minecraft', minecraft_version,
-                                   "client.jar")
+        custom_dest = kwargs.get("custom_dest", None)
+
+        if custom_dest is not None:
+            client_dest = os.path.join(custom_dest, "client.jar")
+        else:
+            client_dest = os.path.join(version_dir, ".minecraft", 'libraries', 'net', 'minecraft', minecraft_version,
+                                       "client.jar")
 
         print(f"Downloading client.jar to {client_dest}...")
         download_file(client_url, client_dest)
 
-    def download_libraries(self, version_data, install_dir):
-        """
-        Create instances/version_id/folder and download game files
-        """
-        version_dir = os.path.join(Base.launcher_instances_dir, install_dir)
-        libraries_dir = os.path.join(version_dir, ".minecraft", "libraries")
-        os.makedirs(libraries_dir, exist_ok=True)
-        # Download libraries
-
-        # Waiting-Download-List
-        download_queue = []
-
-        # Get libraries data from version_data
-        libraries = version_data.get('libraries', [])
-
-        # Search support user platform libraries
-        for lib in libraries:
-            lib_downloads = lib.get('downloads', {})
-            artifact = lib_downloads.get('artifact')
-
-            rules = lib.get('rules')
-            if rules:
-                allowed = False
-                for rule in rules:
-                    action = rule.get('action')
-                    os_info = rule.get('os')
-                    if action == 'allow' and (not os_info or os_info.get('name') == Base.Platform):
-                        allowed = True
-                    elif action == 'disallow' and os_info and os_info.get('name') == Base.Platform:
-                        allowed = False
-                        break
-                if not allowed:
-                    continue
-
-            if artifact:
-                lib_path = artifact['path']
-                lib_url = artifact['url']
-                lib_dest = os.path.join(libraries_dir, lib_path)
-                os.makedirs(os.path.dirname(lib_dest), exist_ok=True)
-                if Base.UsingLegacyDownloadOutput:
-                    print(f"Downloading {lib_path} to {lib_dest}...")
-                lib_url_and_dest = [
-                    (lib_url, lib_dest)
-                ]
-                download_queue.append(lib_url_and_dest)
-
-        # Download natives(Separated from download is for other functions can easily call it)
-        multi_thread_download(download_queue, "libraries")
-        print("Downloading natives...", color='lightgreen')
-        time.sleep(1)
-        self.download_natives(libraries, libraries_dir)
-
     def unzip_natives(self, instance_name):
-        global unzip_status
+        global unzip_status, PlatformName
+
+        lib_platform_name, lib_name_2, lib_name_old = get_special_platform_name("ALL")
 
         # Handle platform naming for macOS
-        if Base.LibrariesPlatform == 'darwin':
+        if lib_platform_name == 'darwin':
             PlatformName = 'macos'
 
         instance_dir = os.path.join(Base.launcher_instances_dir, instance_name)
@@ -329,11 +206,17 @@ class Create_Instance:
 
         for root, dirs, files in os.walk(instance_libraries_dir):
             for file in files:
-                if file.endswith(f"natives-{Base.LibrariesPlatform2nd}.jar"):
+                if file.endswith(f"natives-{lib_name_2}.jar"):
                     jar_files.append(os.path.join(root, file))
-                elif Base.LibrariesPlatform2nd == 'macos' and file.endswith("natives-osx.jar"):
+                elif lib_name_2 == 'macos' and file.endswith("natives-osx.jar"):
                     # Fallback to natives-osx.jar if natives-macos.jar is not found
                     jar_files.append(os.path.join(root, file))
+                if Base.Platform == "Darwin":
+                    if Base.FullArch.lower() == "arm64":
+                        if file.endswith("natives-macos-arm64.jar"):
+                            jar_files.append(os.path.join(root, file))
+                        elif file.endswith("natives-windows-arm64.jar"):
+                            jar_files.append(os.path.join(root, file))
 
         if jar_files:
             unzip_status = True
@@ -354,6 +237,7 @@ class Create_Instance:
         else:
             unzip_status = False
             print("No natives file found.", color='yellow')
+
         if unzip_status:
             # Move all file to natives_dir
             for root, dirs, files in os.walk(instance_natives_dir):
@@ -374,8 +258,6 @@ class Create_Instance:
             print("Warring: You may get some error you download libraries. Please re-download this version of"
                   " Minecraft again.", color='yellow')
         os.chdir(Base.launcher_root_dir)
-
-
 
     def install_jvm(self, minecraft_version):
         java_manifest_url = 'https://launchermeta.mojang.com/v1/products/java-runtime/2ec0cc96c44e5a76b9c8b7c39df7210883d12871/all.json'
@@ -490,39 +372,37 @@ class Create_Instance:
         else:
             return True, "InstallJVMFinished"
 
-    @staticmethod
-    def mac_os_libraries_bug_fix(instance_name):
-        # Patch for some idiot version bug
-        if Base.Platform == "Darwin":
-            directory = os.path.join(Base.launcher_instances_dir, f"{instance_name}", ".minecraft",
-                                     "libraries", "ca", "weblite",
-                                     "1.0.0")
-            if not os.path.exists(directory):
-                os.makedirs(directory)  # Create intermediate directories if needed
-                url = "https://libraries.minecraft.net/ca/weblite/java-objc-bridge/1.0.0/java-objc-bridge-1.0.0.jar"
-                try:
-                    download_file(url, f"{directory}java-objc-bridge-1.0.0.jar")
-                except Exception as e:
-                    print(f"An error occurred: {e}")
 
     def download_games_files(self, version_id, install_dir, **kwargs):
+        # Parameter stuff
         without_download_client = kwargs.get("without_download_client", False)
-        # In this function, version id is spoof version(if minecraft version is legacy)
+
+        # Get ver data
         print("Loading version info...")
         version_data = get_version_data(version_id)
+
+        # Download client.jar
         if not without_download_client:
-            # Download game file( libraries, .jar files...)
             print("Downloading client...", color='lightblue')
             self.download_client(version_data, version_id, install_dir)
 
+        # Download libraries
         print("Downloading libraries...", color='lightblue')
-        self.download_libraries(version_data, install_dir)
-        self.mac_os_libraries_bug_fix(install_dir)
+        libraries_dir = os.path.join(install_dir, ".minecraft", "libraries")
+        download_libraries(version_data, libraries_dir, **kwargs)
+        time.sleep(0.5)
+
+        # Download natives
+        download_natives(version_data, libraries_dir)
+
+        # For macOS
+        mac_os_libraries_bug_fix(install_dir)
+
         # Delay time to make old output don't print with new output
         time.sleep(0.5)
         print("The required dependent libraries should have been downloaded :)", color='blue')
 
-        # Download assets(Also it will check this version are use legacy assets or don't use)
+        # Download the assets (Also it will check this version are use legacy assets or don't use)
         print("Downloading assets...", color='purple')
         assets_grabber.assets_file_grabber(version_id, install_dir)
         os.chdir(self.WorkDir)
@@ -539,7 +419,7 @@ class Create_Instance:
         print("Now all files are download success :)", color='blue')
         print("Exiting....", color='green')
 
-        # Add waiting time(If assets download failed it will print it?)
+        # Add waiting time (If the assets' download failed, it will print it?)
         time.sleep(1.2)
 
     def download_legacy_game(self, real_version, spoof_version, install_dir):
@@ -548,14 +428,21 @@ class Create_Instance:
         legacy_url = self.get_version_url(real_version, legacy=True)
         # Check legacy url valid
         if legacy_url is None:
-            raise Exception("Could not get version url.")
+            print("Could not get version url.", color='red', tag='ERROR')
+            return "Get version url failed"
 
         legacy_url = "/".join(legacy_url.split("/")[:-1]) + "/"
         client_url = f"{legacy_url}{real_version}.jar"
-        legacy_version_data = get_version_data(real_version)
+        legacy_version_data = get_version_data(real_version, custom_version_manifest_url=self.LegacyVersionManifestURl)
+        if legacy_version_data is None:
+            # Retry using the official source
+            legacy_version_data = get_version_data(real_version)
+
         # Check url status
         if legacy_version_data is None:
-            raise Exception("Client url are unavailable :( Is the server down?")
+            print("Version url are unavailable :( Is the server down?", color='red')
+            time.sleep(3)
+            return "Version url unavailable"
 
         # Download client
         client_dst = os.path.join(install_dir, ".minecraft", "libraries", "net", "minecraft", real_version, "client.jar")
