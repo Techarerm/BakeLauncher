@@ -170,11 +170,11 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
             f'echo -ne "{title}"',
             f'cd "{work_instance_dir}"',
             'clear',
-            f'echo BakeLauncher Version: {Base.launcher_version}',
-            f'echo "Minecraft Log Output:"',
+            f'printf "{light_yellow}BakeLauncher Version: {Base.launcher_version}{reset}\\n"',
+            f'printf "{light_blue}Minecraft Log Output: {reset}\\n"',
             'echo "==============================================="',
             minecraft_command,
-            f'echo "Minecraft has stopped running! # Thread terminated"',
+            f'printf "{green}Minecraft has stopped running! (Thread terminated){reset}\\n"',
             'exit'
         ])
         launch_command = launch_command.replace('"', '\\"')
