@@ -79,7 +79,7 @@ def create_new_client_thread_with_output(launch_command, PlatFormName):
         elif PlatFormName == 'Darwin':
             print("Successfully created launch thread!")
             time.sleep(3)
-            os.remove(script_path)
+            # os.remove(script_path)
         else:
             print("Successfully created launch thread!")
             time.sleep(2)
@@ -170,11 +170,11 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
             f'echo -ne "{title}"',
             f'cd "{work_instance_dir}"',
             'clear',
-            f'echo "BakeLauncher Version: {Base.launcher_version}"',
+            f'echo BakeLauncher Version: {Base.launcher_version}',
             f'echo "Minecraft Log Output:"',
             'echo "==============================================="',
             minecraft_command,
-            f'echo "Minecraft has stopped running! (Thread terminated)"',
+            f'echo "Minecraft has stopped running! # Thread terminated"',
             'exit'
         ])
         launch_command = launch_command.replace('"', '\\"')
