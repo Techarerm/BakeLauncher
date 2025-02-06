@@ -79,7 +79,7 @@ def create_new_client_thread_with_output(launch_command, PlatFormName):
         elif PlatFormName == 'Darwin':
             print("Successfully created launch thread!")
             time.sleep(3)
-            # os.remove(script_path)
+            os.remove(script_path)
         else:
             print("Successfully created launch thread!")
             time.sleep(2)
@@ -177,7 +177,6 @@ def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
             f'printf "{green}Minecraft has stopped running! (Thread terminated){reset}\\n"',
             'exit'
         ])
-        launch_command = launch_command.replace('"', '\\"')
     elif Base.Platform == "Linux":
         launch_command = [
             f'echo -ne "\033]0;{title}\007"',
