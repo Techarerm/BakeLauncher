@@ -8,7 +8,7 @@ from libs.__duke_explorer import Duke
 from libs.__account_manager import account_manager
 from libs.launch.launch_client import LaunchClient
 from libs.__instance_manager import instance_manager
-from libs.Utils.utils import get_version_data, find_main_class
+from libs.version.version import find_main_class, get_version_data
 from libs.libraries.libraries import generate_libraries_paths
 from libs.instance.instance import instance
 
@@ -201,10 +201,16 @@ class LauncherManager:
             InfoStatus, minecraft_version = instance.get_instance_info(instance_info_path,
                                                                        info_name="real_minecraft_version",
                                                                        ignore_not_found=True)
+            real_version = minecraft_version
         else:
             InfoStatus, minecraft_version = instance.get_instance_info(instance_info_path,
                                                                        info_name="client_version",
                                                                        ignore_not_found=True)
+
+            InfoStatus, real_version = instance.get_instance_info(instance_info_path,
+                                                                       info_name="real_minecraft_version",
+                                                                       ignore_not_found=True)
+
         if not InfoStatus:
             LegacyFlag = True
             print("Warning: You are trying to launch an instance created with a previous version of BakeLauncher.",
@@ -348,11 +354,11 @@ class LauncherManager:
 
         # Get librariesPath(Example: /path/LWJGL-1.0.jar:/path/Hopper-1.2.jar:/path/client.jar)
         InjectJARPath = None
-        legacy_client_path = os.path.join(libraries_path, "net", "minecraft", minecraft_version, "client.jar")
+        legacy_client_path = os.path.join(libraries_path, "net", "minecraft", real_version, "client.jar")
         if not os.path.exists(legacy_client_path):
             print("Could not find client in the recommended location :(", color='red')
 
-        libraries_paths_strings = generate_libraries_paths(minecraft_version, "libraries")
+        libraries_paths_strings = generate_libraries_paths(real_version, "libraries")
         # Inject jar file to launch chain
         # Get MainClass Name And Set Args(-cp "libraries":client.jar net.minecraft.client.main.Main or
         # net.minecraft.launchwrapper.Launch(old))
@@ -385,15 +391,10 @@ class LauncherManager:
             print('Loading custom config...', color='green')
 
             CustomJVMArgs = instance.read_custom_config(instance_custom_config, "CustomJVMArgs")
-
             CustomGameArgs = instance.read_custom_config(instance_custom_config, "CustomGameArgs")
-
             InjectJARPath = instance.read_custom_config(instance_custom_config, "InjectJARPath")
-
             ModLoaderClass = instance.read_custom_config(instance_custom_config, "ModLoaderClass")
-
             ModLoaderGameArgs = instance.read_custom_config(instance_custom_config, "ModLoaderGameArgs")
-
             ModLoaderJVMArgs = instance.read_custom_config(instance_custom_config, "ModLoaderJVMArgs")
 
             # Check if CustomJVMArgs(or CustomGameArgs) is None or has a length of 0 (ignoring spaces)

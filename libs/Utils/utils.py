@@ -12,53 +12,16 @@ LegacyVersionManifestURl = ("https://github.com/Techarerm/BakeLauncher-Library/r
                             "%20Manifest/version_manifest_legacy.json")
 
 
-def get_version_data(version_id):
-    """
-    Get version_manifest_v2.json and find requires version of json data
-    """
-
-    response = requests.get(VersionManifestURl)
-    data = response.json()
-    version_list = data['versions']
-
-    version_url = None
-    for v in version_list:
-        if v['id'] == version_id:
-            version_url = v['url']
-            break
-
-    if version_url is None:
-        response = requests.get(LegacyVersionManifestURl)
-        data = response.json()
-        version_list = data['versions']
-
-        version_url = None
-        for v in version_list:
-            if v['id'] == version_id:
-                version_url = v['url']
-                break
-
-    # If the version_id not in version_list, return None
-    if version_url is None:
-        print(f"Unable to find same as requires version id: {version_id} in the version_manifest.", color='red')
-        print("Failed to get version data. Cause by unknown Minecraft version.", color='red')
-        return None
-
-    try:
-        # Get version data
-        version_response = requests.get(version_url)
-        version_data = version_response.json()
-        return version_data
-    except Exception as e:
-        print(f"Error occurred while fetching version data: {e}", color='red')
-        print("Failed to get version data :(", color='red')
-        return None
-
-
-def download_file(url, dest_path):
+def download_file(url, dest_path, **kwargs):
     """
     Downloads a file from a URL and saves it to dest_path.
     """
+    # parameter stuff
+    with_verify = kwargs.get('with_verify', True)
+    sha1 = kwargs.get('sha1', None)
+    no_output = kwargs.get('no_output', False)
+    chunk_size = kwargs.get('custom_chunk_size', 8192)
+
     try:
         response = requests.get(url, stream=True)
         response.raise_for_status()
@@ -70,14 +33,23 @@ def download_file(url, dest_path):
 
         # Write the file to dest_path
         with open(dest_path, 'wb') as file:
-            for chunk in response.iter_content(chunk_size=8192):
+            for chunk in response.iter_content(chunk_size=chunk_size):
                 file.write(chunk)
-        if Base.UsingLegacyDownloadOutput:
-            print(f"Download successful: {dest_path}", color='lightblue')
-        return True  # Indicate success
+
+        if with_verify:
+            if sha1 is not None:
+                Status = verify_checksum(dest_path, sha1)
+                if not Status:
+                    return False
+
+        if not no_output:
+            print(f"Download successful: {dest_path}", color='lightgreen')
+
+        return True
     except requests.exceptions.RequestException as e:
-        print(f"Failed to download {url}: {e}", color='red')
-        return False  # Indicate failure
+        if not no_output:
+            print(f"Failed to download {url}: {e}", color='red')
+        return False
 
 
 def extract_zip(zip_path, extract_to):
@@ -103,11 +75,15 @@ def multi_thread_download(nested_urls_and_paths, name, max_workers=5, retries=1)
     downloaded_files = []
     failed_files = []
     sys.stderr.flush()
+    no_output = True
+
+    if Base.UsingLegacyDownloadOutput:
+        no_output = False
 
     def download_with_retry(url, dest_path, retry_count):
         """Attempts to download a file with retries."""
         for attempt in range(retry_count + 1):
-            success = download_file(url, dest_path)  # Replace with your download logic
+            success = download_file(url, dest_path, no_output=no_output)  # Replace with your download logic
             if success:
                 return True
             print(f"Retry {attempt + 1} for {url}")
@@ -163,31 +139,78 @@ def multi_thread_download(nested_urls_and_paths, name, max_workers=5, retries=1)
             futures_download(future_to_url, total_files)
 
     if failed_files:
-        print("Files that failed after retries:", failed_files)
+        print("Files that failed after retries:", failed_files, color='red')
     return downloaded_files, failed_files
 
 
-def write_global_config(item_name, new_item_data):
-    found = False
-    with open(Base.global_config_path, 'r') as file:
-        lines = file.readlines()
-        for i in range(len(lines)):
-            if item_name in lines[i]:
-                # Use the new or existing account ID
-                lines[i] = f'{item_name} = "{new_item_data}"\n'
-                found = True
-    with open(Base.global_config_path, 'w') as file:
-        file.writelines(lines)
-    if found:
-        return True
-    else:
+def multi_thread_download_with_verify(nested_urls_and_paths, name, checksums, max_workers=8, retries=1):
+    """
+    Downloads multiple files using multiple threads with retry attempts and verifies checksum.
+
+    nested_urls_and_paths: A nested list of tuples [(url, dest_path)].
+    checksums: A dictionary {dest_path: expected_checksum}.
+    """
+    urls_and_paths = [item for sublist in nested_urls_and_paths for item in sublist]
+    total_files = len(urls_and_paths)
+
+    downloaded_files = []
+    failed_files = []
+    sys.stderr.flush()
+
+    def download_with_retry(url, dest_path, retry_count):
+        """Attempts to download a file with retries and checksum verification."""
+        for attempt in range(retry_count + 1):
+            success = download_file(url, dest_path)  # Assumes this function exists
+            if success:
+                # Verify checksum if provided
+                if checksums and dest_path in checksums:
+                    expected_checksum = checksums[dest_path]
+                    Status = verify_checksum(dest_path, expected_checksum)
+
+                    if not Status:
+                        print(f"Checksum mismatch for {dest_path}.", color='red')
+                        continue  # Retry download
+
+                return True  # Download and checksum verification succeeded
+
+            print(f"Retry {attempt + 1} for {url}")
+
+        failed_files.append((url, dest_path))
         return False
 
+    def futures_download(future_to_url, total_files):
+        with tqdm(total=total_files, desc=f"Downloading {name}", unit="file", colour='cyan') as pbar_download:
+            for future in future_to_url:
+                url, dest_path = future_to_url[future]
+                try:
+                    success = future.result()
+                    if success:
+                        downloaded_files.append(dest_path)
+                except Exception as exc:
+                    print(f"Error downloading {url}: {exc}")
+                pbar_download.update(1)
 
-def find_main_class(client_version):
-    version_data = get_version_data(client_version)
-    main_class = version_data.get("mainClass")
-    return main_class
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_url = {
+            executor.submit(download_with_retry, url, dest_path, retries): (url, dest_path)
+            for url, dest_path in urls_and_paths
+        }
+        futures_download(future_to_url, total_files)
+
+    if failed_files:
+        print("\nRetrying failed downloads...")
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_url = {
+                executor.submit(download_with_retry, url, dest_path, retries): (url, dest_path)
+                for url, dest_path in failed_files
+            }
+            failed_files.clear()
+
+            futures_download(future_to_url, total_files)
+
+    if failed_files:
+        print("Files that failed after retries:", failed_files)
+    return downloaded_files, failed_files
 
 
 def verify_checksum(file_path, expected_sha1):
@@ -214,6 +237,7 @@ def find_jar_file_main_class(jar_file_path):
                         return line.split(':')[1].strip()
     except Exception as e:
         return None
+
 
 def check_url_status(url):
     try:

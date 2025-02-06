@@ -12,6 +12,7 @@ from libs.__create_instance import create_instance
 from libs.__duke_explorer import Duke
 from libs.__instance_manager import instance_manager
 from libs.__args_manager import args_manager
+from libs.development.playground import *
 
 ErrorMessageList = []
 ErrorMessageOutputRange = 0
@@ -184,6 +185,28 @@ def main_menu():
                 print("Quick launching Minecraft...", color='green')
                 LaunchMessage = launch_manager.launch_game(QuickLaunch=True)
                 error_return(LaunchMessage, "Write")
+        elif user_input.lower() == "playground" or user_input.lower() == "pg":
+            n = 1
+            for function_name in all_funs:
+                print(f"{n}: {function_name}")
+                n += 1
+
+            try:
+                input_stuff = int(input("Which function you want to 'play' ?"))
+
+                number = int(input_stuff) - 1
+
+                function_name = all_funs[number]
+
+                function_name = all_funs[number]
+                function_to_call = globals().get(function_name)  # Resolve function
+                if callable(function_to_call):
+                    function_to_call()
+
+            except Exception as e:
+                print(f"Oops {e} :P")
+                time.sleep(3)
+
         else:
             print(f"BakeLauncher: Can't found option {user_input} :( ", color='lightred')
             print("Please check you type option's number and try again!", color='lightyellow')

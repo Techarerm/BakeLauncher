@@ -1,6 +1,6 @@
 import datetime
+import json
 import os
-import shutil
 import subprocess
 import textwrap
 import time
@@ -10,7 +10,7 @@ from modules.print_colorx.print_color import print as print_color
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
 # dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
 # Example = "LB041224" Years: 2024 Month: 12 Date: 04
-dev_version = "BD060225"  # If version type is release set it blank
+dev_version = "BE070225"  # If version type is release set it blank
 version_type = "Dev"
 major_version = "0.9.1"
 
@@ -326,6 +326,7 @@ class LauncherBase:
         self.UsingLegacyDownloadOutput = False
         self.MaxFullVersionPerLine = 5
         self.MaxReleaseVersionPerLine = 10
+        self.DarwinInstallWithRosetta = False
         # ============================I'm a line==============================
         # Other stuff
         self.launcher_root_dir = os.getcwd()  # Set launcher root dir
@@ -715,6 +716,8 @@ def bake_bake():
     print_color(ChangeLog, color='cyan')
     print_color("Type 'exit' to back to main menu.", color='green')
     print_color('"Details" for more information.', color='purple')
+    print_color('"PrintInternalInfo" for full internal variable data output (dev-only)', color='lightgreen')
+    print_color('"DumpBaseData" to dumps base-obj.bakelh.json (For debug, create new issue on Github use)', color='lightyellow')
     type_time = 1
     while True:
         user_input = str(input("BakeLauncher> "))
@@ -727,7 +730,6 @@ def bake_bake():
             return True
 
         if "details" in user_input.lower():
-            current_time = datetime.datetime.now()
             print(f"Launcher Version : {Base.launcher_version}")
             print(f"Launcher Version Type : {Base.launcher_version_type}")
             print(f"Using Lib Version : {Base.launcher_lib_version}")
@@ -736,7 +738,7 @@ def bake_bake():
             print("")
             print("System Info")
             print(f"OS Name : {Base.Platform}")
-            print(f"Architecture : {Base.Arch[0]}")
+            print(f"Architecture : {Base.FullArch}, {Base.Arch[0]}")
             print(f"Internet Connection : {Base.InternetConnected}")
             print(f"")
             print("Setting & Flag")
@@ -750,6 +752,30 @@ def bake_bake():
             while True:
                 input("Press any key to continue...")
                 return True
+
+        if 'printinternalinfo' in user_input.lower():
+            base_obj = LauncherBase()
+            data = base_obj.__dict__
+
+            for keys, values in data.items():
+                print_color(f"{keys}: {values}", color='yellow')
+
+            input("Press any key to continue...")
+            return True
+
+        if 'dumpbasedata' in user_input.lower():
+            base_obj = LauncherBase()
+            data = base_obj.__dict__
+
+            try:
+                with open("base-obj.bakelh.json", "w") as f:
+                    json.dump(data, f, indent=4)
+                print("Base data dumped.")
+            except Exception as e:
+                print(f"Error while writing json data {e}")
+
+            input("Press any key to continue...")
+            return True
 
         if type_time == 1:
             print(f"?{user_input}")

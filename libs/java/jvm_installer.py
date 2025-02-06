@@ -69,23 +69,33 @@ class class_jvm_installer:
         return True, "DownloadFinished"
 
     @staticmethod
-    def find_selected_java_version_manifest_url(manifest_data, component, major_version):
+    def find_selected_java_version_manifest_url(manifest_data, component, major_version, **kwargs):
+        global JavaPlatformName
         if Base.Platform == 'Windows':
             JavaPlatformName = 'windows-x64'
         elif Base.Platform == 'Darwin':
             JavaPlatformName = 'mac-os'
+        elif Base.Platform == 'Linux':
+            if Base.FullArch.lower() == "arm64":
+                JavaPlatformName = 'linux-arm64'
+            else:
+                JavaPlatformName = Base.Platform.lower()
         else:
             JavaPlatformName = Base.Platform.lower()
 
+        if kwargs.get("custom_platform", None) is not None:
+            JavaPlatformName = kwargs.get("java_platform", JavaPlatformName)
+
         if JavaPlatformName not in manifest_data:
-            raise Exception(f"No {Base.Platform} platform data found in the manifest.")
+            return False, None, "UnsupportedPlatform"
 
         java_versions = manifest_data[JavaPlatformName].get(component, [])
         for version in java_versions:
             if version['version']['name'].startswith(str(major_version)):
                 manifest_url = version['manifest']['url']
-                return manifest_url
-        raise Exception(f"No matching Java manifest found for component {component} and version {major_version}.")
+                return True, manifest_url, None
+
+        return False, None, "VersionNotFound"
 
 
 jvm_installer = class_jvm_installer()

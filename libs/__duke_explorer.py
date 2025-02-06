@@ -4,7 +4,7 @@ import re
 import json
 import time
 from LauncherBase import Base, print_custom as print
-from libs.Utils.utils import get_version_data
+from libs.version.version import get_version_data
 
 
 class DukeCute:

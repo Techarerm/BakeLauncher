@@ -5,7 +5,8 @@ import requests
 from tqdm import tqdm
 from LauncherBase import Base, print_custom as print, ClearOutput
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from libs.Utils.utils import get_version_data, verify_checksum
+from libs.Utils.utils import verify_checksum
+from libs.version.version import get_version_data
 
 
 class AssetsGrabber:

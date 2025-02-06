@@ -4,9 +4,9 @@ import time
 import traceback
 from libs.instance.instance import instance
 from LauncherBase import Base, print_color as print, internal_functions_error_log_dump
-from libs.Utils.utils import find_main_class, get_version_data
+from libs.version.version import find_main_class
 from libs.__duke_explorer import Duke
-
+from libs.version.version import get_version_data
 
 class InstanceManager:
     def __init__(self):

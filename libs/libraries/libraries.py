@@ -214,8 +214,18 @@ def download_libraries(version_data, libraries_dir, **kwargs):
         artifact = lib_downloads.get('artifact')
 
         rules = lib.get('rules', None)
-        if rules is not None:
-            continue
+        if rules:
+            allowed = False
+            for rule in rules:
+                action = rule.get('action')
+                os_info = rule.get('os')
+                if action == 'allow' and (not os_info or os_info.get('name') == Base.Platform):
+                    allowed = True
+                elif action == 'disallow' and os_info and os_info.get('name') == Base.Platform:
+                    allowed = False
+                    break
+            if not allowed:
+                continue
 
         if artifact:
             lib_path = artifact.get('path', None)
@@ -264,6 +274,7 @@ def mac_os_libraries_bug_fix(instance_name):
 
 
 def download_natives(version_data, libraries_dir):
+    """darwin macos osx"""
     global ib_platform_name, lib_name_2, lib_name_old, native_key
     lib_platform_name, lib_name_2, lib_name_old = get_special_platform_name("ALL")
     print(f"Platform: {Base.Platform} LibrariesPlatform: {lib_platform_name}", tag='Debug',
@@ -284,7 +295,8 @@ def download_natives(version_data, libraries_dir):
         elif Base.Platform == "Darwin":
             print("Arm64 macOS detected!", color='lightgreen')
             print("Older version of Minecraft are not supported arm64 macOS running.", end="", color='cyan')
-            print("You can install Rosetta to make it works on your mac. (Not sure all version are supported)", color='cyan')
+            print("You can install Rosetta to make it works on your mac. (Not sure all version are supported)",
+                  color='cyan')
             print("If you want install minecraft version are over (or same) 1.19, you may don't need to install this.")
             print("Do you already have Rosetta installed on your Mac ? Y/N", color='blue')
             user_input = str(input(":"))
@@ -300,7 +312,8 @@ def download_natives(version_data, libraries_dir):
         print(f"Warning: No native key found for {lib_platform_name}", color='yellow')
         return "NativeKeyCheckFailed"
 
-    download_queue = []  # Collect (url, destination) pairs for batch downloading
+    download_queue = []
+    natives_dest_list = []  # For unzip natives
 
     def add_to_queue(url, dest):
         os.makedirs(os.path.dirname(dest), exist_ok=True)
@@ -308,6 +321,7 @@ def download_natives(version_data, libraries_dir):
             (url, dest)
         ]
         download_queue.append(natives_url_and_dest)
+        natives_dest_list.append(dest)
 
     found_any_native = False
 
@@ -359,6 +373,7 @@ def download_natives(version_data, libraries_dir):
     # Perform the batch download
     if download_queue:
         multi_thread_download(download_queue, "natives")
+        return True, None
     else:
         print(f"No native library found for key: {native_key}", color='yellow')
-        return "NativeLibrariesNotFound"
+        return True, "NativeLibrariesNotFound"

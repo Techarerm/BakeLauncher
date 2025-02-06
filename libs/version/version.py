@@ -116,3 +116,8 @@ def get_stable_or_newest_minecraft_version(version_type, **kwargs):
     else:
         return latest_data
 
+
+def find_main_class(client_version):
+    version_data = get_version_data(client_version)
+    main_class = version_data.get("mainClass")
+    return main_class

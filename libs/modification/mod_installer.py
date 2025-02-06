@@ -11,7 +11,7 @@ import time
 from LauncherBase import Base, print_custom as print
 from libs.__instance_manager import instance_manager
 from libs.Utils.utils import download_file, extract_zip, multi_thread_download, find_jar_file_main_class
-from libs.libraries.libraries import libraries_check
+from libs.libraries.libraries import *
 from libs.instance.instance import instance
 from libs.modification.fabric import fabric
 from libs.modification.forge import forge
@@ -295,7 +295,7 @@ class ModInstaller:
         # Prepare processor_class url and path
         download_queue = []
         for name in processors_maven_class_list:
-            Status, processor_class_path = forge.convert_library_name_to_artifact_path(name)
+            Status, processor_class_path = convert_library_name_to_artifact_path(name)
             url = forge.forge_maven_url + processor_class_path
             dest = os.path.join(libraries_dest, processor_class_path)
             lib_url_and_dest = [
@@ -305,7 +305,7 @@ class ModInstaller:
 
         # Prepare dependencies libraries url and path
         for library in libraries:
-            Status, library_path = forge.convert_library_name_to_artifact_path(library)
+            Status, library_path = convert_library_name_to_artifact_path(library)
             url = forge.forge_maven_url + library_path
             dest = os.path.join(libraries_dest, library_path)
             lib_url_and_dest = [
@@ -331,12 +331,12 @@ class ModInstaller:
         for processor_class, processor_args in zip(processors_maven_class_list, processors_args_list):
             libraries_path_string = ""  # Reset for each processor_class
             Status, libraries = forge.get_forge_processor_depends(processor_class, install_profile_data)
-            Status, processor_class_path = forge.convert_library_name_to_artifact_path(processor_class)
+            Status, processor_class_path = convert_library_name_to_artifact_path(processor_class)
             processor_class_path = os.path.join(libraries_dest, processor_class_path)
 
             # Process libraries for this processor_class
             for library in libraries:
-                Status, library_path = forge.convert_library_name_to_artifact_path(library)
+                Status, library_path = convert_library_name_to_artifact_path(library)
                 full_path = os.path.join(libraries_dest, library_path)
                 libraries_path_string += full_path + ";"
 
@@ -434,7 +434,7 @@ class ModInstaller:
 
         forge.move_forge_files(unzip_dest, loader_version, instance_libraries)
         forge_client_maven_path = forge.get_forge_key_data("PATCHED", install_profile_data)
-        F, forge_client_path = forge.convert_library_name_to_artifact_path(forge_client_maven_path)
+        F, forge_client_path = convert_library_name_to_artifact_path(forge_client_maven_path)
         full_forge_client_path = os.path.join(instance_libraries, forge_client_path)
 
         # forge_client_hash = forge.get_forge_key_data("PATCHED_SHA", install_profile_data)

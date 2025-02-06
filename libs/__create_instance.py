@@ -4,18 +4,18 @@ import time
 import shutil
 import zipfile
 import traceback
-import requests
 from libs.__duke_explorer import Duke
 from libs.instance.instance import instance
 from libs.java.jvm_installer import jvm_installer
 from libs.__instance_manager import instance_manager
 from libs.__assets_grabber import assets_grabber
 from libs.modification.mod_installer import mod_installer
-from libs.Utils.utils import download_file, multi_thread_download, find_main_class
+from libs.Utils.utils import download_file, extract_zip
 from libs.version.version import *
 from LauncherBase import Base, ClearOutput, print_custom as print, internal_functions_error_log_dump
 from libs.libraries.libraries import download_libraries, mac_os_libraries_bug_fix, download_natives
 from libs.platform.platfrom import get_special_platform_name
+
 
 class Create_Instance:
     def __init__(self):
@@ -110,7 +110,8 @@ class Create_Instance:
 
         # New methods
         rows = (len(release_versions) + 9) // Base.MaxReleaseVersionPerLine  # Round up division to determine rows
-        rows_all = (len(all_available_version) + 50) // Base.MaxFullVersionPerLine # Round up division to determine rows
+        rows_all = (
+                           len(all_available_version) + 50) // Base.MaxFullVersionPerLine  # Round up division to determine rows
         MaxTextInOneItemRelease = 10
         MaxTextInOneItemAll = 30
         print("Available version list:", color='purple')
@@ -260,6 +261,8 @@ class Create_Instance:
         os.chdir(Base.launcher_root_dir)
 
     def install_jvm(self, minecraft_version):
+        global selected_java_version_manifest_url, failed
+        failed = False
         java_manifest_url = 'https://launchermeta.mojang.com/v1/products/java-runtime/2ec0cc96c44e5a76b9c8b7c39df7210883d12871/all.json'
 
         # Get version data
@@ -282,8 +285,44 @@ class Create_Instance:
             return f"FailedToFetchJavaManifest[{e}]"
 
         # gEt "selected java version manifest_url"
-        selected_java_version_manifest_url = jvm_installer.find_selected_java_version_manifest_url(manifest_data, component,
-                                                                                          major_version)
+        Status, selected_java_version_manifest_url, Err = jvm_installer.find_selected_java_version_manifest_url(
+            manifest_data,
+            component,
+            major_version)
+
+        if not Status:
+            print("Failed to install Java runtimes :(", color='red')
+            print(f"ERR: {Err}")
+            print("Maybe launcher can't find available Java runtimes on your system.", color='lightyellow')
+            if Base.Platform == "Darwin":
+                print('If you using macOS, try installing brew (package manager) and get openjdk to launch game.')
+                print("Or check java.com and https://www.oracle.com/java/technologies/downloads to get java.")
+                if Base.FullArch.lower() == "arm64":
+                    print("Arm64 macOS detect! If you can't find support java. Try installing Rosetta and install "
+                          "x86-64 version of Java.", color='green')
+                    print("Do you want to install x86-64 version of Java? (Require Rosetta)")
+                    print("Do you want to install x86-64 version of Java? (y/n)")
+                    user_input = str(input(":"))
+                    if user_input.lower() == "y":
+                        Status, selected_java_version_manifest_url, Err = jvm_installer.find_selected_java_version_manifest_url(
+                            manifest_data, component, major_version, custom_platform='mac-os-arm64')
+
+                        if not Status:
+                            failed = True
+
+            elif Base.Platform == "Windows":
+                print("Check https://www.oracle.com/java/technologies/downloads/ or java.com to get Java!",
+                      color='lightyellow')
+                print("More option: https://learn.microsoft.com/en-us/java/openjdk/download")
+                failed = True
+            elif Base.Platform == "Linux":
+                print("Try using your system-based package manager to install openjdk.")
+                failed = True
+
+        if failed:
+            print(f"This minecraft require Java version {major_version}", color='purple')
+            continue_code = input("Press any key to continue...")
+            return "SupportJVMNotFound"
 
         try:
             # Get manifest data
@@ -332,14 +371,13 @@ class Create_Instance:
             print(f"Failed to install Java runtime :( Cause by {Message}", color='red')
             return False, "DownloadJavaRuntime>InstallJVMFailed"
 
-        if not Base.Platform == "Windows":
+        if Base.Platform == "Linux":
             print("Do you want to fix permissions for the Java runtime?", color='blue', tag='PROMPT')
-            print(
-                "Sometimes you may get 'Permission denied' errors when launching Minecraft. "
-                "This method can help fix these issues. :)",
-                color='green'
-            )
-            print("The launcher may require your password to repair permissions.", color='purple', tag='INFO')
+            print("Sometimes you may get 'Permission denied' errors when launching Minecraft. "
+                  "This method can help fix these issues. :)",
+                  color='green'
+                  )
+            print("The launcher may require our password to repair permissions.", color='purple', tag='INFO')
             print("Linux systems often need this fix to ensure the Java runtime works properly.", color='green')
 
             user_input = input("Proceed with fixing permissions? (Y/N): ").strip().upper()
@@ -371,10 +409,11 @@ class Create_Instance:
         else:
             return True, "InstallJVMFinished"
 
-
     def download_games_files(self, version_id, install_dir, **kwargs):
         # Parameter stuff
         without_download_client = kwargs.get("without_download_client", False)
+
+        game_folder = os.path.join(install_dir, ".minecraft")
 
         # Get ver data
         print("Loading version info...")
@@ -389,7 +428,7 @@ class Create_Instance:
         print("Downloading libraries...", color='lightblue')
         libraries_dir = os.path.join(install_dir, ".minecraft", "libraries")
         download_libraries(version_data, libraries_dir, **kwargs)
-        time.sleep(0.5)
+        time.sleep(1)
 
         # Download natives
         download_natives(version_data, libraries_dir)
@@ -444,7 +483,8 @@ class Create_Instance:
             return "Version url unavailable"
 
         # Download client
-        client_dst = os.path.join(install_dir, ".minecraft", "libraries", "net", "minecraft", real_version, "client.jar")
+        client_dst = os.path.join(install_dir, ".minecraft", "libraries", "net", "minecraft", real_version,
+                                  "client.jar")
         self.download_client(legacy_version_data, real_version, install_dir, custom_client_url=client_url)
         if not os.path.exists(client_dst):
             raise Exception(f"Downloading client failed :(")

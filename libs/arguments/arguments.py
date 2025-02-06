@@ -4,7 +4,7 @@ import json
 import psutil
 import requests
 from libs.instance.instance import instance
-from libs.Utils.utils import get_version_data
+from libs.version.version import get_version_data
 
 
 class class_argument:

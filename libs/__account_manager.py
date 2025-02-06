@@ -198,27 +198,27 @@ class AuthManager:
             return False
 
         # Start get token process...
-        Status, microsoft_token, microsoft_refresh_token = get_microsoft_account_token(code, "AuthToken")
+        Status, microsoft_token, microsoft_refresh_token, Err = get_microsoft_account_token(code, "AuthToken")
         if not Status:
-            print(f"Failed to get microsoft account token :( Cause by error {microsoft_token}", color='red')
+            print(f"Failed to get microsoft account token :( Cause by error {Err}", color='red')
             time.sleep(3)
-            return f"GetMSAccountTokenFailed>ERR:{microsoft_token}"
+            return f"GetMSAccountTokenFailed>ERR:{Err}"
 
-        Status, xbl_token = get_xbl_token(microsoft_token)
+        Status, xbl_token, Err = get_xbl_token(microsoft_token)
         if not Status:
-            print(f"Failed to get XBL token :( Cause by error {xbl_token}", color='red')
+            print(f"Failed to get XBL token :( Cause by error {Err}", color='red')
             time.sleep(3)
             return xbl_token
 
-        Status, xsts_userhash, xsts_token = get_xsts_token(xbl_token)
+        Status, xsts_userhash, xsts_token, Err = get_xsts_token(xbl_token)
         if not Status:
-            print(f"Failed to get XBL token :( Cause by error {xsts_userhash}", color='red')
+            print(f"Failed to get XBL token :( Cause by error {Err}", color='red')
             time.sleep(3)
             return xsts_userhash + xsts_token
 
-        Status, access_token = get_access_token(xsts_userhash, xsts_token)
+        Status, access_token, Err = get_access_token(xsts_userhash, xsts_token)
         if not Status:
-            print(f"Failed to get access token :( Cause by error {access_token}", color='red')
+            print(f"Failed to get access token :( Cause by error {Err}", color='red')
             time.sleep(3)
             return access_token
 
@@ -344,35 +344,35 @@ class AuthManager:
             print("Your Minecraft token has expired. Refreshing...", color='lightyellow')
 
             # Refresh Microsoft token using the refresh token
-            Status, new_microsoft_token, new_refresh_token = get_microsoft_account_token(RefreshToken,
+            Status, new_microsoft_token, new_refresh_token, Err = get_microsoft_account_token(RefreshToken,
                                                                                               "RefreshToken")
             if not Status:
-                print(f"Failed to refresh Microsoft token. Cause by error {new_microsoft_token}", color='red')
+                print(f"Failed to refresh Microsoft token. Cause by error {Err}", color='red')
                 print("Maybe your refresh token are expired! please re-login your account.",
                       color='yellow')
                 Base.RefreshTokenFailedFlag = True
                 time.sleep(5)
-                return False, "FailedToRefreshToken"
+                return False, f"FailedToRefreshToken>Err:{Err}"
 
             # Get a new Minecraft token using the refreshed Microsoft token
             self.RefreshTokenFlag = True
-            Status, xbl_token = get_xbl_token(new_microsoft_token)
+            Status, xbl_token, Err = get_xbl_token(new_microsoft_token)
             if not Status:
-                print(f"Failed to get XBL token :( Cause by error {xbl_token}", color='red')
+                print(f"Failed to get XBL token :( Cause by error {Err}", color='red')
                 time.sleep(3)
-                return False, f"GettingXBLToken>{xbl_token}"
+                return False, f"GettingXBLToken>{Err}"
 
-            Status, xsts_userhash, xsts_token = get_xsts_token(xbl_token)
+            Status, xsts_userhash, xsts_token, Err = get_xsts_token(xbl_token)
             if not Status:
-                print(f"Failed to get XBL token :( Cause by error {xsts_userhash}", color='red')
+                print(f"Failed to get XBL token :( Cause by error {Err}", color='red')
                 time.sleep(3)
-                return False, f"GettingXSTSToken>{xsts_userhash}"
+                return False, f"GettingXSTSToken>{Err}"
 
-            Status, access_token = get_access_token(xsts_userhash, xsts_token)
+            Status, access_token, Err = get_access_token(xsts_userhash, xsts_token)
             if not Status:
-                print(f"Failed to get Minecraft token :( Cause by error {access_token}", color='red')
+                print(f"Failed to get Minecraft token :( Cause by error {Err}", color='red')
                 time.sleep(3)
-                return False, f"GettingAccessToken>{access_token}"
+                return False, f"GettingAccessToken>{Err}"
 
             Status, username, uuid = self.get_account_data(access_token)
             if not Status:
