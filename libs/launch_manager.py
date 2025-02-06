@@ -350,7 +350,7 @@ class LauncherManager:
             return "NativesAreNotAvailable"
 
         # Set Natives Path
-        NativesPath = "natives"
+        NativesPath = os.path.join(gameDir, "natives")
 
         # Get librariesPath(Example: /path/LWJGL-1.0.jar:/path/Hopper-1.2.jar:/path/client.jar)
         InjectJARPath = None
