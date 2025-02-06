@@ -135,6 +135,7 @@ def prepare_command(JVMExecutable, libraries_paths_strings, NativesPath, MainCla
         f'-Djava.library.path="{NativesPath}" -cp "{libraries_paths_strings}" '
         f'{MainClass} {real_game_args} {custom_game_args}'
     )
+    print(minecraft_command)
 
     return minecraft_command, minecraft_command_one_thread
 
