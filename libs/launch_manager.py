@@ -31,10 +31,18 @@ class LauncherManager:
         if version_data is None:
             version_data = get_version_data(client_version)
 
-        jvm_args_list = version_data.get("arguments", {}).get("jvm", None)
+        jvm_args = version_data.get("arguments", {}).get("jvm", None)
 
-        if jvm_args_list is None:
+        x_startOnFirstThreadStatus = False
+        if jvm_args is None:
             jvm_args_list = []
+        else:
+            jvm_args_list = []
+            length = len(jvm_args_list)
+            for i in range(0, length + 1):
+                value = jvm_args_list[i].get("rules", {}).get("value", None)
+                if value == "-XstartOnFirstThread":
+                    x_startOnFirstThreadStatus = True
 
         # Set Java Virtual Machine use Memory Size
         RAMSize_Args = fr"-Xms{Base.JVMUsageRamSizeMinLimit}m -Xmx{Base.JVMUsageRamSizeMax}m "
@@ -53,8 +61,7 @@ class LauncherManager:
         elif Base.Platform == "Darwin":
             # Check whether the startup version of macOS requires the parameter "-XstartOnFirstThread" parameter In
             # LWJGL 3.x, macOS requires this args to make lwjgl running on the JVM starts with thread 0) (from wiki.vg)
-            print(jvm_args_list)
-            if "-XstartOnFirstThread" in jvm_args_list:
+            if x_startOnFirstThreadStatus:
                 OtherArgs += "-XstartOnFirstThread "
 
         if append_args:
