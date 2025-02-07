@@ -39,7 +39,7 @@ class LauncherManager:
         else:
             jvm_args_list = []
             length = len(jvm_args_list)
-            for i in range(0, length + 1):
+            for i in range(0, length):
                 value = jvm_args_list[i].get("rules", {}).get("value", None)
                 if value == "-XstartOnFirstThread":
                     x_startOnFirstThreadStatus = True
