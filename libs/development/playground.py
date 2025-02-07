@@ -14,8 +14,11 @@ from libs.__assets_grabber import assets_grabber
 all_funs = ["function", "create_a_custom_instance"]
 
 def function():
-    print("Testing version 1.15.2")
-    version_data = get_version_data("1.15.2")
+    version = str(input("Testing version : "))
+    version_data = get_version_data(version)
+    if version_data is None:
+        return
+
     libraries_path = os.path.join(Base.launcher_tmp_dir, "test")
     if os.path.exists(libraries_path):
         try:
