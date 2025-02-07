@@ -1,4 +1,7 @@
 import os
+import re
+from itertools import cycle
+
 from LauncherBase import Base, print_custom as print
 from libs.Utils.utils import download_file, multi_thread_download
 from libs.platform.platfrom import get_special_platform_name
@@ -100,13 +103,37 @@ def libraries_check(libraries_folder, filter_names=None):
     find_duplicates(library_versions)
 
 
-def generate_libraries_paths(client_version, libraries_dir, **kwargs):
-    global client_jar_path
+def generate_classpath(client_version, libraries_dir, **kwargs):
+    """
+    Search .jar file in the libraries_dir and combine all paths with classpath_separator
+    :param client_version: Minecraft version (Client.jar must in folder *libraries_dir, "net", "minecraft",
+     client_version, "client.jar"* If not, you may get some error while game launch
+     :param libraries_dir: Directory containing all libraries.
+     # extra parameter stuff
+     :param kwargs:
+     only_return_path_list > return the full library paths list (no client.jar path)
+     without_client_jar > return classpath without client jar path
+     custom_main_class_path > replace client jar path to custom main class path
+     extra_classpath > append extra class paths to classpath
+    """
+    client_jar_path = None
     jar_paths_string = ""
-    only_return_path_list = kwargs.get("only_return_path_list", False)
     libraries_path_list = []
-    if client_version:
-        client_jar_path = os.path.join(libraries_dir, "net", "minecraft", client_version, "client.jar")
+    classpath_separator = ":"
+
+    if Base.Platform == "Windows":
+        classpath_separator = ";"
+
+    # parameter stuff
+    only_return_path_list = kwargs.get("only_return_path_list", False)
+    without_client_jar = kwargs.get("without_client_jar", False)
+    custom_main_class_path = kwargs.get("custom_main_class_path", None)
+    extra_classpath = kwargs.get("extra_classpath", None)
+
+    # Client jar path
+    client_jar_path = os.path.join(libraries_dir, "net", "minecraft", client_version, "client.jar")
+    if without_client_jar and custom_main_class_path is not None:
+        client_jar_path = custom_main_class_path
 
     for root, dirs, files in os.walk(libraries_dir):
         for file in files:
@@ -117,15 +144,19 @@ def generate_libraries_paths(client_version, libraries_dir, **kwargs):
 
                 # Append the path to the jar_paths_string with the correct separator
                 if Base.Platform == "Windows":
-                    jar_paths_string += full_path + ";"
+                    jar_paths_string += full_path + classpath_separator
                 else:
-                    jar_paths_string += full_path + ":"
+                    jar_paths_string += full_path + classpath_separator
                 libraries_path_list.append(full_path)
 
     # Finally, append the client.jar path to the end of the jar paths string if it exists
-    if client_version:
-        if client_jar_path:
-            jar_paths_string += client_jar_path
+    if not without_client_jar:
+        jar_paths_string += client_jar_path
+    else:
+        jar_paths_string = jar_paths_string.rstrip(classpath_separator)
+
+    if extra_classpath:
+        jar_paths_string += classpath_separator + extra_classpath
 
     if only_return_path_list:
         return libraries_path_list
@@ -195,7 +226,7 @@ def download_libraries(version_data, libraries_dir, **kwargs):
     library_are_native = False
     # Some parameter stuff
     normal_download = kwargs.get("normal_download", False)
-    bypass_download_natives = kwargs.get("bypass_download_natives", False)
+    only_return_library_paths_list = kwargs.get("only_return_library_paths_list", False)
     name = "libraries"
     # Confirm libraries_dir are created
     os.makedirs(libraries_dir, exist_ok=True)
@@ -239,7 +270,7 @@ def download_libraries(version_data, libraries_dir, **kwargs):
             lib_dest = os.path.join(libraries_dir, lib_path)
             os.makedirs(os.path.dirname(lib_dest), exist_ok=True)
 
-            if library_are_native and bypass_download_natives:
+            if library_are_native:
                 continue
 
             if normal_download:
@@ -251,11 +282,78 @@ def download_libraries(version_data, libraries_dir, **kwargs):
                 ]
                 multi_download_queue.append(lib_url_and_dest)
 
+    if only_return_library_paths_list:
+        return normal_download_path_list
+    else:
+        if normal_download_url_list:
+            for url, dest_path in zip(normal_download_url_list, normal_download_path_list):
+                download_file(url, dest_path)
+        else:
+            multi_thread_download(multi_download_queue, name)
+
+
+def download_libraries_test(version_data, libraries_dir, **kwargs):
+    """
+    Download require libraries (from version data)
+    """
+    library_are_native = False
+    # Some parameter stuff
+    normal_download = kwargs.get("normal_download", False)
+    bypass_download_natives = kwargs.get("bypass_download_natives", False)
+    name = "libraries"
+    # Confirm libraries_dir are created
+    os.makedirs(libraries_dir, exist_ok=True)
+
+    # Waiting-Download-List
+    multi_download_queue = []
+    normal_download_url_list = []
+    normal_download_path_list = []
+
+    # Get libraries data from version_data
+    libraries = version_data.get('libraries', [])
+
+    # Search support user platform libraries
+    for lib in libraries:
+        lib_downloads = lib.get('downloads', {})
+        artifact = lib_downloads.get('artifact')
+
+        rules = lib.get('rules', None)
+        if rules:
+            # Bypass download native
+            continue
+
+        if artifact:
+            lib_path = artifact.get('path', None)
+            if lib_path is None:
+                continue
+
+            lib_url = artifact.get('url', None)
+            if lib_url is None:
+                continue
+
+            lib_dest = os.path.join(libraries_dir, lib_path)
+            os.makedirs(os.path.dirname(lib_dest), exist_ok=True)
+
+            if library_are_native and bypass_download_natives:
+                continue
+
+            if normal_download:
+                normal_download_url_list.append(lib_url)
+                normal_download_path_list.append(lib_dest)
+            else:
+                lib_url_and_dest = [
+                    (lib_url, lib_dest)
+                ]
+                multi_download_queue.append(lib_url_and_dest)
+    """
     if normal_download_url_list:
         for url, dest_path in zip(normal_download_url_list, normal_download_path_list):
             download_file(url, dest_path)
     else:
         multi_thread_download(multi_download_queue, name)
+    """
+
+    return normal_download_url_list
 
 
 def mac_os_libraries_bug_fix(instance_name):
@@ -273,9 +371,146 @@ def mac_os_libraries_bug_fix(instance_name):
                 print(f"An error occurred: {e}")
 
 
-def download_natives(version_data, libraries_dir):
+def download_natives_test(version_data, libraries_dir, unzip_natives_folder, platform_name, full_arch):
+    """
+    Download natives from version data
+    :param version_data: Minecraft version data (JSON)
+    :param libraries_dir: libraries folder (The path which library(natives) download to)
+    :param unzip_natives_folder: The folder which natives unzip to
+    :param platform_name: System (Platform) name (Example: Windows, macOS, Linux)
+    :param full_arch: Platform Architecture (Support list: amd64(full support), arm64(not full support),
+     i386(not full support. Drop support in the new version)
+    """
+    global natives_key_list, native_keys_list
+
+    platform_name = platform_name.lower()
+    full_arch = full_arch.lower()
+
+    support_arch_list = ["amd64", "arm64", "i386"]
+    if full_arch not in support_arch_list:
+        return False, "UnsupportedPlatform"
+
+    # Extract numerical part of architecture (bit-width)
+    arch = re.sub(r'\D', "", full_arch)
+    if full_arch == "i386":
+        arch = "32"
+
+    print(f"Platform : {platform_name} | Architecture : {full_arch} | {arch}Bit", color='green', tag='DEBUG')
+
+    # Map platforms to native keys
+    platform_name_dict = {
+        'windows': ['windows'],
+        'linux': ['linux'],
+        'darwin': ['macos', "osx"],
+    }
+    platform_name_list = platform_name_dict.get(platform_name, [])
+
+    print(f"Platform Name < {' '.join(platform_name_list)} >")
+
+    # Mapping native keys based on architecture
+    map_keys_amd64 = {
+        'windows': ['natives-windows', "natives-windows-64"],
+        'linux': ['natives-linux'],
+        'darwin': ['natives-macos', "natives-osx"],
+        'windows-arm64': ['natives-windows'],
+    }
+
+    map_keys_arm64 = {
+        'windows': ['natives-windows-arm64'],
+        'linux': ['natives-linux-aarch64'],
+        'darwin': ['natives-macos-arm64'],
+        'windows-arm64': ['natives-windows-arm64'],
+    }
+
+    map_keys_i386 = {
+        'windows': ['natives-windows-32'],
+        'linux': ['natives-linux-aarch_64'],
+        'darwin': ['natives-macos-arm64'],
+        'windows-arm64': ['natives-windows-arm64'],
+    }
+
+    # Assign correct native keys list based on architecture
+    if full_arch == "amd64":
+        native_keys_list = map_keys_amd64.get(platform_name, [])
+    elif full_arch == "arm64":
+        native_keys_list = map_keys_arm64.get(platform_name, [])
+    elif full_arch == "i386":
+        native_keys_list = map_keys_i386.get(platform_name, [])
+    else:
+        native_keys_list = []
+
+    download_queue = []
+    libraries_data = version_data.get('libraries', [])
+
+    # Processing normal natives
+    for lib in libraries_data:
+        lib_name = lib.get("name", None)
+        print(f"Checking lib {lib_name}...")
+        lib_downloads = lib.get('downloads', {})
+
+        # Check platform compatibility via rules
+        rules = lib.get('rules', [])
+
+        # Process only normal natives (without "classifiers" key)
+        classifiers = lib_downloads.get("classifiers", None)
+        if rules and classifiers is None:
+            allow = rules[0]["action"] if rules and "action" in rules[0] else None
+            disallow_platform = rules[1]["os"]["name"] if len(rules) > 1 and "os" in rules[1] and "name" in rules[1][
+                "os"] else []
+
+            natives = lib.get("natives", {})
+            support_platform_list = list(natives.values())
+
+            allowed_download = False
+            for native_key in native_keys_list:
+                for plat_name in platform_name_list:
+                    if native_key in support_platform_list and plat_name not in disallow_platform:
+                        allowed_download = True
+                        break
+                if allowed_download:
+                    break
+
+            if allowed_download:
+                artifact = lib_downloads.get('artifact', {})
+                lib_path = artifact.get("path", None)
+                lib_url = artifact.get("url", None)
+
+                if lib_path is None or lib_url is None:
+                    print(f"Skipping library {lib_name}")
+                    continue
+
+                lib_dest = os.path.join(libraries_dir, lib_path)
+                os.makedirs(os.path.dirname(lib_dest), exist_ok=True)
+                download_queue.append(lib_url)
+
+        # Process classifiers if available
+        if classifiers:
+            for native_key in native_keys_list:
+                if native_key in classifiers:
+                    classifier_info = classifiers[native_key]
+                    lib_path = classifier_info.get("path")
+                    lib_url = classifier_info.get("url")
+
+                    if not lib_path or not lib_url:
+                        print(f"Skipping library {lib_name}")
+                        continue
+
+                    print(f"Library {lib_name} added!", color='lightgreen')
+                    lib_dest = os.path.join(libraries_dir, lib_path)
+                    os.makedirs(os.path.dirname(lib_dest), exist_ok=True)
+                    download_queue.append(lib_path)
+
+    return download_queue
+
+
+def download_natives(version_data, libraries_dir, **kwargs):
     """darwin macos osx"""
     global ib_platform_name, lib_name_2, lib_name_old, native_key
+
+    #
+    only_return_native_paths_list = kwargs.get("only_return_native_paths_list", False)
+    natives_path_list = []
+
     lib_platform_name, lib_name_2, lib_name_old = get_special_platform_name("ALL")
     print(f"Platform: {Base.Platform} LibrariesPlatform: {lib_platform_name}", tag='Debug',
           color='green')
@@ -315,13 +550,14 @@ def download_natives(version_data, libraries_dir):
     download_queue = []
     natives_dest_list = []  # For unzip natives
 
-    def add_to_queue(url, dest):
+    def add_to_queue(url, dest, og_path):
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         natives_url_and_dest = [
             (url, dest)
         ]
         download_queue.append(natives_url_and_dest)
         natives_dest_list.append(dest)
+        natives_path_list.append(og_path)
 
     found_any_native = False
 
@@ -349,14 +585,15 @@ def download_natives(version_data, libraries_dir):
         # Handle artifact downloads
         artifact = lib_downloads.get('artifact')
         if artifact and native_key in (lib.get('name', '') or artifact.get('path', '')):
-            add_to_queue(artifact['url'], os.path.join(libraries_dir, artifact['path']))
+            add_to_queue(artifact['url'], os.path.join(libraries_dir, artifact['path']), artifact['path'])
             found_any_native = True
 
         # Handle classifier downloads
         classifiers = lib_downloads.get('classifiers')
         if classifiers and native_key in classifiers:
             classifier_info = classifiers[native_key]
-            add_to_queue(classifier_info['url'], os.path.join(libraries_dir, classifier_info['path']))
+            add_to_queue(classifier_info['url'], os.path.join(libraries_dir, classifier_info['path']),
+                         classifier_info['path'])
             found_any_native = True
 
     # Fallback for macOS to 'natives-osx'
@@ -366,14 +603,18 @@ def download_natives(version_data, libraries_dir):
             classifiers = lib.get('downloads', {}).get('classifiers')
             if classifiers and fallback_key in classifiers:
                 classifier_info = classifiers[fallback_key]
-                add_to_queue(classifier_info['url'], os.path.join(libraries_dir, classifier_info['path']))
+                add_to_queue(classifier_info['url'], os.path.join(libraries_dir, classifier_info['path']),
+                             classifier_info['path'])
                 found_any_native = True
                 break
 
     # Perform the batch download
-    if download_queue:
-        multi_thread_download(download_queue, "natives")
-        return True, None
+    if only_return_native_paths_list:
+        return natives_path_list
     else:
-        print(f"No native library found for key: {native_key}", color='yellow')
-        return True, "NativeLibrariesNotFound"
+        if download_queue:
+            multi_thread_download(download_queue, "natives")
+            return True, None
+        else:
+            print(f"No native library found for key: {native_key}", color='yellow')
+            return True, "NativeLibrariesNotFound"

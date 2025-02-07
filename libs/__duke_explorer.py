@@ -4,7 +4,7 @@ import re
 import json
 import time
 from LauncherBase import Base, print_custom as print
-from libs.version.version import get_version_data
+from libs.version.version import get_version_data, get_version_data_from_exist_data
 
 
 class DukeCute:
@@ -301,7 +301,10 @@ class DukeCute:
             else:
                 try:
                     # Get version data
-                    version_data = get_version_data(version_id)
+                    version_data = get_version_data_from_exist_data(version_id)
+
+                    if version_data is None:
+                        return False, None
 
                     # Extract the Java version information
                     component, major_version = self.get_java_version_info(version_data)

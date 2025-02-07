@@ -5,8 +5,11 @@ BakeLauncher Main Menu
 
 import os
 import time
+import traceback
+
 from libs.__account_manager import account_manager
-from LauncherBase import Base, bake_bake, ClearOutput, print_custom as print, timer, initialize_config
+from LauncherBase import Base, bake_bake, ClearOutput, print_custom as print, timer, initialize_config, \
+    internal_functions_error_log_dump
 from libs.launch_manager import launch_manager
 from libs.__create_instance import create_instance
 from libs.__duke_explorer import Duke
@@ -204,7 +207,11 @@ def main_menu():
                     function_to_call()
 
             except Exception as e:
-                print(f"Oops {e} :P")
+                print(f"Oops {e} :P", color='lightyellow')
+                print("Dumping error log...", color='lightyellow')
+                function_name = traceback.extract_tb(e.__traceback__)[-1].name
+                detailed_traceback = traceback.format_exc()
+                internal_functions_error_log_dump(e, "Playground", function_name, detailed_traceback)
                 time.sleep(3)
 
         else:

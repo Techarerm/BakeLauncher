@@ -294,7 +294,7 @@ class InstanceManager:
                 convert_status = False
             else:
                 component, major_version = Duke.get_java_version_info(version_data)
-                main_class = find_main_class(self.name)
+                Status, main_class = find_main_class(self.name)
                 convert_process(self.name, self.CLIENT_VERSION, version_type, major_version, main_class)
             if not convert_status:
                 print(f"Failed to convert instance name {self.name}. :(", color='red')
@@ -354,7 +354,7 @@ class InstanceManager:
                         convert_status = False
                     else:
                         component, major_version = Duke.get_java_version_info(version_data)
-                        main_class = find_main_class(instance_name)
+                        Status, main_class = find_main_class(instance_name)
                         convert_process(instance_name, instance_name, version_type, major_version, main_class)
                     if not convert_status:
                         print(f"Failed to convert instance name {instance_name}. :(", color='red')

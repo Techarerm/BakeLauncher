@@ -10,7 +10,7 @@ from modules.print_colorx.print_color import print as print_color
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
 # dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
 # Example = "LB041224" Years: 2024 Month: 12 Date: 04
-dev_version = "BE070225"  # If version type is release set it blank
+dev_version = "BF080225"  # If version type is release set it blank
 version_type = "Dev"
 major_version = "0.9.1"
 
@@ -249,7 +249,6 @@ def timer(message, seconds):
 class LauncherBase:
     """
     BakeLauncher's Base
-    A good Launcher must have a good foundation.
     .....
     """
 
@@ -380,7 +379,6 @@ class LauncherBase:
             if not continue_load.upper() == "Y":
                 return False, "WorkDirUnicodeEncodeError"
 
-
         # Platform check
         if Base.Platform not in self.PlatformSupportList:
             print_color(f"You are running on a unsupported platform name {Base.Platform}", color='yellow',
@@ -401,6 +399,16 @@ class LauncherBase:
             os.system(rf'echo -ne "\033]0;BakeLauncher {Base.launcher_version}\007"')
         elif self.Platform == "Linux":
             os.system(f'echo -ne "\033]0;BakeLauncher {Base.launcher_version}\007"')
+
+        if not Base.Arch.lower() == "64bit":
+            print_color("Non-64Bit platform detected!")
+            print_color(f"BakeLauncher for other architecture support is untested.", color='lightred')
+            print_color(f"You can still continue running the launcher. But you may get some bug during use.",
+                        color='lightyellow')
+            continue_running = str(input("Enter Y to ignore: "))
+            if not continue_running.upper == "Y":
+                self.EndLoadFlag = True
+                return
 
         Status, Message = self.check_internet_connect()
 
@@ -627,27 +635,39 @@ class LauncherBase:
         # In 0.9.1, LauncherBase no longer stash except normal platform name and architecture
 
         # Check platform support
-        if Arch[0] == "64bit":
-            if mode.upper() == "PLATFORM":
-                return Platform
-            elif mode.upper() == "ARCH":
-                return Arch
-            elif mode.upper() == "FULLARCH":
-                return FullArch
-            else:
-                print_color(f"Base: Unknown args {mode}")
-                self.EndLoadFlag = True
-                return None
+        if mode.upper() == "PLATFORM":
+            return Platform
+        elif mode.upper() == "ARCH":
+            return Arch[0]
+        elif mode.upper() == "FULLARCH":
+            return FullArch
         else:
-            print_color(f"BakeLauncher for 32bit(or other arch) architecture support is untested.", color='lightred')
-            print_color(f"You can still continue running the launcher. But you may get some bug during use.", color='lightyellow')
-            continue_running = str(input("Enter Y to ignore: "))
-            if not continue_running.upper == "Y":
-                self.EndLoadFlag = True
-                return
+            print_color(f"Base: Unknown args {mode}")
+            self.EndLoadFlag = True
+            return None
+            """
+            if Arch[0] == "64bit":
+                if mode.upper() == "PLATFORM":
+                    return Platform
+                elif mode.upper() == "ARCH":
+                    return Arch
+                elif mode.upper() == "FULLARCH":
+                    return FullArch
+                else:
+                    print_color(f"Base: Unknown args {mode}")
+                    self.EndLoadFlag = True
+                    return None
             else:
-                return Arch
-
+                print_color(f"BakeLauncher for 32bit(or other arch) architecture support is untested.", color='lightred')
+                print_color(f"You can still continue running the launcher. But you may get some bug during use.",
+                            color='lightyellow')
+                continue_running = str(input("Enter Y to ignore: "))
+                if not continue_running.upper == "Y":
+                    self.EndLoadFlag = True
+                    return
+                else:
+                    return Arch
+            """
     def check_internet_connect(self):
         if self.PingServerIP is not None:
             if not self.PingServerIP == "None":
@@ -667,7 +687,7 @@ class LauncherBase:
                 # Try to establish a socket connection to the host and port
                 try:
                     response = ping_a_host(host)
-                    if response is not None:
+                    if response:
                         self.InternetConnected = True
                 except Exception as e:
                     print_color(f"Ping to host {host} failed.", tag='Warning')
@@ -717,7 +737,8 @@ def bake_bake():
     print_color("Type 'exit' to back to main menu.", color='green')
     print_color('"Details" for more information.', color='purple')
     print_color('"PrintInternalInfo" for full internal variable data output (dev-only)', color='lightgreen')
-    print_color('"DumpBaseData" to dumps base-obj.bakelh.json (For debug, create new issue on Github use)', color='lightyellow')
+    print_color('"DumpBaseData" to dumps base-obj.bakelh.json (For debug, create new issue on Github use)',
+                color='lightyellow')
     type_time = 1
     while True:
         user_input = str(input("BakeLauncher> "))

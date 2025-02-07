@@ -1,5 +1,12 @@
+"""
+libs/version/version.py
+
+A function to get version_manifest data or get the specified version data
+"""
+import json
+import os
 import requests
-from LauncherBase import print_custom as print
+from LauncherBase import print_custom as print, Base
 
 mojang_version_manifest_url = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
 
@@ -23,9 +30,6 @@ def get_version_data(version_id, **kwargs):
             break
 
     if version_url is None:
-        print(f"Unable to find same as requires version id: {version_id} in the version_manifest.", color='red',
-              tag="[DEBUG]")
-        print("Failed to get version data. Cause by unknown Minecraft version.", color='red', tag="[DEBUG]")
         return None
 
     try:
@@ -34,8 +38,6 @@ def get_version_data(version_id, **kwargs):
         version_data = version_response.json()
         return version_data
     except Exception as e:
-        print(f"Error occurred while fetching version data: {e}", color='red', tag="[DEBUG]")
-        print("Failed to get version data :(", color='red', tag="[DEBUG]")
         return None
 
 
@@ -51,6 +53,21 @@ def check_minecraft_version_are_valid(version_id):
             return False
         else:
             return True
+
+def get_minecraft_version_type(version_id, **kwargs):
+    """Get version type"""
+
+    # parameter stuff
+    version_manifest_url = kwargs.get("custom_version_manifest_url", mojang_version_manifest_url)
+
+    response = requests.get(version_manifest_url)
+    data = response.json()
+
+    for version in data["versions"]:
+        if version["id"] == version_id:
+            return version["type"]
+
+    return None
 
 
 def get_minecraft_version_url(version_id, **kwargs):
@@ -117,7 +134,57 @@ def get_stable_or_newest_minecraft_version(version_type, **kwargs):
         return latest_data
 
 
-def find_main_class(client_version):
-    version_data = get_version_data(client_version)
-    main_class = version_data.get("mainClass")
-    return main_class
+def find_main_class(client_version, **kwargs):
+    """Get mainClass from version data"""
+    if kwargs.get("custom_version_data", None) is not None:
+        version_data = kwargs["custom_version_data"]
+    else:
+        version_data = get_version_data(client_version)
+
+    main_class = version_data.get("mainClass", None)
+
+    if main_class is None:
+        return False, None
+    return True, main_class
+
+
+def create_version_data(minecraft_version, version_data, **kwargs):
+    """
+    Create ${version}.json at launcher_root/versions/
+    """
+    # parameter stuff
+    without_check_hash = kwargs.get('without_check_hash', False)
+
+    version_folder = os.path.join(Base.launcher_root_dir, "versions")
+    version_data_file_path = os.path.join(version_folder, f"{minecraft_version}.json")
+
+    if not os.path.exists(version_folder):
+        os.makedirs(version_folder)
+
+    if os.path.exists(version_data_file_path):
+        if without_check_hash:
+            return version_data_file_path
+
+        version_data = get_version_data(minecraft_version)
+
+        if version_data is None:
+            return
+        else:
+            os.remove(version_data_file_path)
+
+    with open(version_data_file_path, "w") as f:
+        json.dump(version_data, f, indent=4)
+
+    return
+
+
+def get_version_data_from_exist_data(minecraft_version):
+    versions_folder = os.path.join(Base.launcher_root_dir, "versions")
+    version_data_file_path = os.path.join(versions_folder, f"{minecraft_version}.json")
+
+    if os.path.exists(version_data_file_path):
+        with open(version_data_file_path, "r") as f:
+            version_data = json.load(f)
+            return version_data
+    else:
+        return None

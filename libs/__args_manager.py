@@ -224,8 +224,8 @@ class ArgsManager:
         assets_dir = "${assets_dir}"
         uuid = "${uuid}"
 
-        GameArgs = launch_manager.generate_game_args(client_version, username, access_token, gameDir, assets_dir,
-                                                     assetsIndex, uuid, instance_path)
+        Status, GameArgs = launch_manager.generate_game_args(client_version, username, access_token, gameDir, assets_dir,
+                                                             assetsIndex, uuid)
         print("Original Game Args Example:", color='purple')
         print(GameArgs, color='green')
 

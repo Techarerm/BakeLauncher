@@ -4,6 +4,7 @@ import textwrap
 import requests
 from datetime import datetime
 from LauncherBase import Base
+from libs.version.version import get_version_data
 
 
 class class_instance:
@@ -422,6 +423,35 @@ class class_instance:
                 return True, self.CFGPath
             else:
                 return False, None
+
+    def create_version_data(self, minecraft_version, version_data, **kwargs):
+        """
+        Create ${version}.json at launcher_root/versions/
+        """
+        # parameter stuff
+        without_check_hash = kwargs.get('without_check_hash', False)
+
+        version_folder = os.path.join(Base.launcher_root_dir, "versions")
+        version_data_file_path = os.path.join(version_folder, f"{minecraft_version}.json")
+
+        if not os.path.exists(version_folder):
+            os.makedirs(version_folder)
+
+        if os.path.exists(version_data_file_path):
+            if without_check_hash:
+                return version_data_file_path
+
+            version_data = get_version_data(minecraft_version)
+
+            if version_data is None:
+                return
+            else:
+                os.remove(version_data_file_path)
+
+        with open(version_data_file_path, "w") as f:
+            json.dump(version_data, f, indent=4)
+
+        return
 
 
 instance = class_instance()

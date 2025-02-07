@@ -92,7 +92,6 @@ class Create_Instance:
                     if index < len(version_list):
                         line += f"{index + 1}: {version_list[index]:<20}\t"
                 print(line.strip())  # Print each row after building the line
-            print("This list may look really broken :)", color='blue')
             return version_list
         response = requests.get(self.VersionManifestURl)
         data = response.json()
@@ -463,7 +462,7 @@ class Create_Instance:
     def download_legacy_game(self, real_version, spoof_version, install_dir):
         # Getting custom client url and download client
         print("Getting client url..")
-        legacy_url = self.get_version_url(real_version, legacy=True)
+        legacy_url = get_minecraft_version_url(real_version, custom_version_manifest_url=self.LegacyVersionManifestURl)
         # Check legacy url valid
         if legacy_url is None:
             print("Could not get version url.", color='red', tag='ERROR')
@@ -525,6 +524,10 @@ class Create_Instance:
             elif self.legacy_version_type == "pre-classic":
                 client_version = "rd-160052"
                 self.version_spoof_status = True
+            else:
+                # official version
+                client_version = self.legacy_version
+                self.version_spoof_status = False
             if self.version_spoof_status:
                 print(f"Version Spoof Enable | RealVersion: {require_version} Spoof to Version : {client_version}",
                       color='green', tag='DEBUG')
@@ -534,7 +537,7 @@ class Create_Instance:
         return client_version, real_version
 
     def start_create_instance(self, require_version):
-        global instance_path, client_version
+        global instance_path, client_version, version_type
 
         # Check version
         client_version, real_version = self.version_spoof(require_version)
@@ -561,14 +564,20 @@ class Create_Instance:
 
             # Generate instance path and get version type
             instance_path = os.path.join(Base.launcher_instances_dir, name)
-            version_type = self.get_version_type(real_version)
-            version_data = get_version_data(real_version)
-            main_class = find_main_class(real_version)
+            # Save version.json
+            version_data = get_version_data(client_version)
+            create_version_data(client_version, version_data)
 
-            if version_data is None:
-                print("Failed to get version data. Cause by source is unavailable :(", color='red')
-                return False
-            component, major_version = Duke.get_java_version_info(version_data)
+            if self.legacy_version:
+                version_data = get_version_data(real_version, custom_version_manifest_url=self.LegacyVersionManifestURl)
+                version_type = get_minecraft_version_type(real_version,
+                                                          custom_version_manifest_url=self.LegacyVersionManifestURl)
+                create_version_data(real_version, version_data)
+            else:
+                version_type = get_minecraft_version_type(real_version)
+
+            Status, main_class = find_main_class(real_version, custom_version_data=version_data)
+            component, major_version = Duke.get_java_version_info(get_version_data(client_version))
 
             # Check if instance already exists
             if os.path.exists(instance_path):
@@ -795,13 +804,24 @@ class Create_Instance:
                 print("Please enter you want to download Minecraft version.", color='blue')
                 download_version = str(input(":"))
                 if download_version.strip().lower() in legacy_list:
-                    self.legacy_version_id = download_version
-                    self.legacy_version_type = self.get_version_type(download_version)
-                    if not self.legacy_version_type == "old_alpha":
+                    Status = check_minecraft_version_are_valid(download_version)
+                    if not Status:
                         # except some official version
                         self.legacy_version = True
+                    else:
+                        print("Found version in the official manifest. Using official source.", color='green')
+
+                    self.legacy_version_id = download_version
+                    self.legacy_version_type = get_minecraft_version_type(download_version,
+                                                                          custom_version_manifest_url=self.LegacyVersionManifestURl)
+
                     print("Checking legacy source...", color='green')
-                    version_data = get_version_data(download_version)
+                    if self.legacy_version:
+                        version_data = get_version_data(download_version,
+                                                        custom_version_manifest_url=self.LegacyVersionManifestURl)
+                    else:
+                        version_data = get_version_data(download_version,)
+
                     if version_data is None:
                         print(f"Failed to download Minecraft version {download_version} :( Cause by "
                               f"legacy source is unavailable.", color='red')

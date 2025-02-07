@@ -7,30 +7,34 @@ from LauncherBase import Base, print_custom as print
 from libs.account.mojang_api import *
 from libs.__account_manager import account_manager
 from libs.instance.instance import instance
-from libs.version.version import get_version_data
-from libs.libraries.libraries import download_libraries, download_natives
+from libs.version.version import *
+from libs.libraries.libraries import *
 from libs.__assets_grabber import assets_grabber
 
 all_funs = ["function", "create_a_custom_instance"]
 
 def function():
-    print("Reading account data...")
-    AccountIDStatus, account_id = account_manager.get_default_account_id()
-    if not AccountIDStatus:
-        return "AccountIDNotFound"
-    AccDataStatus, account_data = account_manager.get_account_data_use_account_id(account_id)
-    if not AccDataStatus:
-        return "GetAccountDataFailed"
+    print("Testing version 1.15.2")
+    version_data = get_version_data("1.15.2")
+    libraries_path = os.path.join(Base.launcher_tmp_dir, "test")
+    if os.path.exists(libraries_path):
+        try:
+            os.remove(libraries_path)
+        except Exception as e:
+            pass
 
-    username = account_data['Username']
-    access_token = account_data['AccessToken']
-    uuid = account_data['UUID']
+    new_natives_list = download_natives_test(version_data, libraries_path, "", Base.Platform, Base.FullArch)
+    old_natives_list = download_natives(version_data, libraries_path, only_return_native_paths_list=True)
+    print("Natives Compare Info:")
+    compare_lists(old_natives_list, new_natives_list)
+    compare_lists_indexed(old_natives_list, new_natives_list)
 
-    path = "C:/Users/techa/Downloads/20c412d50462805e.png"
+    old_libraries_list = download_libraries(version_data, libraries_path, only_return_library_paths_list=True)
+    new_libraries_list = download_libraries_test(version_data, libraries_path)
 
-    Status, url, err = upload_account_skin(access_token, "classic", path)
-    print(Status, url, err)
-    print(change_account_skin(access_token, "classic", url))
+    print("Libraries Compare Info:")
+    compare_lists(old_libraries_list, new_libraries_list)
+    compare_lists_indexed(old_natives_list, new_libraries_list)
 
     exit_code = input("Press any key to exit playground...")
 
@@ -111,6 +115,31 @@ def create_a_custom_instance():
     print("Custom instance created!", color='blue')
     time.sleep(3)
 
+def compare_lists(original, edited):
+    original_set = set(original)
+    edited_set = set(edited)
+
+    added = edited_set - original_set
+    removed = original_set - edited_set
+
+    print("Changes detected:")
+    if added:
+        print(f"➕ Added: {list(added)}")
+    if removed:
+        print(f"❌ Removed: {list(removed)}")
+
+    if not added and not removed:
+        print("✅ No changes detected.")
+
+def compare_lists_indexed(original, edited):
+    max_length = max(len(original), len(edited))
+
+    for i in range(max_length):
+        orig_value = original[i] if i < len(original) else None
+        edit_value = edited[i] if i < len(edited) else None
+
+        if orig_value != edit_value:
+            print(f"🔄 Index {i}: {orig_value} → {edit_value}")
 
 
 

@@ -6,6 +6,7 @@ import threading
 import time
 import multiprocessing
 from LauncherBase import Base, print_custom as print
+
 if os.name == 'nt':
     from libs.multi.nt import create_terminal
 
@@ -109,7 +110,7 @@ def create_new_client_thread(launch_command):
 
 
 def prepare_command(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
-                    JVMArgs, GameArgs, custom_game_args):
+                    JVMArgs, GameArgs):
     global real_game_args
     print("LaunchInfo", color='lightyellow')
     print("JVMExecutable: \n   ", JVMExecutable, "\n", color='lightgreen')
@@ -127,26 +128,24 @@ def prepare_command(JVMExecutable, libraries_paths_strings, NativesPath, MainCla
     minecraft_command = (
         f'{JVMExecutable} {JVMArgs} '
         f'-Djava.library.path="{NativesPath}" -cp "{libraries_paths_strings}" '
-        f'{MainClass} {real_game_args} {custom_game_args}'
+        f'{MainClass} {real_game_args}'
     )
 
     minecraft_command_one_thread = (
         f'{JVMArgs}'
         f'-Djava.library.path="{NativesPath}" -cp "{libraries_paths_strings}" '
-        f'{MainClass} {real_game_args} {custom_game_args}'
+        f'{MainClass} {real_game_args}'
     )
-    print(minecraft_command)
 
     return minecraft_command, minecraft_command_one_thread
 
 
-def LaunchClient(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
-                 JVMArgs, GameArgs, custom_game_args, instances_id,
-                 EnableMultitasking):
+def launch_client(JVMExecutable, libraries_paths_strings, NativesPath, MainClass,
+                  JVMArgs, GameArgs, instances_id,
+                  EnableMultitasking):
     work_instance_dir = os.getcwd()
     minecraft_command, minecraft_command_one_thread = prepare_command(JVMExecutable, libraries_paths_strings,
-                                                                      NativesPath, MainClass, JVMArgs, GameArgs,
-                                                                      custom_game_args)
+                                                                      NativesPath, MainClass, JVMArgs, GameArgs)
     green = "\033[32m"
     light_yellow = "\033[93m"
     light_blue = "\033[94m"

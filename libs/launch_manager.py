@@ -6,10 +6,11 @@ from LauncherBase import Base, print_custom as print
 from libs.__assets_grabber import assets_grabber
 from libs.__duke_explorer import Duke
 from libs.__account_manager import account_manager
-from libs.launch.launch_client import LaunchClient
+from libs.launch.launch_client import launch_client
 from libs.__instance_manager import instance_manager
-from libs.version.version import find_main_class, get_version_data
-from libs.libraries.libraries import generate_libraries_paths
+from libs.version.version import *
+from libs.version.legacy import legacy_version_support
+from libs.libraries.libraries import generate_classpath
 from libs.instance.instance import instance
 
 
@@ -25,35 +26,15 @@ class LauncherManager:
         without_ram_args = kwargs.get("without_ram_args", False)
         append_args = kwargs.get("append_args", False)
 
-        # Grabbing args list(Added saved arguments process)
-        if os.path.exists("launch.data"):
-            with open("launch.data", "r") as data:
-                jvm_args_list = next((line.split('=')[1].strip() for line in data if "JVMArgsList" in line), None)
-        else:
-            jvm_args_list = None
-
-        if not jvm_args_list:
+        # Get version data
+        version_data = get_version_data_from_exist_data(client_version)
+        if version_data is None:
             version_data = get_version_data(client_version)
-            jvm_args_list = version_data.get("arguments", {}).get("jvm", [])
-            found = False
 
-            if os.path.exists("launch.data"):
-                with open("launch.data", "r") as data:
-                    lines = data.readlines()
+        jvm_args_list = version_data.get("arguments", {}).get("jvm", None)
 
-                with open("launch.data", "w") as data:
-                    for line in lines:
-                        if "JVMArgsList" in line:
-                            data.write(f"JVMArgsList={jvm_args_list}\n")
-                            found = True
-                        else:
-                            data.write(line)
-
-                    if not found:
-                        data.write(f"JVMArgsList={jvm_args_list}\n")
-            else:
-                with open("launch.data", "w") as data:
-                    data.write(f"JVMArgsList={jvm_args_list}\n")
+        if jvm_args_list is None:
+            jvm_args_list = []
 
         # Set Java Virtual Machine use Memory Size
         RAMSize_Args = fr"-Xms{Base.JVMUsageRamSizeMinLimit}m -Xmx{Base.JVMUsageRamSizeMax}m "
@@ -83,32 +64,32 @@ class LauncherManager:
         else:
             return RAMSize_Args, OtherArgs
 
-    def generate_game_args(self, version_id, username, access_token, game_dir, assets_dir, assetsIndex, uuid, instance_path):
-        global minecraftArguments, client_type
-        # Fetch version data and arguments
-        if not os.path.exists("launch.data"):
-            version_data = get_version_data(version_id)
-            minecraftArguments = version_data.get("minecraftArguments", "")
-            with open("launch.data", "w") as data:
-                data.write(f"minecraftArguments={minecraftArguments}\n")
-        else:
-            with open("launch.data", "r") as data:
-                for line in data:
-                    if "minecraftArguments" in line:
-                        minecraftArguments = line.split('=')[1].strip()
-                        break
+    def generate_game_args(self, version_id, username, access_token, game_dir, assets_dir, assetsIndex, uuid, **kwargs):
+        # parameter stuff
+        fetch_version_data_without_using_exist = kwargs.get("fetch_version_data_without_using_exist", False)
 
-        # Get client type
-        instance_info = os.path.join(instance_path, "instance.bakelh.ini")
-        if os.path.exists(instance_info):
-            Status, version_type = instance.get_instance_info(instance_info, info_name="type")
-            client_type = version_type if version_type not in {None, "None"} else "default"
-        else:
+        if fetch_version_data_without_using_exist:
             version_data = get_version_data(version_id)
-            client_type = version_data.get("type", "default")
+        else:
+            version_data = get_version_data_from_exist_data(version_id)
+            if version_data is None:
+                return False, None
 
+        minecraftArguments = version_data.get("arguments", {}).get("game", None)
+        if minecraftArguments is None:
+            minecraftArguments = version_data.get("minecraftArguments", None)
+            if minecraftArguments is None:
+                return False, None
+
+        client_type = version_data.get("type", None)
         user_properties = "{}"
         user_type = "msa"  # Set user type to 'msa'
+
+        if type(minecraftArguments) is list:
+            minecraftArguments = ""
+            for arg in minecraftArguments:
+                minecraftArguments += f" {arg}"
+
 
         if "--userProperties" in minecraftArguments:
             minecraft_args = f"--username {username} --version {version_id} --gameDir {game_dir} " \
@@ -137,13 +118,14 @@ class LauncherManager:
                              f"--assetsDir {assets_dir} --assetIndex {assetsIndex} --uuid {uuid} " \
                              f"--accessToken {access_token} --userType {user_type}"
 
-        if "AlphaVanillaTweaker" in minecraftArguments or client_type in ["classic", "infdev", "indev", "alpha"]:
+        if "AlphaVanillaTweaker" in minecraftArguments or client_type in ["classic", "infdev", "indev", "alpha", "old"
+                                                                          "-alpha"]:
             minecraft_args += " --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker"
 
-        return minecraft_args
+        return True, minecraft_args
 
     def launch_game(self, **kwargs):
-        global JVMArgs, CustomRAMArgs, JavaPath, LegacyFlag, main_class, append_jvm_args
+        global JVMArgs, CustomRAMArgs, JavaPath, LegacyFlag, main_class, append_jvm_args, version_data
         QuickLaunch = kwargs.get("QuickLaunch", False)
 
         # Check folder "versions" are available in root (To avoid some user forgot to install)
@@ -193,23 +175,17 @@ class LauncherManager:
 
         # Get instance's Minecraft version
         instance_info_path = os.path.join(Base.launcher_instances_dir, self.instance_name, "instance.bakelh.ini")
-        InfoStatus, use_legacy_manifest = instance.get_instance_info(instance_info_path,
-                                                                     info_name="use_legacy_manifest",
-                                                                     ignore_not_found=True)
+        InfoStatus, LegacyFlag = instance.get_instance_info(instance_info_path,
+                                                            info_name="use_legacy_manifest",
+                                                            ignore_not_found=True)
 
-        if use_legacy_manifest:
-            InfoStatus, minecraft_version = instance.get_instance_info(instance_info_path,
-                                                                       info_name="real_minecraft_version",
-                                                                       ignore_not_found=True)
-            real_version = minecraft_version
-        else:
-            InfoStatus, minecraft_version = instance.get_instance_info(instance_info_path,
-                                                                       info_name="client_version",
-                                                                       ignore_not_found=True)
+        InfoStatus, minecraft_version = instance.get_instance_info(instance_info_path,
+                                                                   info_name="client_version",
+                                                                   ignore_not_found=True)
 
-            InfoStatus, real_version = instance.get_instance_info(instance_info_path,
-                                                                       info_name="real_minecraft_version",
-                                                                       ignore_not_found=True)
+        InfoStatus, real_version = instance.get_instance_info(instance_info_path,
+                                                              info_name="real_minecraft_version",
+                                                              ignore_not_found=True)
 
         if not InfoStatus:
             LegacyFlag = True
@@ -219,8 +195,28 @@ class LauncherManager:
             print("Please go to Extra>Convert Old Instance Structure to convert instance to new structure.",
                   color='red')
             minecraft_version = self.instance_name
+            real_version = self.instance_name
         else:
             LegacyFlag = False
+
+        # print version info
+        print(f"Version Info : client_version={minecraft_version} real_version={real_version}", color='cyan')
+
+        # Check version.json status
+        version_data = get_version_data_from_exist_data(minecraft_version)
+        if not version_data:
+            print("Version.json not found. Recreating...", color='lightyellow')
+            if not Base.InternetConnected:
+                print("Internet connection error :( Please connect to internet.", color='red')
+                time.sleep(4)
+                return "ReCreateVersionJSON>NoInternetConnected"
+            orig_version_data = get_version_data(minecraft_version)
+            create_version_data(minecraft_version, orig_version_data)
+            version_data = get_version_data_from_exist_data(minecraft_version)
+            if version_data is None:
+                print("Re-create version json failed :(", color='red')
+                time.sleep(4)
+                return "ReCreateVersionJSONFailed"
 
         # Get required Java version path
         if os.path.isfile(Base.jvm_setting_path):
@@ -238,16 +234,19 @@ class LauncherManager:
 
         print("Getting JVM Path...", color='c')
         Status, major_version = instance.get_instance_info(instance_info_path, info_name="support_java_version")
-        if not LegacyFlag:
-            if major_version is None or not major_version == "None":
-                JavaPath = Duke.java_version_check(minecraft_version, java_version=major_version)
-            else:
-                if Base.InternetConnected:
-                    JavaPath = Duke.java_version_check(minecraft_version)
-                else:
-                    print("Failed to get support java version :( No internet connection.", color='red')
+        if not Status or major_version == "None":
+            print("Could not find support java version in the instance info. Re-try get it from version json.", color='lightyellow')
+            major_version = version_data.get("javaVersion", {}).get("majorVersion", None)
+
+        if major_version is not None and major_version != "None":
+            JavaPath = Duke.java_version_check(minecraft_version, java_version=major_version)
         else:
-            JavaPath = Duke.java_version_check(minecraft_version)
+            if Base.InternetConnected:
+                JavaPath = Duke.java_version_check(minecraft_version)
+            else:
+                print("Failed to get support java version :( No internet connection.", color='red')
+                time.sleep(4)
+                return "GetSupportJava>NoInternetConnected"
 
         # Check JavaPath is valid
         if JavaPath is None:
@@ -352,24 +351,10 @@ class LauncherManager:
         # Set Natives Path
         NativesPath = os.path.join(gameDir, "natives")
 
-        # Get librariesPath(Example: /path/LWJGL-1.0.jar:/path/Hopper-1.2.jar:/path/client.jar)
-        InjectJARPath = None
-        legacy_client_path = os.path.join(libraries_path, "net", "minecraft", real_version, "client.jar")
-        if not os.path.exists(legacy_client_path):
-            print("Could not find client in the recommended location :(", color='red')
-
-        libraries_paths_strings = generate_libraries_paths(real_version, "libraries")
-        # Inject jar file to launch chain
         # Get MainClass Name And Set Args(-cp "libraries":client.jar net.minecraft.client.main.Main or
         # net.minecraft.launchwrapper.Launch(old))
-        if not LegacyFlag:
-            Status, main_class = instance.get_instance_info(instance_info_path, info_name="main_class")
-            if main_class is None or main_class == "None":
-                main_class = find_main_class(minecraft_version)
-        else:
-            main_class = find_main_class(minecraft_version)
-
-        print(f"Using {main_class} as the Main Class." ,color='blue')
+        Status, main_class = find_main_class(minecraft_version, custom_version_data=version_data)
+        print(f"Using {main_class} as the Main Class.", color='blue')
 
         # Get assetsIndex and assets_dir
         assetsIndex = assets_grabber.get_assets_index_version(minecraft_version)
@@ -380,90 +365,129 @@ class LauncherManager:
 
         assets_dir = assets_grabber.get_assets_dir(minecraft_version, instance_dir)
 
-        # Get GameArgs
-        GameArgs = self.generate_game_args(minecraft_version, username, access_token, gameDir, assets_dir, assetsIndex,
-                                           uuid, instance_dir)
+        """Preparing args"""
+        GameArgs = None
+        JVMArgs = None
+        jvm_ram_args = None
+        classpath = None
+        InjectJARPath = None
+        extra_classpath = ""
+        extra_game_args = ""
+        extra_jvm_arg = ""
 
         # Now it available :)
         instance_custom_config = os.path.join(instance_dir, "instance.bakelh.cfg")
         if os.path.exists(instance_custom_config):
+            """Processing custom config"""
             print("Found instance config :D", color='blue')
             print('Loading custom config...', color='green')
 
-            CustomJVMArgs = instance.read_custom_config(instance_custom_config, "CustomJVMArgs")
-            CustomGameArgs = instance.read_custom_config(instance_custom_config, "CustomGameArgs")
-            InjectJARPath = instance.read_custom_config(instance_custom_config, "InjectJARPath")
-            ModLoaderClass = instance.read_custom_config(instance_custom_config, "ModLoaderClass")
-            ModLoaderGameArgs = instance.read_custom_config(instance_custom_config, "ModLoaderGameArgs")
-            ModLoaderJVMArgs = instance.read_custom_config(instance_custom_config, "ModLoaderJVMArgs")
+            args_queue = ["CustomJVMArgs", "CustomGameArgs", "InjectJARPath", "ModLoaderClass", "ModLoaderGameArgs",
+                          "ModLoaderJVMArgs"]
+            exists_args_data = []
 
-            # Check if CustomJVMArgs(or CustomGameArgs) is None or has a length of 0 (ignoring spaces)
-            if CustomJVMArgs is None or len(CustomJVMArgs.strip()) == 0:
-                # print("CustomJVMArgs is empty or not provided, ignoring...", color='yellow')
-                CustomJVMArgs = None
+            for arg in args_queue:
+                arg_data = instance.read_custom_config(instance_custom_config, arg)
 
-            if CustomGameArgs is None or len(CustomGameArgs.strip()) == 0:
-                # print("CustomGameArgs is empty or not provided, ignoring...", color='yellow')
-                CustomGameArgs = " "  # Replace Custom Args to a spaces(if is empty)
+                if not arg_data is None:
+                    if len(arg_data) > 0:
+                        print(f"Found existing {arg} data : {arg_data}", color='green')
+                        exists_args_data.append(arg_data)
 
-            if ModLoaderClass is None or len(ModLoaderClass.strip()) == 0:
-                # print("ModLoaderClass is empty or not provided, ignoring...", color='yellow')
-                ModLoaderClass = None  # Replace Custom Args to a spaces(if is empty)
-            else:
-                print(f"Found exist Mod Loader class: {ModLoaderClass}", color='indigo')
-                print("Replacing Main Class to Mod Loader Class...", color='green')
+                if arg_data is None or len(arg_data) == 0:
+                    exists_args_data.append("")
+
+            args_dict = dict(zip(args_queue, exists_args_data))
+
+            custom_jvm_arg = args_dict["CustomJVMArgs"]
+            if len(custom_jvm_arg) > 0:
+                print("Replace original args to custom arguments...", color='purple')
+                JVMArgs = custom_jvm_arg
+
+            custom_game_args = args_dict["CustomGameArgs"]
+            if len(custom_game_args) > 0:
+                print("Append custom game args to launch-chain...", color='purple')
+                extra_game_args += custom_game_args
+
+            InjectJARPath = args_dict["InjectJARPath"]
+            if len(InjectJARPath) > 0:
+                print("Append inject jar file to classpath...", color='purple')
+                extra_classpath = InjectJARPath
+
+            ModLoaderClass = args_dict["ModLoaderClass"]
+            if len(ModLoaderClass) > 0:
+                print("Replace vanilla mainClass to ModLoaderClass...", color='cyan')
                 main_class = ModLoaderClass
 
-            if ModLoaderGameArgs is None or len(ModLoaderGameArgs.strip()) == 0:
-                # print("ModLoaderGameArgs is empty or not provided, ignoring...", color='yellow')
-                ModLoaderGameArgs = None  # Replace Custom Args to a spaces(if is empty)
-            else:
-                print(f"Adding exist ModLoaderGameArgs data ( {ModLoaderGameArgs} ) to launch-chain...", color='green')
-                if CustomJVMArgs is None:
-                    CustomGameArgs = ModLoaderGameArgs
-                else:
-                    CustomGameArgs += f" {ModLoaderGameArgs}"
+            ModLoaderGameArgs = args_dict["ModLoaderGameArgs"]
+            if len(ModLoaderGameArgs) > 0:
+                print("Append ModLoader game args to launch-chain...", color='cyan')
+                extra_game_args += ModLoaderGameArgs
 
-            if ModLoaderJVMArgs is None or len(ModLoaderJVMArgs.strip()) == 0:
-                # print("ModLoaderJVMArgs is empty or not provided, ignoring...", color='yellow')
-                ModLoaderJVMArgs = None  # Replace Custom Args to a spaces(if is empty)
-            else:
-                print(f"Adding exist ModLoaderJVMArgs data ( {ModLoaderJVMArgs} ) to launch-chain...", color='green')
-                if CustomJVMArgs is None:
-                    CustomJVMArgs = ModLoaderJVMArgs
-                else:
-                    CustomJVMArgs += f" {ModLoaderJVMArgs}"
+            ModLoaderJVMArgs = args_dict["ModLoaderJVMArgs"]
+            if len(ModLoaderJVMArgs) > 0:
+                print("Append ModLoader JVMArgs to launch-chain...", color='cyan')
+                extra_jvm_arg = ModLoaderJVMArgs
+
+        # Check client jar
+        classpath_using_version = minecraft_version
+        if LegacyFlag:
+            client_path = os.path.join(libraries_path, "net", "minecraft", real_version, "client.jar")
+            classpath_using_version = real_version
         else:
-            CustomGameArgs = " "
-            CustomJVMArgs = None
+            client_path = os.path.join(libraries_path, "net", "minecraft", minecraft_version, "client.jar")
 
-        if InjectJARPath is not None:
-            libraries_paths_strings += InjectJARPath
+        if not os.path.exists(client_path):
+            print("Could not find client in the recommended location :(", color='red')
 
-        # Config JVM Args
-        RAM_Args, OtherArgs = self.generate_jvm_args(minecraft_version)
-        if CustomJVMArgs is None:
-            FinalArgs = RAM_Args + OtherArgs
+        # Preparing classpath
+        if extra_classpath:
+            classpath = generate_classpath(classpath_using_version, libraries_path,
+                                           extra_classpath=extra_classpath, custom_main_class_path=client_path)
         else:
-            FinalArgs = CustomJVMArgs
+            classpath = generate_classpath(classpath_using_version, libraries_path, custom_main_class_path=client_path)
+
+        # Preparing jvm args
+        if LegacyFlag:
+            client_path = os.path.join(libraries_path, "net", "minecraft", real_version, "client.jar")
+        else:
+            client_path = os.path.join(libraries_path, "net", "minecraft", minecraft_version, "client.jar")
+
+        if JVMArgs is None:
+            RAM_Args, OtherArgs = self.generate_jvm_args(minecraft_version)
+            JVMArgs = RAM_Args + OtherArgs
+
+        if extra_jvm_arg:
+            JVMArgs = JVMArgs + f" {extra_jvm_arg}"
+
+        # Preparing game args
+        if GameArgs is None:
+            Status, GameArgs = self.generate_game_args(minecraft_version, username, access_token, gameDir, assets_dir,
+                                                       assetsIndex, uuid)
+            if not Status:
+                print("Failed to generate game args :(", color='red')
+                time.sleep(3)
+                return "GenerateGameArgsFailed"
+
+        if extra_game_args:
+            GameArgs = f"{GameArgs} {extra_game_args}"
 
         # Set instances_id(for multitasking process title)
         instances_id = f"Minecraft {minecraft_version}"
 
         # Bake Minecraft :)
         if Base.Platform == "Windows":
-            LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, FinalArgs, GameArgs,
-                         CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking)
+            launch_client(JVMPath, classpath, NativesPath, main_class, JVMArgs, GameArgs,
+                          instances_id, Base.EnableExperimentalMultitasking)
         elif Base.Platform == "Darwin":
-            LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class,
-                         FinalArgs, GameArgs,
-                         CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking)
+            launch_client(JVMPath, classpath, NativesPath, main_class, JVMArgs, GameArgs,
+                          instances_id, Base.EnableExperimentalMultitasking)
         elif Base.Platform == "Linux":
-            LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, FinalArgs, GameArgs,
-                         CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking)
+            launch_client(JVMPath, classpath, NativesPath, main_class, JVMArgs, GameArgs,
+                          instances_id, Base.EnableExperimentalMultitasking)
         else:
-            LaunchClient(JVMPath, libraries_paths_strings, NativesPath, main_class, FinalArgs, GameArgs,
-                         CustomGameArgs, instances_id, Base.EnableExperimentalMultitasking)
+            launch_client(JVMPath, classpath, NativesPath, main_class, JVMArgs, GameArgs,
+                          instances_id, Base.EnableExperimentalMultitasking)
 
         os.chdir(Base.launcher_root_dir)
         time.sleep(2)
