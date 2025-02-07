@@ -1,10 +1,9 @@
 import os
 import re
 from itertools import cycle
-
 from LauncherBase import Base, print_custom as print
 from libs.Utils.utils import download_file, multi_thread_download
-from libs.platform.platfrom import get_special_platform_name
+from libs.platform.platfrom import *
 
 
 def libraries_check(libraries_folder, filter_names=None):
@@ -217,12 +216,10 @@ def convert_library_name_to_artifact_path(library_path, **kwargs):
 
     except Exception as e:
         return False, None
-
+"""
 
 def download_libraries(version_data, libraries_dir, **kwargs):
-    """
-    Download require libraries (from version data)
-    """
+    # Download require libraries (from version data)
     library_are_native = False
     # Some parameter stuff
     normal_download = kwargs.get("normal_download", False)
@@ -290,9 +287,9 @@ def download_libraries(version_data, libraries_dir, **kwargs):
                 download_file(url, dest_path)
         else:
             multi_thread_download(multi_download_queue, name)
+"""
 
-
-def download_libraries_test(version_data, libraries_dir, **kwargs):
+def download_libraries(version_data, libraries_dir, **kwargs):
     """
     Download require libraries (from version data)
     """
@@ -345,13 +342,12 @@ def download_libraries_test(version_data, libraries_dir, **kwargs):
                     (lib_url, lib_dest)
                 ]
                 multi_download_queue.append(lib_url_and_dest)
-    """
-    if normal_download_url_list:
+
+    if normal_download:
         for url, dest_path in zip(normal_download_url_list, normal_download_path_list):
             download_file(url, dest_path)
     else:
         multi_thread_download(multi_download_queue, name)
-    """
 
     return normal_download_url_list
 
@@ -371,7 +367,7 @@ def mac_os_libraries_bug_fix(instance_name):
                 print(f"An error occurred: {e}")
 
 
-def download_natives_test(version_data, libraries_dir, unzip_natives_folder, platform_name, full_arch):
+def download_natives(version_data, libraries_dir, platform_name=Base.Platform, full_arch=Base.FullArch, **kwargs):
     """
     Download natives from version data
     :param version_data: Minecraft version data (JSON)
@@ -381,6 +377,10 @@ def download_natives_test(version_data, libraries_dir, unzip_natives_folder, pla
     :param full_arch: Platform Architecture (Support list: amd64(full support), arm64(not full support),
      i386(not full support. Drop support in the new version)
     """
+    # parameter stuff
+    only_return_lib_paths = kwargs.get("only_return_lib_paths", False)
+    lib_paths = []
+
     global natives_key_list, native_keys_list
 
     platform_name = platform_name.lower()
@@ -434,6 +434,11 @@ def download_natives_test(version_data, libraries_dir, unzip_natives_folder, pla
         native_keys_list = map_keys_amd64.get(platform_name, [])
     elif full_arch == "arm64":
         native_keys_list = map_keys_arm64.get(platform_name, [])
+        if platform_name == "darwin":
+            Status = macos_natives_rosetta_support()
+            if Status:
+                natives_key_list.append('natives-macos')
+                natives_key_list.append("natives-osx")
     elif full_arch == "i386":
         native_keys_list = map_keys_i386.get(platform_name, [])
     else:
@@ -486,12 +491,16 @@ def download_natives_test(version_data, libraries_dir, unzip_natives_folder, pla
                 lib_url = artifact.get("url", None)
 
                 if lib_path is None or lib_url is None:
-                    print(f"Skipping library {lib_name}")
+                    # print(f"Skipping library {lib_name}")
                     continue
-
+                print(f"Library {lib_name} added!", color='lightgreen')
                 lib_dest = os.path.join(libraries_dir, lib_path)
                 os.makedirs(os.path.dirname(lib_dest), exist_ok=True)
-                download_queue.append(lib_url)
+                natives_url_and_dest = [
+                    (lib_url, lib_dest)
+                ]
+                download_queue.append(natives_url_and_dest)
+                lib_paths.append(lib_path)
 
         # Process classifiers if available
         if classifiers:
@@ -509,13 +518,20 @@ def download_natives_test(version_data, libraries_dir, unzip_natives_folder, pla
                     print(f"Library {lib_name} added!", color='lightgreen')
                     lib_dest = os.path.join(libraries_dir, lib_path)
                     os.makedirs(os.path.dirname(lib_dest), exist_ok=True)
-                    download_queue.append(lib_path)
+                    natives_url_and_dest = [
+                        (lib_url, lib_dest)
+                    ]
+                    download_queue.append(natives_url_and_dest)
+                    lib_paths.append(lib_path)
 
-    return download_queue
+    if only_return_lib_paths:
+        return lib_paths
 
+    multi_thread_download(download_queue, "natives")
 
+"""
 def download_natives(version_data, libraries_dir, **kwargs):
-    """darwin macos osx"""
+    # darwin macos osx
     global ib_platform_name, lib_name_2, lib_name_old, native_key
 
     #
@@ -629,3 +645,4 @@ def download_natives(version_data, libraries_dir, **kwargs):
         else:
             print(f"No native library found for key: {native_key}", color='yellow')
             return True, "NativeLibrariesNotFound"
+"""
