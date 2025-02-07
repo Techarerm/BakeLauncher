@@ -455,6 +455,7 @@ def download_natives_test(version_data, libraries_dir, unzip_natives_folder, pla
         classifiers = lib_downloads.get("classifiers", None)
         if rules and classifiers is None:
             allow = rules[0]["action"] if rules and "action" in rules[0] else None
+            allow_platform = rules[0]["os"] if rules and "action" in rules[0] else None
             disallow_platform = rules[1]["os"]["name"] if len(rules) > 1 and "os" in rules[1] and "name" in rules[1][
                 "os"] else []
 
@@ -467,6 +468,11 @@ def download_natives_test(version_data, libraries_dir, unzip_natives_folder, pla
                     if native_key in support_platform_list and plat_name not in disallow_platform:
                         allowed_download = True
                         break
+
+                    if plat_name == allow_platform and plat_name not in disallow_platform:
+                        allowed_download = True
+                        break
+
                 if allowed_download:
                     break
 
