@@ -24,13 +24,26 @@ def function():
             pass
 
     new_natives_list = download_natives_test(version_data, libraries_path, "", Base.Platform, Base.FullArch)
+    print("New natives list", color='blue')
+    for path in new_natives_list:
+        print(path)
+    print("Old natives list", color='orange')
     old_natives_list = download_natives(version_data, libraries_path, only_return_native_paths_list=True)
+    for path in old_natives_list:
+        print(path)
+
     print("Natives Compare Info:")
     compare_lists(old_natives_list, new_natives_list)
     compare_lists_indexed(old_natives_list, new_natives_list)
 
     old_libraries_list = download_libraries(version_data, libraries_path, only_return_library_paths_list=True)
+    for path in old_libraries_list:
+        print(path)
+    print("Old libraries list", color='orange')
     new_libraries_list = download_libraries_test(version_data, libraries_path)
+    for path in new_libraries_list:
+        print(path)
+    print("New libraries list", color='orange')
 
     print("Libraries Compare Info:")
     compare_lists(old_libraries_list, new_libraries_list)
