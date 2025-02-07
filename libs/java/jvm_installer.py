@@ -75,6 +75,8 @@ class class_jvm_installer:
             JavaPlatformName = 'windows-x64'
         elif Base.Platform == 'Darwin':
             JavaPlatformName = 'mac-os'
+            if Base.FullArch.lower() == "arm64":
+                JavaPlatformName = 'mac-os-arm64'
         elif Base.Platform == 'Linux':
             if Base.FullArch.lower() == "arm64":
                 JavaPlatformName = 'linux-arm64'
