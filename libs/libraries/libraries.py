@@ -423,7 +423,7 @@ def download_natives_test(version_data, libraries_dir, unzip_natives_folder, pla
     }
 
     map_keys_i386 = {
-        'windows': ['natives-windows-32'],
+        'windows': ['natives-windows-32', "natives-windows-x86"],
         'linux': ['natives-linux-aarch_64'],
         'darwin': ['natives-macos-arm64'],
         'windows-arm64': ['natives-windows-arm64'],
@@ -455,10 +455,12 @@ def download_natives_test(version_data, libraries_dir, unzip_natives_folder, pla
         classifiers = lib_downloads.get("classifiers", None)
         if rules and classifiers is None:
             allow = rules[0]["action"] if rules and "action" in rules[0] else None
-            allow_platform = rules[0]["os"] if rules and "action" in rules[0] else None
+            allow_platform = rules[0]["os"]["name"] if len(rules) > 1 and "os" in rules[0] and "name" in rules[0][
+                "os"] else []
             disallow_platform = rules[1]["os"]["name"] if len(rules) > 1 and "os" in rules[1] and "name" in rules[1][
                 "os"] else []
-
+            artifact = lib_downloads.get('artifact', {})
+            lib_path = artifact.get("path", None)
             natives = lib.get("natives", {})
             support_platform_list = list(natives.values())
 
@@ -473,12 +475,14 @@ def download_natives_test(version_data, libraries_dir, unzip_natives_folder, pla
                         allowed_download = True
                         break
 
+                    if lib_path is not None:
+                        if lib_path.endswith(f"{native_key}.jar"):
+                            allowed_download = True
+
                 if allowed_download:
                     break
 
             if allowed_download:
-                artifact = lib_downloads.get('artifact', {})
-                lib_path = artifact.get("path", None)
                 lib_url = artifact.get("url", None)
 
                 if lib_path is None or lib_url is None:
@@ -493,6 +497,7 @@ def download_natives_test(version_data, libraries_dir, unzip_natives_folder, pla
         if classifiers:
             for native_key in native_keys_list:
                 if native_key in classifiers:
+                    print(f"Found match native key in the lib {lib_name}", color='blue')
                     classifier_info = classifiers[native_key]
                     lib_path = classifier_info.get("path")
                     lib_url = classifier_info.get("url")
