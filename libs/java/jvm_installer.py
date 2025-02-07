@@ -84,7 +84,7 @@ class class_jvm_installer:
                 JavaPlatformName = Base.Platform.lower()
         else:
             JavaPlatformName = Base.Platform.lower()
-
+        print(f"Java Runtimes Platform: {JavaPlatformName}", color='green', tag='DEBUG')
         if kwargs.get("custom_platform", None) is not None:
             JavaPlatformName = kwargs.get("java_platform", JavaPlatformName)
 

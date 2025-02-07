@@ -53,6 +53,7 @@ class LauncherManager:
         elif Base.Platform == "Darwin":
             # Check whether the startup version of macOS requires the parameter "-XstartOnFirstThread" parameter In
             # LWJGL 3.x, macOS requires this args to make lwjgl running on the JVM starts with thread 0) (from wiki.vg)
+            print(jvm_args_list)
             if "-XstartOnFirstThread" in jvm_args_list:
                 OtherArgs += "-XstartOnFirstThread "
 
