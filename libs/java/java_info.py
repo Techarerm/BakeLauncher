@@ -40,7 +40,6 @@ def get_java_build_download_url_from_azul(platform_name: str, full_arch: str, ja
     version_url_list = [full_jre_url, full_jdk_url]
     for url, ver_type in zip(version_url_list, version_type_list):
         try:
-            print(url)
             response = requests.get(url)
             data = response.json()
             java_ver_data = data[0]
