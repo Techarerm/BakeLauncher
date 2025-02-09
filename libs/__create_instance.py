@@ -439,10 +439,7 @@ class Create_Instance:
         time.sleep(1)
 
         # Download natives
-        download_natives(version_data, libraries_dir, )
-
-        # For macOS
-        mac_os_libraries_bug_fix(install_dir)
+        download_natives(version_data, libraries_dir)
 
         # Delay time to make old output don't print with new output
         time.sleep(0.5)

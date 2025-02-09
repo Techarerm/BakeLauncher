@@ -460,8 +460,7 @@ def download_natives(version_data, libraries_dir, platform_name=Base.Platform, f
         classifiers = lib_downloads.get("classifiers", None)
         if rules and classifiers is None:
             allow = rules[0]["action"] if rules and "action" in rules[0] else None
-            allow_platform = rules[0]["os"]["name"] if len(rules) > 1 and "os" in rules[0] and "name" in rules[0][
-                "os"] else []
+            allow_platform = [rules[0]["os"]["name"]] if rules and "os" in rules[0] and "name" in rules[0]["os"] else []
             disallow_platform = rules[1]["os"]["name"] if len(rules) > 1 and "os" in rules[1] and "name" in rules[1][
                 "os"] else []
             artifact = lib_downloads.get('artifact', {})
