@@ -327,8 +327,8 @@ class Create_Instance:
             print("Do you want to install Java runtimes from azul ?")
             user_input = str(input(":"))
             if user_input.upper() == "Y":
-                azul_jvm_install_path = os.path.join(Base.launcher_root_dir, "runtimes", "azul", f"Java_{major_version}")
-                Status, Message = jvm_installer.install_azul_build_version_jvm(major_version, azul_jvm_install_path)
+                install_path = os.path.join(Base.launcher_root_dir, "runtimes", "azul", f"Java_{major_version}")
+                Status, Message = jvm_installer.install_azul_build_version_jvm(major_version, install_path)
             else:
                 Status = False
                 Message = "Unsupported Platform"
