@@ -411,7 +411,7 @@ class LauncherBase:
         if self.Platform == "Windows":
             os.system(f"title BakeLauncher {Base.launcher_version}")
         elif self.Platform == "Darwin":
-            os.system(rf'echo -ne "\033]0;BakeLauncher {Base.launcher_version}\007"')
+            os.system(rf'echo -n -e "\033]0;BakeLauncher {Base.launcher_version}\007"')
         elif self.Platform == "Linux":
             os.system(f'echo -ne "\033]0;BakeLauncher {Base.launcher_version}\007"')
 
