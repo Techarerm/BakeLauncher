@@ -13,7 +13,7 @@ from libs.modification.mod_installer import mod_installer
 from libs.Utils.utils import download_file, extract_zip
 from libs.version.version import *
 from LauncherBase import Base, ClearOutput, print_custom as print, internal_functions_error_log_dump
-from libs.libraries.libraries import download_libraries, mac_os_libraries_bug_fix, download_natives
+from libs.libraries.libraries import download_libraries, download_natives
 from libs.platform.platfrom import get_special_platform_name, macos_natives_rosetta_support
 from libs.java.java_info import get_java_build_download_url_from_azul
 
@@ -233,7 +233,6 @@ class Create_Instance:
             native_keys_list = map_keys_i386.get(lib_platform_name, [])
         else:
             native_keys_list = []
-
         instance_dir = os.path.join(Base.launcher_instances_dir, instance_name)
         instance_natives_dir = os.path.join(instance_dir, ".minecraft", "natives")
         instance_libraries_dir = os.path.join(instance_dir, ".minecraft", "libraries")
@@ -247,7 +246,7 @@ class Create_Instance:
         for root, dirs, files in os.walk(instance_libraries_dir):
             for file in files:
                 for native_key in native_keys_list:
-                    if file.endswith(f"natives-{native_key}.jar"):
+                    if file.endswith(f"{native_key}.jar"):
                         jar_files.append(os.path.join(root, file))
 
         if jar_files:
