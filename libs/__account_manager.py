@@ -461,11 +461,10 @@ class AuthManager:
             if account_data['Username'] == "None":
                 print("Login Status: Not logged in :(", color='lightred')
                 print("Please log in to your account first!", color='lightred')
-            elif not Base.BypassLoginRequire:
-                if account_data['Username'] == "BakeLauncherLocalPlayer" or account_data['Username'] == "Player":
-                    print("Warning: You are currently using a local account!", color='lightred')
-                    # print("Please log in to your account or switch to a different account.", color='lightred')
-                    print("Login Status: Not logged in :(", color='lightred')
+            elif not Base.BypassLoginRequire and account_data['Username'] == "Player":
+                print("Warning: You are currently using a local account!", color='lightred')
+                # print("Please log in to your account or switch to a different account.", color='lightred')
+                print("Login Status: Not logged in :(", color='lightred')
             else:
                 # Bypass login status check(print
                 if not Base.BypassLoginStatusCheck:
