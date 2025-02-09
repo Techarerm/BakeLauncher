@@ -91,7 +91,6 @@ class LauncherManager:
             for arg in minecraftArguments:
                 minecraftArguments += f" {arg}"
 
-
         if "--userProperties" in minecraftArguments:
             minecraft_args = f"--username {username} --version {version_id} --gameDir {game_dir} " \
                              f"--assetsDir {assets_dir} --assetIndex {assetsIndex} --accessToken {access_token} " \
@@ -120,7 +119,7 @@ class LauncherManager:
                              f"--accessToken {access_token} --userType {user_type}"
 
         if "AlphaVanillaTweaker" in minecraftArguments or client_type in ["classic", "infdev", "indev", "alpha", "old"
-                                                                          "-alpha"]:
+                                                                                                                 "-alpha"]:
             minecraft_args += " --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker"
 
         return True, minecraft_args
@@ -236,7 +235,8 @@ class LauncherManager:
         print("Getting JVM Path...", color='c')
         Status, major_version = instance.get_instance_info(instance_info_path, info_name="support_java_version")
         if not Status or major_version == "None":
-            print("Could not find support java version in the instance info. Re-try get it from version json.", color='lightyellow')
+            print("Could not find support java version in the instance info. Re-try get it from version json.",
+                  color='lightyellow')
             major_version = version_data.get("javaVersion", {}).get("majorVersion", None)
 
         if major_version is not None and major_version != "None":

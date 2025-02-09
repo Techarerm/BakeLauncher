@@ -47,8 +47,12 @@ class DukeCute:
         JavaExecutable = os.path.join(runtimes_dir, self.JavaExecutableName)
 
         # executable it
-        result = subprocess.run([JavaExecutable, '-version'], stderr=subprocess.PIPE, stdout=subprocess.PIPE,
-                                text=True)
+        try:
+            result = subprocess.run([JavaExecutable, '-version'], stderr=subprocess.PIPE, stdout=subprocess.PIPE,
+                                    text=True)
+        except PermissionError:
+            return False
+
 
         # Get output
         output = result.stderr
