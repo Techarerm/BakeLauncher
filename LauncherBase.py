@@ -355,7 +355,7 @@ class LauncherBase:
             self.AllowUnsafeImport = True
             self.AllowLoadCustomModules = True
             self.CustomModulesPathList = []
-            self.BypassLoginRequire = True
+            self.BypassLoginRequire = False
         else:
             self.AllowModify = False
 
