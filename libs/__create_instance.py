@@ -352,11 +352,12 @@ class Create_Instance:
 
             if user_input == "Y":
                 try:
-                    # Execute chmod command
-                    command = f"chmod +x {install_path}/*"
-                    command2 = f"chmod +x {install_path}/bin/*"
-                    os.system(command)
-                    os.system(command2)
+                    for dir_path, _, filenames in os.walk(install_path):
+                        for filename in filenames:
+                            file_path = os.path.join(dir_path, filename)
+
+                            if not os.access(file_path, os.X_OK):
+                                os.system(f"chmod +x {file_path}")
                     print("Permissions fixed successfully.", color='green', tag='SUCCESS')
                 except Exception as e:
                     print(f"Error when fixing permissions: {e}", color='red', tag='ERROR')
