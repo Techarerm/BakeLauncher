@@ -167,7 +167,7 @@ def launch_client(JVMExecutable, libraries_paths_strings, NativesPath, MainClass
         ])
     elif Base.Platform == 'Darwin':
         launch_command = "; ".join([
-            f'echo -ne "{title}"',
+            f'echo -n -e "\033]0;{title}\007"',
             f'cd "{work_instance_dir}"',
             'clear',
             f'printf "{light_yellow}BakeLauncher Version: {Base.launcher_version}{reset}\\n"',
