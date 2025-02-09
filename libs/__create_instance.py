@@ -14,7 +14,7 @@ from libs.Utils.utils import download_file, extract_zip
 from libs.version.version import *
 from LauncherBase import Base, ClearOutput, print_custom as print, internal_functions_error_log_dump
 from libs.libraries.libraries import download_libraries, mac_os_libraries_bug_fix, download_natives
-from libs.platform.platfrom import get_special_platform_name
+from libs.platform.platfrom import get_special_platform_name, macos_natives_rosetta_support
 from libs.java.java_info import get_java_build_download_url_from_azul
 
 
@@ -178,11 +178,61 @@ class Create_Instance:
     def unzip_natives(self, instance_name):
         global unzip_status, PlatformName
 
-        lib_platform_name, lib_name_2, lib_name_old = get_special_platform_name("ALL")
+        native_keys_list = []
+
+        lib_platform_name = Base.Platform.lower()
+        full_arch = Base.FullArch.lower()
+
+        # Map platforms to native keys
+        platform_name_dict = {
+            'windows': ['windows'],
+            'linux': ['linux'],
+            'darwin': ["osx"],
+        }
+        platform_name_list = platform_name_dict.get(lib_platform_name, [])
+
+        print(f"Platform Name < {' '.join(platform_name_list)} >")
+
+        # Mapping native keys based on architecture
+        map_keys_amd64 = {
+            'windows': ['natives-windows', "natives-windows-64"],
+            'linux': ['natives-linux'],
+            'darwin': ['natives-macos', "natives-osx"],
+            'windows-arm64': ['natives-windows'],
+        }
+
+        map_keys_arm64 = {
+            'windows': ['natives-windows-arm64'],
+            'linux': ['natives-linux-aarch64'],
+            'darwin': ['natives-macos-arm64'],
+            'windows-arm64': ['natives-windows-arm64'],
+        }
+
+        map_keys_i386 = {
+            'windows': ['natives-windows-32', "natives-windows-x86"],
+            'linux': ['natives-linux-aarch_64'],
+            'darwin': ["natives-osx"],  # Unconfirmed
+            'windows-arm64': ['natives-windows-arm64'],
+        }
 
         # Handle platform naming for macOS
         if lib_platform_name == 'darwin':
             PlatformName = 'macos'
+
+        # Assign correct native keys list based on architecture
+        if full_arch == "amd64":
+            native_keys_list = map_keys_amd64.get(lib_platform_name, [])
+        elif full_arch == "arm64":
+            native_keys_list = map_keys_arm64.get(lib_platform_name, [])
+            if lib_platform_name == "darwin":
+                Status = macos_natives_rosetta_support()
+                if Status:
+                    native_keys_list.append('natives-macos')
+                    native_keys_list.append("natives-osx")
+        elif full_arch == "i386":
+            native_keys_list = map_keys_i386.get(lib_platform_name, [])
+        else:
+            native_keys_list = []
 
         instance_dir = os.path.join(Base.launcher_instances_dir, instance_name)
         instance_natives_dir = os.path.join(instance_dir, ".minecraft", "natives")
@@ -196,17 +246,9 @@ class Create_Instance:
 
         for root, dirs, files in os.walk(instance_libraries_dir):
             for file in files:
-                if file.endswith(f"natives-{lib_name_2}.jar"):
-                    jar_files.append(os.path.join(root, file))
-                elif lib_name_2 == 'macos' and file.endswith("natives-osx.jar"):
-                    # Fallback to natives-osx.jar if natives-macos.jar is not found
-                    jar_files.append(os.path.join(root, file))
-                if Base.Platform == "Darwin":
-                    if Base.FullArch.lower() == "arm64":
-                        if file.endswith("natives-macos-arm64.jar"):
-                            jar_files.append(os.path.join(root, file))
-                        elif file.endswith("natives-windows-arm64.jar"):
-                            jar_files.append(os.path.join(root, file))
+                for native_key in native_keys_list:
+                    if file.endswith(f"natives-{native_key}.jar"):
+                        jar_files.append(os.path.join(root, file))
 
         if jar_files:
             unzip_status = True

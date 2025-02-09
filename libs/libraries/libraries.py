@@ -479,7 +479,7 @@ def download_natives(version_data, libraries_dir, platform_name=Base.Platform, f
                         allowed_download = True
                         break
 
-                    if plat_name == allow_platform and plat_name not in disallow_platform:
+                    if plat_name in allow_platform:
                         allowed_download = True
                         break
 
