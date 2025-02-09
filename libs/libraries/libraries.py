@@ -401,7 +401,7 @@ def download_natives(version_data, libraries_dir, platform_name=Base.Platform, f
     platform_name_dict = {
         'windows': ['windows'],
         'linux': ['linux'],
-        'darwin': ['macos', "osx"],
+        'darwin': ["osx"],
     }
     platform_name_list = platform_name_dict.get(platform_name, [])
 
@@ -425,7 +425,7 @@ def download_natives(version_data, libraries_dir, platform_name=Base.Platform, f
     map_keys_i386 = {
         'windows': ['natives-windows-32', "natives-windows-x86"],
         'linux': ['natives-linux-aarch_64'],
-        'darwin': ['natives-macos-arm64'],
+        'darwin': ["natives-osx"],  # Unconfirmed
         'windows-arm64': ['natives-windows-arm64'],
     }
 
@@ -472,7 +472,10 @@ def download_natives(version_data, libraries_dir, platform_name=Base.Platform, f
             allowed_download = False
             for native_key in native_keys_list:
                 for plat_name in platform_name_list:
-                    if native_key in support_platform_list and plat_name not in disallow_platform:
+                    if plat_name in disallow_platform:
+                        continue
+
+                    if native_key in support_platform_list:
                         allowed_download = True
                         break
 

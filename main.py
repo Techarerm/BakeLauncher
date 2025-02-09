@@ -3,7 +3,7 @@ import traceback
 import textwrap
 import datetime
 import os
-from LauncherBase import Base, ClearOutput, BetaWarningMessage, print_custom as print
+from LauncherBase import Base, ClearOutput, BetaWarningMessage, print_custom as print, load_custom_modules
 from libs.main_menu import main_menu
 
 
@@ -25,36 +25,32 @@ class BakeLauncher:
             self.generate_crash_log(tb, function_name, e, BaseInitialized=False)
 
         # Start the launcher process if loading base pass
-        if self.StartStatus:
-            try:
-                self.main()
-            except Exception as e:
-                # Extract the function name from the traceback
-                ClearOutput()
-                tb = traceback.format_exc()  # Full traceback as a string
-                function_name = traceback.extract_tb(e.__traceback__)[-1].name
-                print(f"BakeLauncher has crashed :( Caused by an error in function '{function_name}': {e}", color='lightred')
-                print(f"Crash at function name {function_name}")
-                print(f"Error {e}")
-                print(f"Detailed traceback:\n{tb}")
-                self.generate_crash_log(tb, function_name, e, BaseInitialized=True)
-        else:
-            print("Init Error :(", color='red')
-            print("If BakeLauncher crashes while loading Base. You can try deleting the invalid profile, this may "
-                  "help resolve the issue")
+        while True:
+            if self.StartStatus:
+                try:
+                    self.main()
+                except Exception as e:
+                    # Extract the function name from the traceback
+                    ClearOutput()
+                    tb = traceback.format_exc()  # Full traceback as a string
+                    function_name = traceback.extract_tb(e.__traceback__)[-1].name
+                    print(f"BakeLauncher has crashed :( Caused by an error in function '{function_name}': {e}", color='lightred')
+                    print(f"Crash at function name {function_name}")
+                    print(f"Error {e}")
+                    print(f"Detailed traceback:\n{tb}")
+                    self.generate_crash_log(tb, function_name, e, BaseInitialized=True)
+            else:
+                print("Init Error :(", color='red')
+                print("If BakeLauncher crashes while loading Base. You can try deleting the invalid profile, this may "
+                      "help resolve the issue")
 
-        # Clean up session file
-        if os.path.exists(Base.launcher_tmp_session):
-            os.remove(Base.launcher_tmp_session)
-
-        print("BakeLauncher thread terminated!")
-        if Base.LauncherFullResetFlag:
-            input("Press any key to reset all thing...")
-            Base.LauncherFullResetFlag = False
-            BakeLauncher()
-            return
-        else:
-            EXIT_CODE = str(input("Press any key to continue..."))
+            print("BakeLauncher thread terminated!")
+            if Base.LauncherFullResetFlag:
+                input("Press any key to reset all thing...")
+                Base.LauncherFullResetFlag = False
+            else:
+                EXIT_CODE = str(input("Press any key to continue..."))
+                return
 
     def main(self):
         # DEBUG for platform check
@@ -65,8 +61,13 @@ class BakeLauncher:
         print(BetaWarningMessage, color='yellow')
         ClearOutput()
 
+        # Dev only
+        if Base.AllowModify:
+            load_custom_modules()
+
         # Load main menu
-        main_menu()
+        if not Base.DontLoadMainMemu:
+            main_menu()
 
     @staticmethod
     def generate_crash_log(tb, crash_function, e, BaseInitialized):

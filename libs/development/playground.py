@@ -1,44 +1,24 @@
-import json
-import ast
+import importlib.util
 import os.path
 import shutil
+import sys
 import time
-from LauncherBase import Base, print_custom as print
-from libs.account.mojang_api import *
-from libs.__account_manager import account_manager
+import importlib
 from libs.instance.instance import instance
 from libs.version.version import *
 from libs.libraries.libraries import *
 from libs.__assets_grabber import assets_grabber
+from libs.java.java_info import get_java_build_download_url_from_azul
 
-all_funs = ["function", "create_a_custom_instance"]
+all_funs = ["function", "create_a_custom_instance", "test_hook_mod"]
 
 def function():
-    version = str(input("Testing version : "))
-    version_data = get_version_data(version)
-    if version_data is None:
-        return
 
-    libraries_path = os.path.join(Base.launcher_tmp_dir, "test")
-    if os.path.exists(libraries_path):
-        try:
-            os.remove(libraries_path)
-        except Exception as e:
-            pass
+    version_list = ["8", "16", "17", "21"]
 
-    new_natives_list = download_natives_test(version_data, libraries_path, "", Base.Platform, Base.FullArch)
-    old_natives_list = download_natives(version_data, libraries_path, only_return_native_paths_list=True)
-
-    print("Natives Compare Info:")
-    compare_lists(old_natives_list, new_natives_list)
-    compare_lists_indexed(old_natives_list, new_natives_list)
-
-    old_libraries_list = download_libraries(version_data, libraries_path, only_return_library_paths_list=True)
-    new_libraries_list = download_libraries_test(version_data, libraries_path)
-
-    print("Libraries Compare Info:")
-    compare_lists(old_libraries_list, new_libraries_list)
-    compare_lists_indexed(old_natives_list, new_libraries_list)
+    for ver in version_list:
+        info = get_java_build_download_url_from_azul(Base.Platform, Base.FullArch, ver)
+        print(info)
 
     exit_code = input("Press any key to exit playground...")
 
@@ -119,31 +99,75 @@ def create_a_custom_instance():
     print("Custom instance created!", color='blue')
     time.sleep(3)
 
-def compare_lists(original, edited):
-    original_set = set(original)
-    edited_set = set(edited)
 
-    added = edited_set - original_set
-    removed = original_set - edited_set
+def test_hook_mod():
+    """
+    Add modify support for launcher?
 
-    print("Changes detected:")
-    if added:
-        print(f"➕ Added: {list(added)}")
-    if removed:
-        print(f"❌ Removed: {list(removed)}")
+    """
+    print("***MOD HOOKER***", color='purple')
+    print("# This function is for testing launcher modify support.", color='green')
+    print("Warning: Launcher doesn't check if mods are harmful :X", color='lightyellow')
+    print("So...have fun :)", color='lightblue')
+    mod_folder = str(input("Mod folder path : "))
 
-    if not added and not removed:
-        print("✅ No changes detected.")
+    mod_info = os.path.join(mod_folder, "mod.info.json")
+    if not os.path.exists(mod_info):
+        print("Mod info file not found. Canceling hook...", color='red')
+        time.sleep(3)
+        return
 
-def compare_lists_indexed(original, edited):
-    max_length = max(len(original), len(edited))
+    try:
+        with open(mod_info, "r") as f:
+            mod_info = json.load(f)
+    except Exception as e:
+        print("Read mod info failed. Canceling hook...", color='red')
+        time.sleep(3)
+        return
 
-    for i in range(max_length):
-        orig_value = original[i] if i < len(original) else None
-        edit_value = edited[i] if i < len(edited) else None
+    mod_main_name = mod_info.get("modMain", None)
+    mod_main_file = mod_info.get("modMainFile", None)
+    mod_main_file_path = os.path.join(mod_folder, mod_main_file)
 
-        if orig_value != edit_value:
-            print(f"🔄 Index {i}: {orig_value} → {edit_value}")
+    if not os.path.exists(mod_main_file_path):
+        print("Mod main file not found. Canceling hook...", color='red')
+        time.sleep(3)
+        return
 
+    if mod_main_name is None:
+        print("Mod main not found. Canceling hook...", color='red')
+        time.sleep(3)
+        return
 
+    # Load the module dynamically
+    module_name = "mod_module"
+    spec = importlib.util.spec_from_file_location(module_name, mod_main_file_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
 
+    # Define a unique module name based on file path
+    module_name = f"mod_{hash(mod_main_file_path)}"
+
+    # If the module is already loaded, reload it
+    if module_name in sys.modules:
+        print(f"Reloading module: {module_name}")
+        module = importlib.reload(sys.modules[module_name])
+    else:
+        print(f"Importing module: {module_name}")
+        spec = importlib.util.spec_from_file_location(module_name, mod_main_file_path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module  # Register module in sys.modules
+        spec.loader.exec_module(module)
+
+    # Get the function dynamically
+    if hasattr(module, mod_main_name):
+        mod_function = getattr(module, mod_main_name)
+        if callable(mod_function):
+            print(f"Successfully loaded {mod_main_name} from {mod_main_file}")
+            mod_function()  # Call the function
+        else:
+            print(f"{mod_main_name} is not callable.")
+    else:
+        print(f"Function {mod_main_name} not found in {mod_main_file}.")
+
+    exit_code = input("Press any key to exit playground...")

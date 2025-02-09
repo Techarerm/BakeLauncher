@@ -50,6 +50,7 @@ import json
 import os
 from LauncherBase import Base, ClearOutput, initialize_config, print_custom as print, internal_functions_error_log_dump
 from libs.account.msa import *
+from libs.account.mojang_api import *
 
 
 class AuthManager:
@@ -222,9 +223,9 @@ class AuthManager:
             time.sleep(3)
             return access_token
 
-        Status, username, uuid = self.get_account_data(access_token)
+        Status, username, uuid, e = get_account_username_and_uuid(access_token)
         if not Status:
-            print(f"Failed to get Minecraft profile information. Cause by error {username}", color='red')
+            print(f"Failed to get Minecraft profile information. Cause by error {e}", color='red')
             time.sleep(3)
             return username
         else:
@@ -374,9 +375,9 @@ class AuthManager:
                 time.sleep(3)
                 return False, f"GettingAccessToken>{Err}"
 
-            Status, username, uuid = self.get_account_data(access_token)
+            Status, username, uuid, e = get_account_username_and_uuid(access_token)
             if not Status:
-                print(f"Failed to get Minecraft profile information :( Cause by error {username}", color='red')
+                print(f"Failed to get Minecraft profile information :( Cause by error {e}", color='red')
                 time.sleep(3)
                 return False, f"GettingAccountData>{username}"
 
@@ -460,10 +461,11 @@ class AuthManager:
             if account_data['Username'] == "None":
                 print("Login Status: Not logged in :(", color='lightred')
                 print("Please log in to your account first!", color='lightred')
-            elif account_data['Username'] == "BakeLauncherLocalPlayer" or account_data['Username'] == "Player":
-                print("Warning: You are currently using a local account!", color='lightred')
-                # print("Please log in to your account or switch to a different account.", color='lightred')
-                print("Login Status: Not logged in :(", color='lightred')
+            elif not Base.BypassLoginRequire:
+                if account_data['Username'] == "BakeLauncherLocalPlayer" or account_data['Username'] == "Player":
+                    print("Warning: You are currently using a local account!", color='lightred')
+                    # print("Please log in to your account or switch to a different account.", color='lightred')
+                    print("Login Status: Not logged in :(", color='lightred')
             else:
                 # Bypass login status check(print
                 if not Base.BypassLoginStatusCheck:
@@ -472,11 +474,14 @@ class AuthManager:
                     # When main_memu is reloaded, it stops refreshing tokens until the initiator is completely reset.
                     if not Base.RefreshTokenFailedFlag:
                         # Check internet connect(If not bypass it and print "login status: Unknown")
-                        if Base.InternetConnected:
-                            Status, message = self.check_account_data_are_valid(account_id)
-                        else:
-                            # Network not connected
+                        if Base.BypassLoginRequire:
                             Status = False
+                        else:
+                            if Base.InternetConnected:
+                                Status, message = self.check_account_data_are_valid(account_id)
+                            else:
+                                # Network not connected
+                                Status = False
                         # Continue the above code(If RefreshTokenFailedFlag = True, set MainMenuResetFlag to True
                         # and return. Then main_memu will be reset. When calling login_status, stop refresh process
                         # and print "Login Status: Expired session :0" Because Base.RefreshTokenFailedFlag is True)
@@ -496,17 +501,21 @@ class AuthManager:
                 if Status:
                     # Print this message when the access token has not expired or Base.BypassLoginStatusCheck = True
                     print("Login Status: Already logged in :)", color='lightgreen')
-                    print("Hi,", username, color="lightblue")  # Now this should work correctly
+                    print("Hi,", username, color="lightblue")
                 else:
-                    # No internet connection
-                    if not Base.InternetConnected:
-                        print("Login Status: Unknown", color='yellow')
+                    if Base.BypassLoginRequire:
+                        print("Login Status: Already logged in (?)", color='lightgreen')
                         print("Hi,", username, color="lightblue")
                     else:
-                        # Print this message when refresh token failed.
-                        print("Login Status: Expired session :0", color='lightred')
-                        print("Please login your account again!", color='lightred')
-                        print("Hi,", username, color="lightblue")  # Now this should work correctly
+                        # No internet connection
+                        if not Base.InternetConnected:
+                            print("Login Status: Unknown", color='yellow')
+                            print("Hi,", username, color="lightblue")
+                        else:
+                            # Print this message when refresh token failed.
+                            print("Login Status: Expired session :0", color='lightred')
+                            print("Please login your account again!", color='lightred')
+                            print("Hi,", username, color="lightblue")
             if "tag" in account_data:
                 print(f"Account Tag: {account_data['tag']}", color='lightgreen')
         else:

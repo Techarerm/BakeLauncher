@@ -15,6 +15,7 @@ from libs.version.version import *
 from LauncherBase import Base, ClearOutput, print_custom as print, internal_functions_error_log_dump
 from libs.libraries.libraries import download_libraries, mac_os_libraries_bug_fix, download_natives
 from libs.platform.platfrom import get_special_platform_name
+from libs.java.java_info import get_java_build_download_url_from_azul
 
 
 class Create_Instance:
@@ -45,17 +46,6 @@ class Create_Instance:
         self.minecraft_version = ""
         # Working directory
         self.WorkDir = os.getcwd()
-
-    def get_version_url(self, minecraft_version, **kwargs):
-        legacy = kwargs.get("legacy", False)
-        if legacy:
-            response = requests.get(self.LegacyVersionManifestURl)
-        else:
-            response = requests.get(self.VersionManifestURl)
-        manifest = response.json()
-
-        version_info = next((v for v in manifest["versions"] if v["id"] == minecraft_version), None)
-        return version_info['url']
 
     def get_version_list(self, mode, **kwargs):
         # Get version_manifest_v2.json and list all versions (with version_id on the left)
@@ -260,7 +250,7 @@ class Create_Instance:
         os.chdir(Base.launcher_root_dir)
 
     def install_jvm(self, minecraft_version):
-        global selected_java_version_manifest_url, failed
+        global selected_java_version_manifest_url, failed, Message, install_path
         failed = False
         java_manifest_url = 'https://launchermeta.mojang.com/v1/products/java-runtime/2ec0cc96c44e5a76b9c8b7c39df7210883d12871/all.json'
 
@@ -270,6 +260,7 @@ class Create_Instance:
         # Get Java Version Info(from selected version's data)
         component, major_version = Duke.get_java_version_info(selected_version_data)
         print(f"Required Java Component: {component}, Major Version: {major_version}", color='green', tag='DEBUG')
+        install_path = os.path.join("runtimes", f"Java_{major_version}")
 
         # Get java manifest
         try:
@@ -283,94 +274,72 @@ class Create_Instance:
             print(f"Error when fetch Java Manifest: {e}")
             return f"FailedToFetchJavaManifest[{e}]"
 
-        # gEt "selected java version manifest_url"
+        # Gett "selected java version manifest_url"
         Status, selected_java_version_manifest_url, Err = jvm_installer.find_selected_java_version_manifest_url(
             manifest_data,
             component,
             major_version)
 
         if not Status:
-            print("Failed to install Java runtimes :(", color='red')
-            print(f"ERR: {Err}")
-            print("Maybe launcher can't find available Java runtimes on your system.", color='lightyellow')
-            if Base.Platform == "Darwin":
-                print('If you using macOS, try installing brew (package manager) and get openjdk to launch game.')
-                print("Or check java.com and https://www.oracle.com/java/technologies/downloads to get java.")
-                if Base.FullArch.lower() == "arm64":
-                    print("Arm64 macOS detect! If you can't find support java. Try installing Rosetta and install "
-                          "x86-64 version of Java.", color='green')
-                    print("Do you want to install x86-64 version of Java? (Require Rosetta)")
-                    print("Do you want to install x86-64 version of Java? (y/n)")
-                    user_input = str(input(":"))
-                    if user_input.lower() == "y":
-                        Status, selected_java_version_manifest_url, Err = jvm_installer.find_selected_java_version_manifest_url(
-                            manifest_data, component, major_version, custom_platform='mac-os-arm64')
+            try:
+                # Get manifest data
+                manifest_data = requests.get(selected_java_version_manifest_url).json()
+            except Exception as e:
+                print(f"Error when fetch selected Java manifest data: {e}", color='red')
+                return "FailedToFetchJavaManifestData"
 
-                        if not Status:
-                            failed = True
+            # Change work dir back to launcher root(avoid some path error) and get install dir
+            os.chdir(Base.launcher_root_dir)
 
-            elif Base.Platform == "Windows":
-                print("Check https://www.oracle.com/java/technologies/downloads/ or java.com to get Java!",
-                      color='lightyellow')
-                print("More option: https://learn.microsoft.com/en-us/java/openjdk/download")
-                failed = True
-            elif Base.Platform == "Linux":
-                print("Try using your system-based package manager to install openjdk.")
-                failed = True
+            # Check install dir status
+            if Base.OverwriteJVMIfExist:
+                print("OverwriteJVMIfExist has been enabled.", color='blue', tag='INFO')
+                if os.path.exists(install_path):
+                    shutil.rmtree(install_path)
 
-        if failed:
-            print(f"This minecraft require Java version {major_version}", color='purple')
-            continue_code = input("Press any key to continue...")
-            return "SupportJVMNotFound"
-
-        try:
-            # Get manifest data
-            manifest_data = requests.get(selected_java_version_manifest_url).json()
-        except Exception as e:
-            print(f"Error when fetch selected Java manifest data: {e}", color='red')
-            return "FailedToFetchJavaManifestData"
-
-        # Change work dir back to launcher root(avoid some path error) and get install dir
-        os.chdir(Base.launcher_root_dir)
-        install_path = os.path.join("runtimes", f"Java_{major_version}")
-
-        # Check install dir status
-        if Base.OverwriteJVMIfExist:
-            print("OverwriteJVMIfExist has been enabled.", color='blue', tag='INFO')
-            if os.path.exists(install_path):
-                shutil.rmtree(install_path)
-
-        if Base.DoNotAskJVMExist and os.path.exists(install_path):
-            print("Bypassing reinstall JVM...", color='green', tag='INFO')
-            return True, "BypassInstallJVM"
-
-        if os.path.exists(install_path):
-            self.require_jvm_version_installed = True
-            print("Warning: A same version of Java runtime has been installed.", color='yellow')
-            print("Do you want to reinstall it? Y/N")
-            user_input = str(input(":"))
-            if not user_input.upper() == "Y":
-                print("Bypass installing Java runtime...", color='green')
+            if Base.DoNotAskJVMExist and os.path.exists(install_path):
+                print("Bypassing reinstall JVM...", color='green', tag='INFO')
                 return True, "BypassInstallJVM"
+
+            if os.path.exists(install_path):
+                self.require_jvm_version_installed = True
+                print("Warning: A same version of Java runtime has been installed.", color='yellow')
+                print("Do you want to reinstall it? Y/N")
+                user_input = str(input(":"))
+                if not user_input.upper() == "Y":
+                    print("Bypass installing Java runtime...", color='green')
+                    return True, "BypassInstallJVM"
+                else:
+                    # Install, uninstall ???
+                    print("Uninstall Java runtime...", color='green')
+                    shutil.rmtree(install_path, ignore_errors=True)
+                    print("Uninstall Java runtime finished!", color='blue')
+                    os.makedirs(install_path)
+                    time.sleep(0.5)
             else:
-                # Install, uninstall ???
-                print("Uninstall Java runtime...", color='green')
-                shutil.rmtree(install_path, ignore_errors=True)
-                print("Uninstall Java runtime finished!", color='blue')
+                self.require_jvm_version_installed = False
                 os.makedirs(install_path)
-                time.sleep(0.5)
+            Status, Message = jvm_installer.download_java_runtime_files(manifest_data, install_path)
         else:
-            self.require_jvm_version_installed = False
-            os.makedirs(install_path)
-        Status, Message = jvm_installer.download_java_runtime_files(manifest_data, install_path)
+            print("Could not find support runtimes from the official resource :(", color='red')
+            print("Some platform are not in the official support list. If your platform are not support, ", end='')
+            print("launcher will use Java runtimes built by azul.")
+            print("Do you want to install Java runtimes from azul ?")
+            user_input = str(input(":"))
+            if user_input.upper() == "Y":
+                azul_jvm_install_path = os.path.join(Base.launcher_root_dir, "runtimes", "azul", f"Java_{major_version}")
+                Status, Message = jvm_installer.install_azul_build_version_jvm(major_version, azul_jvm_install_path)
+            else:
+                Status = False
+                Message = "Unsupported Platform"
 
         if Status:
             print(f"Successfully installed Java runtime.", color='blue')
         else:
             print(f"Failed to install Java runtime :( Cause by {Message}", color='red')
-            return False, "DownloadJavaRuntime>InstallJVMFailed"
+            return False, f"DownloadJavaRuntime>Err{Message}"
 
-        if Base.Platform == "Linux":
+        if not Base.Platform == "Windows":
             print("Do you want to fix permissions for the Java runtime?", color='blue', tag='PROMPT')
             print("Sometimes you may get 'Permission denied' errors when launching Minecraft. "
                   "This method can help fix these issues. :)",
@@ -384,8 +353,8 @@ class Create_Instance:
             if user_input == "Y":
                 try:
                     # Execute chmod command
-                    command = f"chmod -R +x {install_path}/*"
-                    command2 = f"chmod -R +x {install_path}/bin/*"
+                    command = f"chmod +x {install_path}/*"
+                    command2 = f"chmod +x {install_path}/bin/*"
                     os.system(command)
                     os.system(command2)
                     print("Permissions fixed successfully.", color='green', tag='SUCCESS')
@@ -403,10 +372,7 @@ class Create_Instance:
                 if user_input.upper() == "Y":
                     Duke.duke_finder()
 
-        if not len(Message) == 0:
-            return True, f"InstallJVMFinished[{Message}]"
-        else:
-            return True, "InstallJVMFinished"
+        return True, "InstallJVMFinished"
 
     def download_games_files(self, version_id, install_dir, **kwargs):
         # Parameter stuff

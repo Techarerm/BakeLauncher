@@ -1,8 +1,11 @@
 import os
+import shutil
+
 import requests
 from tqdm import tqdm
 from LauncherBase import Base, print_custom as print
-from libs.Utils.utils import verify_checksum
+from libs.Utils.utils import *
+from libs.java.java_info import *
 
 class class_jvm_installer:
 
@@ -68,11 +71,77 @@ class class_jvm_installer:
 
         return True, "DownloadFinished"
 
+    def install_azul_build_version_jvm(self, java_major_version, install_dir):
+        Status, download_url, version_type = get_java_build_download_url_from_azul("Darwin", Base.FullArch,
+                                                                                   java_major_version)
+
+        if not Status:
+            return False, "Get download url failed. Unsupported platform"
+
+        jvm_zip_file_path = os.path.join(Base.launcher_tmp_dir, f"jvm-azul-{java_major_version}.zip")
+
+        if os.path.exists(jvm_zip_file_path):
+            try:
+                os.remove(jvm_zip_file_path)
+            except Exception as e:
+                return False, "Cannot delete tmp file."
+
+        jvm_unzip_dest = os.path.join(Base.launcher_tmp_dir, f"jvm-azul-{java_major_version}-unzipped")
+        if os.path.exists(jvm_unzip_dest):
+            try:
+                shutil.rmtree(jvm_unzip_dest)
+            except Exception as e:
+                return False, "Cannot delete unzip tmp file."
+
+        Status = download_file(download_url, jvm_zip_file_path)
+
+        if not Status:
+            return False, "Download file failed."
+
+        extract_zip(jvm_zip_file_path, jvm_unzip_dest)
+
+        if os.path.exists(install_dir):
+            try:
+                shutil.rmtree(install_dir)
+            except Exception as e:
+                return False, f"Cleaning install dir failed. Err{e}"
+
+        if not Base.Platform == "Darwin":
+            unzip_list = os.listdir(jvm_unzip_dest)
+            jvm_app_folder_name = unzip_list[0]
+            home_folder_path = os.path.join(jvm_unzip_dest, jvm_app_folder_name, f"zulu-{java_major_version}.jre",
+                                            "Contents", "Home")
+
+        else:
+            unzip_list = os.listdir(jvm_unzip_dest)
+            home_folder_name = unzip_list[0]
+            home_folder_path = os.path.join(jvm_unzip_dest, home_folder_name)
+            if not os.path.isdir(home_folder_path):
+                return False, "JAVA_HOME not found in the unzip folder."
+
+        install_root_dir = os.path.dirname(install_dir)
+        home_name = os.path.basename(home_folder_path)
+        dest_path = os.path.join(install_root_dir, home_name)
+
+        try:
+            shutil.move(home_folder_path, install_root_dir)
+        except Exception as e:
+            return False, f"Move home folder to install dir failed. Err:{e}"
+
+        try:
+            os.rename(dest_path, install_dir)
+        except Exception as e:
+            return False, "Rename dest_path to require name failed."
+
+        return True, None
+
     @staticmethod
     def find_selected_java_version_manifest_url(manifest_data, component, major_version, **kwargs):
         global JavaPlatformName
         if Base.Platform == 'Windows':
             JavaPlatformName = 'windows-x64'
+            if Base.FullArch.lower() == "arm64":
+                JavaPlatformName = 'windows-arm64'
         elif Base.Platform == 'Darwin':
             JavaPlatformName = 'mac-os'
             if Base.FullArch.lower() == "arm64":
@@ -84,7 +153,7 @@ class class_jvm_installer:
                 JavaPlatformName = Base.Platform.lower()
         else:
             JavaPlatformName = Base.Platform.lower()
-        print(f"Java Runtimes Platform: {JavaPlatformName}", color='green', tag='DEBUG')
+        print(f"Java Runtimes Platform: {JavaPlatformName}", tag='DEBUG')
         if kwargs.get("custom_platform", None) is not None:
             JavaPlatformName = kwargs.get("java_platform", JavaPlatformName)
 

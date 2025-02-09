@@ -201,7 +201,7 @@ class LauncherManager:
             LegacyFlag = False
 
         # print version info
-        print(f"Version Info : client_version={minecraft_version} real_version={real_version}", color='cyan')
+        print(f"Version Info : client_version={minecraft_version} real_version={real_version}", color='lightyellow')
 
         # Check version.json status
         version_data = get_version_data_from_exist_data(minecraft_version)
@@ -296,12 +296,12 @@ class LauncherManager:
             username = account_data['Username']
             access_token = account_data['AccessToken']
             uuid = account_data['UUID']
-            if username == "Player" or username == "BakeLauncherLocalUser":
-                print("Sorry :( You can't launch game without login in this version.", color='red')
-                time.sleep(3)
-                return "AccountDataInvalid"
-            else:
-                access_token = f"[HIDDEN]{access_token}[HIDDEN]"
+            if not Base.BypassLoginRequire:
+                if username == "Player" or username == "BakeLauncherLocalUser":
+                    print("Sorry :( You can't launch game without login in this version.", color='red')
+                    time.sleep(3)
+                    return "AccountDataInvalid"
+            access_token = f"[HIDDEN]{access_token}[HIDDEN]"
 
         except JSONDecodeError or ValueError:
             print("Failed to launch Minecraft :( Cause by invalid AccountData", color='red')

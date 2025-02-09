@@ -1,7 +1,11 @@
+import ast
 import datetime
+import importlib.util
+import importlib
 import json
 import os
 import subprocess
+import sys
 import textwrap
 import time
 import platform
@@ -10,7 +14,7 @@ from modules.print_colorx.print_color import print as print_color
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
 # dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
 # Example = "LB041224" Years: 2024 Month: 12 Date: 04
-dev_version = "BF080225"  # If version type is release set it blank
+dev_version = "BG090225"  # If version type is release set it blank
 version_type = "Dev"
 major_version = "0.9.1"
 
@@ -62,7 +66,7 @@ ChangeLog = ("Changelog:\n"
 global_config = """[BakeLauncher Configuration]
 
 <Global>
-Debug = True
+Debug = False
 DontPrintColor = false
 DisableClearOutput = false
 DefaultAccountID = 1
@@ -287,6 +291,7 @@ class LauncherBase:
         self.RefreshTokenFailedFlag = False
         self.LauncherFullResetFlag = False
         self.UnknownPlatform = False
+        self.DontLoadMainMemu = False
         # ============================I'm a line==============================
         # Config file stuff
         # Global stuff
@@ -343,6 +348,16 @@ class LauncherBase:
             self.ChristmasPoint = True
         else:
             self.ChristmasPoint = False
+        # ============================I'm a line==============================
+        # Dev stuff
+        if version_type.lower() == "dev":
+            self.AllowModify = True
+            self.AllowUnsafeImport = True
+            self.AllowLoadCustomModules = True
+            self.CustomModulesPathList = []
+            self.BypassLoginRequire = True
+        else:
+            self.AllowModify = False
 
     @property
     def Initialize(self):
@@ -607,6 +622,12 @@ class LauncherBase:
                     except ValueError:
                         self.JVMUsageRamSizeMax = 4096
 
+                if "CustomModulesPathList" in line:
+                    if version_type.lower() == "dev" and Base.Debug:
+                        if Base.AllowModify and Base.AllowLoadCustomModules:
+                            ModulesPathList = line.split('=')[1].strip()
+                            self.CustomModulesPathList = ast.literal_eval(ModulesPathList)
+
         if self.Debug:
             if self.DontPrintColor:
                 print_color("Colorful text has been disabled.", tag='Global')
@@ -645,29 +666,7 @@ class LauncherBase:
             print_color(f"Base: Unknown args {mode}")
             self.EndLoadFlag = True
             return None
-            """
-            if Arch[0] == "64bit":
-                if mode.upper() == "PLATFORM":
-                    return Platform
-                elif mode.upper() == "ARCH":
-                    return Arch
-                elif mode.upper() == "FULLARCH":
-                    return FullArch
-                else:
-                    print_color(f"Base: Unknown args {mode}")
-                    self.EndLoadFlag = True
-                    return None
-            else:
-                print_color(f"BakeLauncher for 32bit(or other arch) architecture support is untested.", color='lightred')
-                print_color(f"You can still continue running the launcher. But you may get some bug during use.",
-                            color='lightyellow')
-                continue_running = str(input("Enter Y to ignore: "))
-                if not continue_running.upper == "Y":
-                    self.EndLoadFlag = True
-                    return
-                else:
-                    return Arch
-            """
+
     def check_internet_connect(self):
         if self.PingServerIP is not None:
             if not self.PingServerIP == "None":
@@ -721,6 +720,50 @@ class LauncherBase:
 
 
 Base = LauncherBase()
+
+
+def load_custom_modules():
+    for mod_path in Base.CustomModulesPathList:
+        mod_info = os.path.join(mod_path, "mod.info.json")
+        if not os.path.exists(mod_info):
+            continue
+
+        try:
+            with open(mod_info, "r") as f:
+                mod_info = json.load(f)
+        except Exception as e:
+            continue
+
+        mod_main_name = mod_info.get("modMain", None)
+        mod_main_file = mod_info.get("modMainFile", None)
+        mod_main_file_path = os.path.join(mod_path, mod_main_file)
+        mod_group_id = mod_info.get("groupID", None)
+
+        if not os.path.exists(mod_main_file_path):
+            continue
+
+        if mod_main_name is None:
+            continue
+
+        # Define a unique module name based on file path
+        module_name = f"mod_{hash(mod_main_file_path)}"
+
+        # Load mod
+        spec = importlib.util.spec_from_file_location(module_name, mod_main_file_path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module  # Register module in sys.modules
+        spec.loader.exec_module(module)
+
+        # Get the function dynamically
+        if hasattr(module, mod_main_name):
+            mod_function = getattr(module, mod_main_name)
+            if callable(mod_function):
+                print(f"Mod name {mod_group_id} has been loaded.")
+                mod_function()  # Call the function
+            else:
+                print(f"Mod Name {mod_group_id} load failed. Not callable.")
+        else:
+            continue
 
 
 def bake_bake():

@@ -35,3 +35,8 @@ def macos_natives_rosetta_support():
     else:
         print("Replace lib_name_2 to real...")
         return False
+
+def arm64_jvm_support(platform_name, java_major_version):
+    print("All Java runtimes build are from azul.", color='purple')
+    print("Checking support...", color='green')
+
