@@ -22,6 +22,31 @@ ErrorMessageOutputRange = 0
 StopAutomaticProcess = False
 
 
+class mainMenu:
+    def __init__(self):
+        self.ResetMainMenu = False
+        self.CustomOptions = []
+
+    def menu(self):
+        print("What would you like to do?")
+        print("1. Launch Minecraft 2. AccountManager 3: Create Instance")
+        print("4: Manage Instance 5: Extra 6: About")
+
+    def extra_menu(self):
+        print("Extra list:", color='lightblue')
+        print("1: [Exp]Custom Args        5: Convert Old Instance Structure ")
+        print("2: Reset AccountData.json  6: Auto-Convert Old Instance Structure")
+        print("3: Clear JVM config file   7: Search Java Runtimes(Duke)")
+        print("4: Clear ErrorMessage      8: Clear Global Config")
+
+    """
+    def print_custom_options(self):
+        for option in self.CustomOptions:
+    """
+
+
+
+
 def error_return(ErrorMessage, mode):
     global ErrorMessageList, ErrorMessageOutputRange
     if ErrorMessage is None:

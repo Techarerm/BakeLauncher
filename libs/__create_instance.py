@@ -1,4 +1,3 @@
-import os
 import subprocess
 import time
 import shutil
@@ -10,13 +9,10 @@ from libs.java.jvm_installer import jvm_installer
 from libs.__instance_manager import instance_manager
 from libs.__assets_grabber import assets_grabber
 from libs.modification.mod_installer import mod_installer
-from libs.Utils.utils import download_file, extract_zip
+from libs.Utils.utils import download_file
 from libs.version.version import *
 from LauncherBase import Base, ClearOutput, print_custom as print, internal_functions_error_log_dump
 from libs.libraries.libraries import download_libraries, download_natives
-from libs.platform.platfrom import get_special_platform_name, macos_natives_rosetta_support
-from libs.java.java_info import get_java_build_download_url_from_azul
-
 
 class Create_Instance:
     def __init__(self):
@@ -175,6 +171,11 @@ class Create_Instance:
         print(f"Downloading client.jar to {client_dest}...")
         download_file(client_url, client_dest)
 
+        if os.path.exists(client_dest):
+            return True
+        else:
+            return False
+
     def unzip_natives(self, instance_name):
         global unzip_status, PlatformName
 
@@ -224,11 +225,6 @@ class Create_Instance:
             native_keys_list = map_keys_amd64.get(lib_platform_name, [])
         elif full_arch == "arm64":
             native_keys_list = map_keys_arm64.get(lib_platform_name, [])
-            if lib_platform_name == "darwin":
-                Status = macos_natives_rosetta_support()
-                if Status:
-                    native_keys_list.append('natives-macos')
-                    native_keys_list.append("natives-osx")
         elif full_arch == "i386":
             native_keys_list = map_keys_i386.get(lib_platform_name, [])
         else:
@@ -321,7 +317,7 @@ class Create_Instance:
             component,
             major_version)
 
-        if not Status:
+        if Status:
             try:
                 # Get manifest data
                 manifest_data = requests.get(selected_java_version_manifest_url).json()
@@ -416,29 +412,39 @@ class Create_Instance:
 
         return True, "InstallJVMFinished"
 
-    def download_games_files(self, version_id, install_dir, **kwargs):
+    def download_game_files(self, version_id, install_dir, **kwargs):
         # Parameter stuff
         without_download_client = kwargs.get("without_download_client", False)
 
         game_folder = os.path.join(install_dir, ".minecraft")
+        libraries_dir = os.path.join(install_dir, ".minecraft", "libraries")
+        os.makedirs(game_folder, exist_ok=True)
+        os.makedirs(libraries_dir, exist_ok=True)
 
         # Get ver data
         print("Loading version info...")
         version_data = get_version_data(version_id)
 
+        if version_data is None:
+            return False, "Get version data failed."
+
         # Download client.jar
         if not without_download_client:
             print("Downloading client...", color='lightblue')
-            self.download_client(version_data, version_id, install_dir)
+            client_download_statsu = self.download_client(version_data, version_id, install_dir)
+            if not client_download_statsu:
+                return False, "Download client failed."
 
         # Download libraries
         print("Downloading libraries...", color='lightblue')
-        libraries_dir = os.path.join(install_dir, ".minecraft", "libraries")
-        download_libraries(version_data, libraries_dir, **kwargs)
-        time.sleep(1)
+        lib_download_status = download_libraries(version_data, libraries_dir, **kwargs)
+        if not lib_download_status:
+            return False, "Download libraries failed."
 
         # Download natives
-        download_natives(version_data, libraries_dir)
+        natives_download_status = download_natives(version_data, libraries_dir)
+        if not natives_download_status:
+            return False, "Download natives failed. Platform unsupported."
 
         # Delay time to make old output don't print with new output
         time.sleep(0.5)
@@ -463,6 +469,7 @@ class Create_Instance:
 
         # Add waiting time (If the assets' download failed, it will print it?)
         time.sleep(1.2)
+        return True, None
 
     def download_legacy_game(self, real_version, spoof_version, install_dir):
         # Getting custom client url and download client
@@ -471,7 +478,7 @@ class Create_Instance:
         # Check legacy url valid
         if legacy_url is None:
             print("Could not get version url.", color='red', tag='ERROR')
-            return "Get version url failed"
+            return False, "Get version url failed"
 
         legacy_url = "/".join(legacy_url.split("/")[:-1]) + "/"
         client_url = f"{legacy_url}{real_version}.jar"
@@ -484,17 +491,19 @@ class Create_Instance:
         if legacy_version_data is None:
             print("Version url are unavailable :( Is the server down?", color='red')
             time.sleep(3)
-            return "Version url unavailable"
+            return False, "Version url unavailable"
 
         # Download client
-        client_dst = os.path.join(install_dir, ".minecraft", "libraries", "net", "minecraft", real_version,
-                                  "client.jar")
-        self.download_client(legacy_version_data, real_version, install_dir, custom_client_url=client_url)
-        if not os.path.exists(client_dst):
-            raise Exception(f"Downloading client failed :(")
+        Status = self.download_client(legacy_version_data, real_version, install_dir, custom_client_url=client_url)
+        if not Status:
+            return False, "Downloading client failed :("
 
         print("Downloading spoof version files...", color='blue')
-        self.download_games_files(spoof_version, install_dir, without_download_client=True)
+        Status, e = self.download_game_files(spoof_version, install_dir, without_download_client=True)
+        if not Status:
+            return False, f"Download spoof version game files failed. ERR:{e}"
+
+        return True, "Spoof version game files downloaded"
 
     def version_spoof(self, require_version):
         global client_version, spoof_enable
@@ -540,6 +549,19 @@ class Create_Instance:
             client_version = require_version
             real_version = require_version
         return client_version, real_version
+
+    def rollback_install_instance(self, instance_path):
+        print("Rollback installing...", color='green')
+
+        if not os.path.exists(instance_path):
+            return False, "Specified instance are not found"
+
+        try:
+            shutil.rmtree(instance_path)
+        except Exception as e:
+            return False, e
+
+        return True, None
 
     def start_create_instance(self, require_version):
         global instance_path, client_version, version_type
@@ -625,10 +647,12 @@ class Create_Instance:
                     java_major_version=major_version,
                     main_class=main_class
                 )
-                e = self.download_legacy_game(real_version, client_version, instance_path)
-                if e is not None:
-                    print(f"Error while downloading game files : {e}", color='red')
+                Status, error = self.download_legacy_game(real_version, client_version, instance_path)
+                if not Status:
+                    print(f"Error while downloading game files : {error}", color='red')
                     time.sleep(5)
+                else:
+                    return True, "InstanceCreated"
             else:
                 instance.create_instance_info(
                     instance_name=os.path.basename(instance_path),
@@ -642,8 +666,12 @@ class Create_Instance:
                     java_major_version=major_version,
                     main_class=main_class
                 )
-                self.download_games_files(client_version, instance_path)
-            return True, "InstanceCreated"
+                Status, error = self.download_game_files(client_version, instance_path)
+                if not Status:
+                    print(f"Error while downloading game files : {error}", color='red')
+                    time.sleep(5)
+                else:
+                    return True, "InstanceCreated"
 
     def reinstall_instances(self):
         # if the instances list is not exist, return Status=False and client_version=ErrorMessage
@@ -685,7 +713,8 @@ class Create_Instance:
 
         print(f"Reinstalling instance name {instance_name}...", color='green')
         print(f"Client Version: {client_version} Instance Dir: {instance_path}", color='green', tag='DEBUG')
-        self.download_games_files(client_version, instance_path)
+        self.download_game_files(client_version, instance_path)
+
 
     def create_instance(self):
         def download_minecraft_with_version_id(list_type=None):

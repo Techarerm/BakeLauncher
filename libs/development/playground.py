@@ -8,17 +8,10 @@ from libs.instance.instance import instance
 from libs.version.version import *
 from libs.libraries.libraries import *
 from libs.__assets_grabber import assets_grabber
-from libs.java.java_info import get_java_build_download_url_from_azul
 
 all_funs = ["function", "create_a_custom_instance", "test_hook_mod"]
 
 def function():
-
-    version_list = ["8", "16", "17", "21"]
-
-    for ver in version_list:
-        info = get_java_build_download_url_from_azul(Base.Platform, Base.FullArch, ver)
-        print(info)
 
     exit_code = input("Press any key to exit playground...")
 

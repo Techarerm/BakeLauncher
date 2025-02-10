@@ -1,4 +1,13 @@
+"""
+The main of the BakeLauncher
+main.py
+
+Launcher load process:
+Init>self.launcher_loader>Init Base>self.main>Start main_memu in new thread>terminated
+"""
 import multiprocessing
+import threading
+import time
 import traceback
 import textwrap
 import datetime
@@ -11,6 +20,9 @@ class BakeLauncher:
     def __init__(self):
         self.StartStatus = False
         self.Message = None
+        self.launcher_loader()
+
+    def load_base(self):
         # Load LauncherBase
         try:
             self.StartStatus, self.Message = Base.Initialize
@@ -24,8 +36,12 @@ class BakeLauncher:
             print(f"Detailed traceback:\n{tb}")
             self.generate_crash_log(tb, function_name, e, BaseInitialized=False)
 
+    def launcher_loader(self):
         # Start the launcher process if loading base pass
         while True:
+            if not self.StartStatus:
+                self.load_base()
+
             if self.StartStatus:
                 try:
                     self.main()
@@ -34,7 +50,8 @@ class BakeLauncher:
                     ClearOutput()
                     tb = traceback.format_exc()  # Full traceback as a string
                     function_name = traceback.extract_tb(e.__traceback__)[-1].name
-                    print(f"BakeLauncher has crashed :( Caused by an error in function '{function_name}': {e}", color='lightred')
+                    print(f"BakeLauncher has crashed :( Caused by an error in function '{function_name}': {e}",
+                          color='lightred')
                     print(f"Crash at function name {function_name}")
                     print(f"Error {e}")
                     print(f"Detailed traceback:\n{tb}")
@@ -47,14 +64,17 @@ class BakeLauncher:
             print("BakeLauncher thread terminated!")
             if Base.LauncherFullResetFlag:
                 input("Press any key to reset all thing...")
+                self.StartStatus = False
                 Base.LauncherFullResetFlag = False
             else:
                 EXIT_CODE = str(input("Press any key to continue..."))
-                return
+                return True
 
     def main(self):
         # DEBUG for platform check
-        print(f"BakeLauncher: Launcher is running on platform: {Base.Platform}", color='lightblue')
+        print(f"BakeLauncher: Launcher is running on platform : {Base.Platform}", color='lightblue')
+        if Base.Debug:
+            print(f"Thread Info > PID : {os.getpid()} | Thread : {threading.get_ident()}", color='lightblue')
         ClearOutput()
 
         # Print BetaWarningMessage
@@ -66,8 +86,15 @@ class BakeLauncher:
             load_custom_modules()
 
         # Load main menu
-        if not Base.DontLoadMainMemu:
-            main_menu()
+        main_menu_thread = threading.Thread(target=main_menu)
+        main_menu_thread.start()
+
+        while True:
+            Status = main_menu_thread.is_alive()
+            if not Status:
+                return
+            time.sleep(0.1)
+
 
     @staticmethod
     def generate_crash_log(tb, crash_function, e, BaseInitialized):

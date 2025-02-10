@@ -38,7 +38,7 @@ jobs:
 
       - name: BakeLauncher Dev Version For Windows
         run: |
-          pyinstaller main.py -D --icon=bread.ico --name BakeLauncher --hidden-import=libs.multi.nt
+          pyinstaller main.py -D --icon=bread.ico --name BakeLauncher
 
       - name: Upload EXE
         uses: actions/upload-artifact@v4
@@ -74,6 +74,36 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: BakeLauncher-Dev-BG090225.macOS
+          path: dist/
+
+  macos-arm64-build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive # For submodules
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r Dev/requirements.txt
+          pip install pyinstaller
+
+      - name: BakeLauncher Dev Version For macOS(arm64)
+        run: |
+          pyinstaller main.py -D --icon=bread.ico --name BakeLauncher --hidden-import=libs.multi.nt
+
+      - name: Upload APP
+        uses: actions/upload-artifact@v4
+        with:
+          name: BakeLauncher-Dev-BG090225.macOS(ARM64)
           path: dist/
 
   linux-build:

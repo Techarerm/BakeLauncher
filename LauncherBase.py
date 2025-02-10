@@ -2,19 +2,22 @@ import ast
 import datetime
 import importlib.util
 import importlib
+import inspect
 import json
 import os
+import re
 import subprocess
 import sys
 import textwrap
 import time
 import platform
+import threading
 from modules.print_colorx.print_color import print as print_color
 
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
 # dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
 # Example = "LB041224" Years: 2024 Month: 12 Date: 04
-dev_version = "BG090225"  # If version type is release set it blank
+dev_version = "BF100225"  # If version type is release set it blank
 version_type = "Dev"
 major_version = "0.9.1"
 
@@ -146,11 +149,23 @@ UsingLegacyDownloadOutput = false
 
 
 def print_custom(*args, **kwargs):
+    thread_id = None
+    if Base.PrintThreadInfo:
+        thread_id = threading.get_ident()
+
     if not Base.DontPrintColor:
         color = kwargs.pop('color', None)  # Remove color from kwargs if it exists
-        print_color(*args, color=color, **kwargs)  # Pass remaining args and color
+        if not Base.PrintThreadInfo:
+            print_color( *args, color=color, **kwargs)  # Pass remaining args and color
+        else:
+            print_color(f"[{thread_id}] ",*args, color=color, **kwargs)
     else:
-        print(*args)
+        if not Base.PrintThreadInfo:
+            print(*args)
+        else:
+            print(f"[{thread_id}] ",*args)
+
+
 
 
 def initialize_config(**kwargs):
@@ -321,15 +336,18 @@ class LauncherBase:
         self.JVMUsageRamSizeMinLimit = 2048
         self.JVMUsageRamSizeMax = 4096
         # Duke
-        self.PrioUseSystemInstalledJVM = True
-        self.CustomJVMInstallPath = None
-        self.SearchJVMInCustomPath = False
+        self.PrioUseOfSpecifiedJVM = True  # When launching game, priority use specified JVM path (CustomJVMInstallPath)
+        self.CustomJVMInstallPath = None  # Custom runtimes
+        self.SearchJVMInCustomPath = False  # When searching available JVM, append it to the search list.
+        # (Type = Custom-Installed)
         # Create Instance stuff
-        self.OverwriteJVMIfExist = False
-        self.DoNotAskJVMExist = False
-        self.UsingLegacyDownloadOutput = False
-        self.MaxFullVersionPerLine = 5
-        self.MaxReleaseVersionPerLine = 10
+        self.OverwriteJVMIfExist = False  # Overwrite JVM runtimes without asking user
+        # (If minecraft_version require jvm_version available in the runtimes folder)
+        self.DoNotAskJVMExist = False  # If the version requires an installed version of runtimes,
+        # skip asking the user to reinstall it
+        self.UsingLegacyDownloadOutput = False  # Legacy download output is good.
+        self.MaxFullVersionPerLine = 5  # Check config to get more information!
+        self.MaxReleaseVersionPerLine = 10  # Check config to get more information!
         self.DarwinInstallWithRosetta = False
         # ============================I'm a line==============================
         # Other stuff
@@ -356,6 +374,7 @@ class LauncherBase:
             self.AllowLoadCustomModules = True
             self.CustomModulesPathList = []
             self.BypassLoginRequire = False
+            self.PrintThreadInfo = False
         else:
             self.AllowModify = False
 
@@ -765,6 +784,10 @@ def load_custom_modules():
         else:
             continue
 
+def get_all_classes():
+    class_list = {name: obj for name, obj in globals().items() if inspect.isclass(obj)}
+    return class_list
+
 
 def bake_bake():
     print_color("POWERED BY BAKE!", color="yellow")
@@ -777,6 +800,7 @@ def bake_bake():
         print_color("Almost done? (Just wait...like 1 years?)", color='blue')
     print_color(" ")
     print_color(ChangeLog, color='cyan')
+    print_color("You are in launcher terminal mode!", color='lightyellow')
     print_color("Type 'exit' to back to main menu.", color='green')
     print_color('"Details" for more information.', color='purple')
     print_color('"PrintInternalInfo" for full internal variable data output (dev-only)', color='lightgreen')
@@ -840,6 +864,23 @@ def bake_bake():
 
             input("Press any key to continue...")
             return True
+
+        if "CE~" in user_input:
+            match = re.match(r"CE~(\w+)\.(\w+)=(.+)", user_input)
+            if match:
+                class_name, variable, value = match.groups()
+                try:
+                    value = eval(value)
+                except:
+                    pass
+                print(Base.__class__.__name__)
+                if class_name == Base.__class__.__name__:  # Check if class name matches
+                    setattr(Base, variable, value)  # Update variable dynamically
+                    print(f"Variable name '{class_name}.{variable}' has been updated to {value}")
+                    return
+                else:
+                    print(f"Class name {class_name} not support change ")
+                    return
 
         if type_time == 1:
             print(f"?{user_input}")

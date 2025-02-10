@@ -53,7 +53,6 @@ class DukeCute:
         except PermissionError:
             return False
 
-
         # Get output
         output = result.stderr
 
@@ -95,114 +94,111 @@ class DukeCute:
             for workDir in self.JavaRuntimeList:
                 self.FoundJavaRuntimeList = self.file_search(workDir, self.JavaExecutableName)
         else:
-            print("Sorry :( Your platform seems like not supported search runtimes on your system", color='red')
+            print("Sorry :( Your platform seems like not supported search runtimes on your system.", color='red')
 
         # Check if any Java runtime was found in the system
-        if len(self.FoundJavaRuntimeList) > 0:
-            self.FoundJavaRuntimeInSystem = True
-        else:
+        if not len(self.FoundJavaRuntimeList) > 0:
             print("Could not find available Java runtimes on your computer.", color='yellow')
+        else:
+            # Test executable
+            print("Testing whether Java runtimes system-installed can execute normally...", color="orange")
+            for RuntimeDir in self.FoundJavaRuntimeList:
+                print(f"Testing runtime path {RuntimeDir} executable...", color='green')
+                Status = self.test_java_executable(RuntimeDir, mode="normal")
+                if Status:
+                    self.ExecutableJavaList_SysInstalled.append(RuntimeDir)
+                else:
+                    print(f"Runtime directory {RuntimeDir} cannot be executed. Is it corrected?", color='yellow')
+
+            if self.ExecutableJavaList_SysInstalled:
+                self.FoundDuke = True
+            else:
+                print("Unable to find the JVM executable installed on the system :(", color='red')
+                time.sleep(2)
+
+            if self.FoundDuke:
+                print("Saving data...", color='green')
+                for RuntimeDir in self.ExecutableJavaList_SysInstalled:
+                    print(f"Getting runtimes major version...")
+                    major_version = self.test_java_executable(RuntimeDir, mode="GetMajorVersion")
+                    print("Saving Java HOME Path...", color='lightgreen')
+                    self.write_runtimes_data(RuntimeDir, major_version, Base.FullArch, "System-Installed")
 
         print("Now search Java runtimes in launcher root dir...")
         self.FoundJavaRuntimeList_LauncherInternal = self.file_search(self.JavaRuntime_LauncherInternal,
                                                                       self.JavaExecutableName)
 
         # Check if any Java runtime was found in launcher internal
-        if len(self.FoundJavaRuntimeList_LauncherInternal) > 0:
-            self.FoundJavaRuntimeInLauncherInternal = True
-        else:
+        self.FoundDuke = False
+        if not len(self.FoundJavaRuntimeList_LauncherInternal) > 0:
             print("Could not find available Java runtimes in the launcher 'runtimes' folder :0", color='yellow')
-
-        if Base.SearchJVMInCustomPath:
-            print("Now search Java runtimes in custom path...", color='purple')
-            self.FoundJavaRuntimeList_CustomPath = self.file_search(Base.CustomJVMInstallPath,
-                                                                          self.JavaExecutableName)
-
-            # Check if any Java runtime was found in launcher internal
-            if len(self.FoundJavaRuntimeList_CustomPath) > 0:
-                self.FoundJavaRuntimeInCustomPath = True
-            else:
-                print("Could not find available Java runtimes in the launcher 'runtimes' folder :0", color='yellow')
-
-        # Test executable
-        print("Testing whether Java runtimes system-installed can execute normally...", color="orange")
-        for RuntimeDir in self.FoundJavaRuntimeList:
-            print(f"Testing runtime path {RuntimeDir} executable...", color='green')
-            Status = self.test_java_executable(RuntimeDir, mode="normal")
-            if Status:
-                self.ExecutableJavaList_SysInstalled.append(RuntimeDir)
-            else:
-                print(f"Runtime directory {RuntimeDir} cannot be executed. Is it corrected?", color='yellow')
-
-        if self.ExecutableJavaList_SysInstalled:
-            self.FoundDuke = True
         else:
-            print("Unable to find the JVM executable installed on the system :(", color='red')
-            time.sleep(2)
-
-        if self.FoundDuke:
-            print("Saving data...", color='green')
-            for RuntimeDir in self.ExecutableJavaList_SysInstalled:
-                print(f"Getting runtimes major version...")
-                major_version = self.test_java_executable(RuntimeDir, mode="GetMajorVersion")
-                print("Saving Java HOME Path...", color='lightgreen')
-                self.write_runtimes_data(RuntimeDir, major_version, "System-Installed")
-            self.FoundDuke = False
-
-        # Test "installed by the launcher" Java runtimes executable
-        print("Testing whether Java runtimes installed by the launcher can execute normally...", color='lightyellow')
-        for RuntimeDir in self.FoundJavaRuntimeList_LauncherInternal:
-            print(f"Testing runtime path {RuntimeDir} executable...", color='green')
-            Status = self.test_java_executable(RuntimeDir, mode="normal")
-            if Status:
-                self.ExecutableJavaList_LauncherInstalled.append(RuntimeDir)
-            else:
-                print(f"Runtime directory {RuntimeDir} cannot be executed. Is it corrected?", color='yellow')
-
-        # Check length of the list
-        if self.ExecutableJavaList_LauncherInstalled:
-            self.FoundDuke = True
-        else:
-            print("Unable to find executable JVM which installed by launcher:(", color='red')
-            time.sleep(2)
-
-        if self.FoundDuke:
-            print("Saving data...", color='green')
-            for RuntimeDir in self.ExecutableJavaList_LauncherInstalled:
-                print(f"Getting runtimes major version...", color='green')
-                major_version = self.test_java_executable(RuntimeDir, mode="GetMajorVersion")
-                print("Saving Java HOME Path...", color='lightgreen')
-                self.write_runtimes_data(RuntimeDir, major_version, "Launcher-Installed")
-            self.FoundDuke = False
-
-        if Base.SearchJVMInCustomPath:
-            print("Testing custom Java runtimes can execute normally...",color='lightyellow')
-            for RuntimeDir in self.FoundJavaRuntimeList_CustomPath:
+            # Test "installed by the launcher" Java runtimes executable
+            print("Testing whether Java runtimes installed by the launcher can execute normally...",
+                  color='lightyellow')
+            for RuntimeDir in self.FoundJavaRuntimeList_LauncherInternal:
                 print(f"Testing runtime path {RuntimeDir} executable...", color='green')
                 Status = self.test_java_executable(RuntimeDir, mode="normal")
                 if Status:
-                    self.ExecutableJavaList_CustomPath.append(RuntimeDir)
+                    self.ExecutableJavaList_LauncherInstalled.append(RuntimeDir)
                 else:
                     print(f"Runtime directory {RuntimeDir} cannot be executed. Is it corrected?", color='yellow')
 
             # Check length of the list
-            if self.ExecutableJavaList_CustomPath:
+            if self.ExecutableJavaList_LauncherInstalled:
                 self.FoundDuke = True
             else:
-                print("Unable to find executable JVM in the custom JVM installed path :(", color='red')
+                print("Unable to find executable JVM which installed by launcher:(", color='red')
                 time.sleep(2)
 
             if self.FoundDuke:
                 print("Saving data...", color='green')
-                for RuntimeDir in self.ExecutableJavaList_CustomPath:
+                for RuntimeDir in self.ExecutableJavaList_LauncherInstalled:
                     print(f"Getting runtimes major version...", color='green')
                     major_version = self.test_java_executable(RuntimeDir, mode="GetMajorVersion")
                     print("Saving Java HOME Path...", color='lightgreen')
-                    self.write_runtimes_data(RuntimeDir, major_version, "Launcher-Installed")
+                    self.write_runtimes_data(RuntimeDir, major_version, Base.FullArch, "Launcher-Installed")
+
+        if Base.SearchJVMInCustomPath:
+            print("Now search Java runtimes in custom path...", color='purple')
+            self.FoundJavaRuntimeList_CustomPath = self.file_search(Base.CustomJVMInstallPath,
+                                                                    self.JavaExecutableName)
+
+            # Check if any Java runtime was found in launcher internal
+            if not len(self.FoundJavaRuntimeList_CustomPath) > 0:
+                print("Could not find available Java runtimes in the launcher 'runtimes' folder :0", color='yellow')
+            else:
+                self.FoundDuke = False
+                if Base.SearchJVMInCustomPath:
+                    print("Testing custom Java runtimes can execute normally...", color='lightyellow')
+                    for RuntimeDir in self.FoundJavaRuntimeList_CustomPath:
+                        print(f"Testing runtime path {RuntimeDir} executable...", color='green')
+                        Status = self.test_java_executable(RuntimeDir, mode="normal")
+                        if Status:
+                            self.ExecutableJavaList_CustomPath.append(RuntimeDir)
+                        else:
+                            print(f"Runtime directory {RuntimeDir} cannot be executed. Is it corrected?",
+                                  color='yellow')
+
+                    # Check length of the list
+                    if self.ExecutableJavaList_CustomPath:
+                        self.FoundDuke = True
+                    else:
+                        print("Unable to find executable JVM in the custom JVM installed path :(", color='red')
+                        time.sleep(2)
+
+                    if self.FoundDuke:
+                        print("Saving data...", color='green')
+                        for RuntimeDir in self.ExecutableJavaList_CustomPath:
+                            print(f"Getting runtimes major version...", color='green')
+                            major_version = self.test_java_executable(RuntimeDir, mode="GetMajorVersion")
+                            print("Saving Java HOME Path...", color='lightgreen')
+                            self.write_runtimes_data(RuntimeDir, major_version, Base.FullArch, "Custom-Installed")
+
         print("Search Java Runtimes process finished.", color='blue')
         time.sleep(3)
 
-    def write_runtimes_data(self, java_bin_dir, runtime_version, mode):
+    def write_runtimes_data(self, java_bin_dir, runtime_version, runtimes_arch, mode):
         """
         Writes runtime data to config file.
         java_bin_dir : The path of the JVM binary directory.
@@ -217,6 +213,10 @@ class DukeCute:
 
         launcher_runtimes_path_data = {
             "JVMPathType": "Launcher-Installed"
+        }
+
+        custom_runtimes_path_data = {
+            "JVMPathType": "Custom-Installed"
         }
 
         # Ensure the config file exists or initialize it
@@ -237,6 +237,7 @@ class DukeCute:
         # Prepare variables for existing data
         exist_system_runtimes_path_data = None
         exist_launcher_runtimes_path_data = None
+        exist_custom_runtimes_path_data = None
 
         # Get exist data (If it can't find same value write new data)
         for entry in jvm_setting_data:
@@ -244,6 +245,8 @@ class DukeCute:
                 exist_system_runtimes_path_data = entry
             elif entry.get("JVMPathType") == "Launcher-Installed":
                 exist_launcher_runtimes_path_data = entry
+            elif entry.get("JVMPathType") == "Custom-Installed":
+                exist_custom_runtimes_path_data = entry
 
         # New data
         new_path = {runtime_version: java_bin_dir}
@@ -255,13 +258,20 @@ class DukeCute:
             else:
                 system_runtimes_path_data.update(new_path)
                 jvm_setting_data.append(system_runtimes_path_data)
-        else:
+        elif mode == "Launcher-Installed":
             if exist_launcher_runtimes_path_data:
                 # Overwrite or add new runtime version
                 exist_launcher_runtimes_path_data.update(new_path)
             else:
                 launcher_runtimes_path_data.update(new_path)
                 jvm_setting_data.append(launcher_runtimes_path_data)
+        else:
+            if exist_custom_runtimes_path_data:
+                # Overwrite or add new runtime version
+                exist_custom_runtimes_path_data.update(new_path)
+            else:
+                custom_runtimes_path_data.update(new_path)
+                jvm_setting_data.append(custom_runtimes_path_data)
 
         # Write updated configuration back to the file
         try:
@@ -351,7 +361,6 @@ class DukeCute:
                 print(f"Error Message : {e}")
             time.sleep(2)
             return None
-
 
     def get_java_version_info(self, version_data):
         global major_version

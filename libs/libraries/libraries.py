@@ -349,22 +349,10 @@ def download_libraries(version_data, libraries_dir, **kwargs):
     else:
         multi_thread_download(multi_download_queue, name)
 
-    return normal_download_url_list
-
-
-def mac_os_libraries_bug_fix(instance_name):
-    # Patch for some weird version bug
-    if Base.Platform == "Darwin":
-        directory = os.path.join(Base.launcher_instances_dir, f"{instance_name}", ".minecraft",
-                                 "libraries", "ca", "weblite",
-                                 "1.0.0")
-        if not os.path.exists(directory):
-            os.makedirs(directory)  # Create intermediate directories if needed
-            url = "https://libraries.minecraft.net/ca/weblite/java-objc-bridge/1.0.0/java-objc-bridge-1.0.0.jar"
-            try:
-                download_file(url, f"{directory}java-objc-bridge-1.0.0.jar")
-            except Exception as e:
-                print(f"An error occurred: {e}")
+    if len(multi_download_queue) > 0:
+        return True
+    else:
+        return False
 
 
 def download_natives(version_data, libraries_dir, platform_name=Base.Platform, full_arch=Base.FullArch, **kwargs):
@@ -434,11 +422,6 @@ def download_natives(version_data, libraries_dir, platform_name=Base.Platform, f
         native_keys_list = map_keys_amd64.get(platform_name, [])
     elif full_arch == "arm64":
         native_keys_list = map_keys_arm64.get(platform_name, [])
-        if platform_name == "darwin":
-            Status = macos_natives_rosetta_support()
-            if Status:
-                natives_key_list.append('natives-macos')
-                natives_key_list.append("natives-osx")
     elif full_arch == "i386":
         native_keys_list = map_keys_i386.get(platform_name, [])
     else:
@@ -530,6 +513,11 @@ def download_natives(version_data, libraries_dir, platform_name=Base.Platform, f
         return lib_paths
 
     multi_thread_download(download_queue, "natives")
+
+    if len(download_queue) > 0:
+        return True
+    else:
+        return False
 
 """
 def download_natives(version_data, libraries_dir, **kwargs):
