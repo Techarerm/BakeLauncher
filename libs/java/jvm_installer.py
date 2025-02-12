@@ -1,9 +1,5 @@
-import os
 import shutil
 
-import requests
-from tqdm import tqdm
-from LauncherBase import Base, print_custom as print
 from libs.Utils.utils import *
 from libs.java.java_info import *
 
@@ -159,6 +155,9 @@ class class_jvm_installer:
 
         if JavaPlatformName not in manifest_data:
             return False, None, "UnsupportedPlatform"
+
+        if component is None:
+            component = "jre-legacy"
 
         java_versions = manifest_data[JavaPlatformName].get(component, [])
         for version in java_versions:

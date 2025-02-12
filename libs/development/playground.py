@@ -8,12 +8,88 @@ from libs.instance.instance import instance
 from libs.version.version import *
 from libs.libraries.libraries import *
 from libs.__assets_grabber import assets_grabber
+from libs.Utils.utils import *
 
 all_funs = ["function", "create_a_custom_instance", "test_hook_mod"]
 
+
+def download_libraries_test(version_data, libraries_dir, **kwargs):
+    """
+    Download require libraries (from version data)
+    """
+    library_are_native = False
+    # Some parameter stuff
+    normal_download = kwargs.get("normal_download", False)
+    bypass_download_natives = kwargs.get("bypass_download_natives", False)
+    name = "libraries"
+    # Confirm libraries_dir are created
+    os.makedirs(libraries_dir, exist_ok=True)
+
+    # Waiting-Download-List
+    multi_download_queue = []
+    download_url_list = []
+    download_path_list = []
+    checksum_list = []
+
+    # Get libraries data from version_data
+    libraries = version_data.get('libraries', [])
+
+    # Search support user platform libraries
+    for lib in libraries:
+        lib_downloads = lib.get('downloads', {})
+        artifact = lib_downloads.get('artifact')
+
+        rules = lib.get('rules', None)
+        if rules:
+            # Bypass download native
+            continue
+
+        if artifact:
+            lib_path = artifact.get('path', None)
+            if lib_path is None:
+                continue
+
+            lib_url = artifact.get('url', None)
+            if lib_url is None:
+                continue
+
+            sha = artifact.get('sha1', None)
+            checksum_list.append(sha)
+
+            lib_dest = os.path.join(libraries_dir, lib_path)
+            os.makedirs(os.path.dirname(lib_dest), exist_ok=True)
+
+            if library_are_native and bypass_download_natives:
+                continue
+
+            download_url_list.append(lib_url)
+            download_path_list.append(lib_dest)
+
+    if normal_download:
+        for url, dest_path in zip(download_url_list, download_path_list):
+            download_file(url, dest_path)
+    else:
+        multithread_download(download_url_list, download_path_list, "libraries",
+                             with_verify_checksum=True, file_hash_list=checksum_list,
+                             download_with_progress_bar=True)
+
+    if len(multi_download_queue) > 0:
+        return True
+    else:
+        return False
+
+
 def function():
+    version_data = get_version_data("1.21.4")
+    libraries_dir = os.path.join(Base.launcher_tmp_dir, "libraries")
+
+    if os.path.exists(libraries_dir):
+        shutil.rmtree(libraries_dir)
+
+    download_libraries_test(version_data, libraries_dir)
 
     exit_code = input("Press any key to exit playground...")
+
 
 def create_a_custom_instance():
     global libraries_folder_path

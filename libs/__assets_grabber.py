@@ -1,20 +1,16 @@
 import os
 import json
-import time
 import requests
 from tqdm import tqdm
 from LauncherBase import Base, print_custom as print, ClearOutput
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from libs.Utils.utils import verify_checksum
+from libs.Utils.crypto import verify_checksum
 from libs.version.version import get_version_data
 
 
 class AssetsGrabber:
     def __init__(self):
-        self.without_downloaded_output = None
         self.manifest_url = "https://launchermeta.mojang.com/mc/game/version_manifest_v2.json"
-        self.minecraft_version = "1.20"
-        self.version_data = []
 
     @staticmethod
     def grab_asset_index_file(version_data, save_dir):

@@ -1,4 +1,3 @@
-import hashlib
 import sys
 import zipfile
 import requests
@@ -6,6 +5,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 from LauncherBase import Base, print_custom as print
+from libs.Utils.crypto import verify_checksum, verify_checksum_v2
 
 VersionManifestURl = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
 LegacyVersionManifestURl = ("https://github.com/Techarerm/BakeLauncher-Library/raw/refs/heads/main/Legacy"
@@ -68,7 +68,6 @@ def multi_thread_download(nested_urls_and_paths, name, max_workers=5, retries=1)
     """
     # Flatten the nested list into a single list of (url, dest_path) tuples
     urls_and_paths = [item for sublist in nested_urls_and_paths for item in sublist]
-
     # Calculate the total number of files to download (half the length of the list)
     total_files = len(urls_and_paths)
 
@@ -143,86 +142,106 @@ def multi_thread_download(nested_urls_and_paths, name, max_workers=5, retries=1)
     return downloaded_files, failed_files
 
 
-def multi_thread_download_with_verify(nested_urls_and_paths, name, checksums, max_workers=8, retries=1):
-    """
-    Downloads multiple files using multiple threads with retry attempts and verifies checksum.
-
-    nested_urls_and_paths: A nested list of tuples [(url, dest_path)].
-    checksums: A dictionary {dest_path: expected_checksum}.
-    """
-    urls_and_paths = [item for sublist in nested_urls_and_paths for item in sublist]
-    total_files = len(urls_and_paths)
-
-    downloaded_files = []
+def multithread_download(download_url_list, file_dest_list, progress_name, max_workers=8, **kwargs):
+    support_crypto_type = ["sha1", "md5", "sha256"]
+    total_files = len(download_url_list)
+    download_task = {}
     failed_files = []
-    sys.stderr.flush()
 
-    def download_with_retry(url, dest_path, retry_count):
-        """Attempts to download a file with retries and checksum verification."""
-        for attempt in range(retry_count + 1):
-            success = download_file(url, dest_path)  # Assumes this function exists
-            if success:
-                # Verify checksum if provided
-                if checksums and dest_path in checksums:
-                    expected_checksum = checksums[dest_path]
-                    Status = verify_checksum(dest_path, expected_checksum)
+    # parameters
 
-                    if not Status:
-                        print(f"Checksum mismatch for {dest_path}.", color='red')
-                        continue  # Retry download
+    with_verify_checksum = kwargs.get("with_verify_checksum", False)
+    file_hash_list = kwargs.get("file_hash_list", [])
+    download_with_progress_bar = kwargs.get("download_with_progress_bar", False)
+    no_output = kwargs.get("no_output", download_with_progress_bar)
+    crypto_type = kwargs.get("crypto_type", "sha1")
 
-                return True  # Download and checksum verification succeeded
+    if crypto_type not in support_crypto_type:
+        return False, f"Unsupported crypto type {crypto_type}."
 
-            print(f"Retry {attempt + 1} for {url}")
+    if with_verify_checksum:
+        if not len(file_hash_list) > 0:
+            return False, "file_hash_list not found."
+    else:
+        for i in range(0, len(download_url_list)):
+            file_hash_list.append(None)
 
-        failed_files.append((url, dest_path))
-        return False
+    def download_file_with_failure_return(url, file_dest_path):
+        down_status = download_file(url, file_dest_path, no_output=no_output)
+        return down_status
 
-    def futures_download(future_to_url, total_files):
-        with tqdm(total=total_files, desc=f"Downloading {name}", unit="file", colour='cyan') as pbar_download:
-            for future in future_to_url:
-                url, dest_path = future_to_url[future]
-                try:
-                    success = future.result()
-                    if success:
-                        downloaded_files.append(dest_path)
-                except Exception as exc:
-                    print(f"Error downloading {url}: {exc}")
+    def download_file_with_failure_return_and_verify(url, file_dest, hash):
+        down_status = download_file(url, file_dest, no_output=no_output)
+        if not down_status:
+            return False
+
+        status = verify_checksum_v2(file_dest, hash, crypto_type)
+        if not status:
+            if not no_output:
+                print(f"Warning: File {file_dest} checksum mismatch. Deleting...")
+            try:
+                os.remove(file_dest)
+            except Exception as e:
+                print(f"Error deleting file: {e}")
+            return False
+
+        return True
+
+    # Start first download attempt
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+
+        pbar_download = tqdm(total=total_files, desc=f"Downloading {progress_name}",
+                             unit="file") if download_with_progress_bar else None
+
+        for file_url, file_dest, file_hash in zip(download_url_list, file_dest_list, file_hash_list):
+            if with_verify_checksum:
+                future = executor.submit(download_file_with_failure_return_and_verify, file_url, file_dest, file_hash)
+            else:
+                future = executor.submit(download_file_with_failure_return, file_url, file_dest)
+            download_task[future] = (file_url, file_dest, file_hash)
+
+        for future in as_completed(download_task):
+            url, dest_path, _ = download_task[future]
+            download_status = future.result()
+            if not download_status:
+                failed_files.append((url, dest_path))
+
+            if pbar_download:
                 pbar_download.update(1)
 
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_url = {
-            executor.submit(download_with_retry, url, dest_path, retries): (url, dest_path)
-            for url, dest_path in urls_and_paths
-        }
-        futures_download(future_to_url, total_files)
+        if pbar_download:
+            pbar_download.close()
 
+    # Retry failed downloads
     if failed_files:
-        print("\nRetrying failed downloads...")
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_url = {
-                executor.submit(download_with_retry, url, dest_path, retries): (url, dest_path)
-                for url, dest_path in failed_files
-            }
-            failed_files.clear()
+        retry_failed_files = []
+        with ThreadPoolExecutor(max_workers=max_workers) as retry_executor:
+            pbar_retry = tqdm(total=len(failed_files), desc=f"Re-Downloading {progress_name}",
+                              unit="file") if download_with_progress_bar else None
+            retry_download_task = {}
 
-            futures_download(future_to_url, total_files)
+            for url, dst_path in failed_files:
+                future = retry_executor.submit(download_file_with_failure_return, url, dst_path
+                                               , no_output=download_with_progress_bar)
+                retry_download_task[future] = (url, dst_path)
 
-    if failed_files:
-        print("Files that failed after retries:", failed_files)
-    return downloaded_files, failed_files
+            for future in as_completed(retry_download_task):
+                url, dest_path = retry_download_task[future]
+                download_status = future.result()
+                if not download_status:
+                    retry_failed_files.append(url)
 
+                if pbar_retry:
+                    pbar_retry.update(1)
 
-def verify_checksum(file_path, expected_sha1):
-    sha1 = hashlib.sha1()
-    with open(file_path, "rb") as f:
-        while True:
-            data = f.read(65536)  # Read in 64KB chunks
-            if not data:
-                break
-            sha1.update(data)
-    file_sha1 = sha1.hexdigest()
-    return file_sha1 == expected_sha1
+            if pbar_retry:
+                pbar_retry.close()
+
+        if retry_failed_files:
+            for url in retry_failed_files:
+                print(f"Failed to download file. URL: {url}")
+
+    return True
 
 
 def find_jar_file_main_class(jar_file_path):

@@ -904,7 +904,7 @@ class Create_Instance:
             except Exception as e:
                 if Exception is ValueError:
                     # Back to main avoid crash(when user type illegal thing)
-                    print("BakeLaunch: Oops! Invalid option :O  Please enter a number.", color='red')
+                    print("Oops! Invalid option :O  Please enter a number.", color='red')
                     self.create_instance()
                     time.sleep(1.5)
                 else:

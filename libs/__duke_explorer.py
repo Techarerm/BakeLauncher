@@ -3,7 +3,9 @@ import subprocess
 import re
 import json
 import time
-from LauncherBase import Base, print_custom as print
+import traceback
+
+from LauncherBase import Base, print_custom as print, internal_functions_error_log_dump
 from libs.version.version import get_version_data, get_version_data_from_exist_data
 
 
@@ -382,8 +384,53 @@ class DukeCute:
 
         with open(Base.jvm_setting_path, "w") as file:
             json.dump([], file, indent=4)
-        print("JVM config file has been reset.", color='blue')
+
+        print("JVM config file has been cleaned.", color='blue')
         time.sleep(2)
+        return True
+
+    def clean_jvm_config(self):
+        print("Cleaning JVM config...", color='green')
+        Status = self.initialize_jvm_config()
+
+        if not Status:
+            print("Cleaning JVM config failed :(", color='red')
+            time.sleep(2)
+
+        return
+
+    def ManagerMenu(self):
+        try:
+            print("###DukeExplorer###", color='lightblue')
+            print("1: Search Java Runtimes")
+            print("2: Clear JVM Config")
+
+            user_input = str(input(":"))
+            user_input = user_input.strip()
+
+            if user_input == "1":
+                self.duke_finder()
+            elif user_input == "2":
+                self.clean_jvm_config()
+            else:
+                print(f"Unknown option {user_input} :(", color='red')
+                time.sleep(2)
+                self.ManagerMenu()
+
+            return
+
+        except Exception as e:
+            if Exception is ValueError:
+                # Back to main avoid crash(when user type illegal thing)
+                print("Oops! Invalid option :O  Please enter a number.", color='red')
+                self.ManagerMenu()
+                time.sleep(1.5)
+            else:
+                print(f"DukeExplorer got a error when calling a internal functions. Error: {e}", color='red')
+                function_name = traceback.extract_tb(e.__traceback__)[-1].name
+                detailed_traceback = traceback.format_exc()
+                internal_functions_error_log_dump(e, "DukeExplorer", function_name, detailed_traceback)
+                time.sleep(5)
 
 
 Duke = DukeCute()

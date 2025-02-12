@@ -59,7 +59,8 @@ class BakeLauncher:
             else:
                 print("Init Error :(", color='red')
                 print("If BakeLauncher crashes while loading Base. You can try deleting the invalid profile, this may "
-                      "help resolve the issue")
+                      "help resolve the issue.")
+                print(f"ERR CODE: {self.Message}")
 
             print("BakeLauncher thread terminated!")
             if Base.LauncherFullResetFlag:
@@ -75,6 +76,10 @@ class BakeLauncher:
         print(f"BakeLauncher: Launcher is running on platform : {Base.Platform}", color='lightblue')
         if Base.Debug:
             print(f"Thread Info > PID : {os.getpid()} | Thread : {threading.get_ident()}", color='lightblue')
+
+        if Base.Debug and Base.launcher_version_type.lower() == "dev":
+            print("You are running on development mode !", tag="INFO")
+
         ClearOutput()
 
         # Print BetaWarningMessage
@@ -86,14 +91,7 @@ class BakeLauncher:
             load_custom_modules()
 
         # Load main menu
-        main_menu_thread = threading.Thread(target=main_menu)
-        main_menu_thread.start()
-
-        while True:
-            Status = main_menu_thread.is_alive()
-            if not Status:
-                return
-            time.sleep(0.1)
+        main_menu.menuMain()
 
 
     @staticmethod

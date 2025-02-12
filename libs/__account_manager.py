@@ -405,8 +405,6 @@ class AuthManager:
         if not Status:
             # Overwrite broken config file if DefaultAccountID not found
             print("DefaultAccountID are not found. Is your config corrupted?", color='lightyellow')
-            print("Resetting config...", color='lightgreen')
-            initialize_config(overwrite=True)
             print("Using exist launcher account...", tag='INFO')
             self.set_default_account_id(1)
             time.sleep(2)
@@ -818,6 +816,19 @@ class AuthManager:
         time.sleep(3)
         return True, None
 
+    def clean_account_config(self):
+        print("Cleaning AccountData...", color='green')
+        Status = self.initialize_account_data()
+
+        if not Status:
+            print("Cleaning AccountData failed :(", color='red')
+        else:
+            print("AccountData cleaned successfully!", color='green')
+
+        time.sleep(2)
+
+        return
+
     def AccountManager(self):
         try:
             print("[AccountManager]", color='lightblue')
@@ -828,7 +839,8 @@ class AuthManager:
                 print("1: Login New Account", color='darkgray')
             print("2: Select Use Account", color='purple')
             print("3: Delete Account", color='red')
-            print("4: Exit", color='green')
+            print("4: Clear AccountData", color='lightred')
+            print("5: Exit", color='green')
             user_input = str(input(':'))
             if user_input == "1":
                 # Login new account
@@ -848,7 +860,12 @@ class AuthManager:
                 ClearOutput()
                 self.DeleteAccount()
             elif user_input == "4":
+                self.initialize_account_data()
+            elif user_input == "5":
                 return
+            else:
+                print(f"Unknown options {user_input} :/", color='red')
+                time.sleep(2)
         except Exception as e:
             if Exception is ValueError:
                 print("Unknown input :O", color='red')

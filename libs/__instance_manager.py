@@ -610,13 +610,15 @@ class InstanceManager:
         input("")
         return
 
-    def ManagerMemu(self):
+    def ManagerMenu(self):
         try:
             print("[Instance Manager]", color='orange')
-            print("1: Print Instance Info")
-            print("2: Uninstall Instance")
-            print("3: Rename Instance")
-            print("4: Launcher Instance Status")
+            print("1: Print instance info")
+            print("2: Uninstall instance")
+            print("3: Rename instance")
+            print("4: Launcher instance Status")
+            print("5: Convert instance to new format")
+            print("6: [Automatic] Convert instance to new format")
 
             user_input = str(input(":"))
             user_input = user_input.strip()
@@ -629,20 +631,24 @@ class InstanceManager:
                 self.rename_instance()
             elif user_input == "4":
                 self.launcher_instance_status()
+            elif user_input == "5":
+                self.legacy_instances_convert()
+            elif user_input == "6":
+                self.legacy_instances_convert(automatic_convert=True)
             elif user_input == "exit":
                 return
             else:
                 print(f"Unknown option {user_input} :(", color='red')
                 time.sleep(2)
-                self.ManagerMemu()
+                self.ManagerMenu()
 
             return
 
         except Exception as e:
             if Exception is ValueError:
                 # Back to main avoid crash(when user type illegal thing)
-                print("BakeLaunch: Oops! Invalid option :O  Please enter a number.", color='red')
-                self.ManagerMemu()
+                print("Oops! Invalid option :O  Please enter a number.", color='red')
+                self.ManagerMenu()
                 time.sleep(1.5)
             else:
                 print(f"Instance Manager got a error when calling a internal functions. Error: {e}", color='red')

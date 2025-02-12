@@ -216,6 +216,8 @@ def convert_library_name_to_artifact_path(library_path, **kwargs):
 
     except Exception as e:
         return False, None
+
+
 """
 
 def download_libraries(version_data, libraries_dir, **kwargs):
@@ -288,6 +290,7 @@ def download_libraries(version_data, libraries_dir, **kwargs):
         else:
             multi_thread_download(multi_download_queue, name)
 """
+
 
 def download_libraries(version_data, libraries_dir, **kwargs):
     """
@@ -465,6 +468,9 @@ def download_natives(version_data, libraries_dir, platform_name=Base.Platform, f
                         allowed_download = True
                         break
 
+                    if not plat_name in allow_platform and allow:
+                        allowed_download = True
+
                     if lib_path is not None:
                         if lib_path.endswith(f"{native_key}.jar"):
                             allowed_download = True
@@ -518,6 +524,7 @@ def download_natives(version_data, libraries_dir, platform_name=Base.Platform, f
         return True
     else:
         return False
+
 
 """
 def download_natives(version_data, libraries_dir, **kwargs):

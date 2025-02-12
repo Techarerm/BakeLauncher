@@ -1,4 +1,3 @@
-import ast
 import datetime
 import importlib.util
 import importlib
@@ -17,7 +16,7 @@ from modules.print_colorx.print_color import print as print_color
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
 # dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
 # Example = "LB041224" Years: 2024 Month: 12 Date: 04
-dev_version = "BF100225"  # If version type is release set it blank
+dev_version = "BD130225"  # If version type is release set it blank
 version_type = "Dev"
 major_version = "0.9.1"
 
@@ -156,16 +155,14 @@ def print_custom(*args, **kwargs):
     if not Base.DontPrintColor:
         color = kwargs.pop('color', None)  # Remove color from kwargs if it exists
         if not Base.PrintThreadInfo:
-            print_color( *args, color=color, **kwargs)  # Pass remaining args and color
+            print_color(*args, color=color, **kwargs)  # Pass remaining args and color
         else:
-            print_color(f"[{thread_id}] ",*args, color=color, **kwargs)
+            print_color(f"[{thread_id}] ", *args, color=color, **kwargs)
     else:
         if not Base.PrintThreadInfo:
             print(*args)
         else:
-            print(f"[{thread_id}] ",*args)
-
-
+            print(f"[{thread_id}] ", *args)
 
 
 def initialize_config(**kwargs):
@@ -289,19 +286,18 @@ class LauncherBase:
                 self.launcher_version_type = "Release"
                 self.launcher_internal_version = f'beta-{major_version}-release'
                 self.launcher_version_display = self.launcher_version
-        # Other stuff(for create instance, platform check...)
+        # Other stuff (for create instance, platform check...)
         self.launcher_data_format = "Beta-0.9"
-        self.launcher_lib_version = f"0.9.1-lib-dev"  # Pre-0.9.1
+        self.launcher_lib_version = f"0.9.1-lib-dev2"  # Pre-0.9.1
         self.PlatformSupportList = ["Windows", "Darwin", "Linux"]
-        self.Platform = self.get_platform("platform")
-        self.Arch = self.get_platform("Arch")
-        self.FullArch = self.get_platform("FullArch")
+        self.Platform = platform.system()
+        self.Arch = platform.architecture()[0]
+        self.FullArch = platform.uname().machine
         # ============================I'm a line==============================
         # Flag and list(Set by launcher)
-        self.EndLoadFlag = False  # If load process failed(platform check failed), Set to True
-        self.MainMenuResetFlag = False  # Set to true by check_account_data_are_valid
+        self.EndLoadFlag = False  # If the loading process failed (such as platform check failure), set to true.
+        self.MainMenuResetFlag = False  # Set to true by check_account_data_are_valid or other functions
         self.InternetConnected = False
-        self.ErrorMessageList = []
         self.StartUsingErrorLog = False
         self.RefreshTokenFailedFlag = False
         self.LauncherFullResetFlag = False
@@ -314,16 +310,16 @@ class LauncherBase:
         self.DontPrintColor = False  # Stop print colorful text
         self.DisableClearOutput = False  # Debug
         self.DefaultAccountID = None
-        self.LauncherWorkDir = None  # Setting from config file
+        self.LauncherWorkDir = None  # Setting from the global config file
         self.NoPrintConfigInfo = False
         self.NoInternetConnectionCheck = False
         self.PingServerIP = None
         self.BypassLoginStatusCheck = False
         # main_menu stuff
         self.NoList = False  # Make main_menu not print the list
-        self.AutomaticOpenOptions = False  # Start selected option when load main_menu
-        self.AutoOpenOptions = None  # Select option
-        self.LauncherTitleColor = None
+        self.AutomaticOpenOption = False  # Start the selected option when load main_menu (from global config)
+        self.AutoOpenOptionName = None  # Select option
+        self.LauncherTitleColor = 'lightblue'
         # LaunchManager stuff
         self.AutomaticLaunch = False
         self.QuickLaunch = None
@@ -342,7 +338,7 @@ class LauncherBase:
         # (Type = Custom-Installed)
         # Create Instance stuff
         self.OverwriteJVMIfExist = False  # Overwrite JVM runtimes without asking user
-        # (If minecraft_version require jvm_version available in the runtimes folder)
+        # (If minecraft_version require jvm_version available in the 'runtimes' folder)
         self.DoNotAskJVMExist = False  # If the version requires an installed version of runtimes,
         # skip asking the user to reinstall it
         self.UsingLegacyDownloadOutput = False  # Legacy download output is good.
@@ -478,11 +474,13 @@ class LauncherBase:
                 cfg_data = file.read()  # Read the content of the file
                 cfg_length = len(cfg_data)
             if cfg_length < 10:
-                print_color("Warning: Your config file are corrupted :( Do you want to reconfigure it?")
+                print_color("Warning: Your config file are corrupted :0 Do you want to reconfigure it?")
                 user_input = str(input('Y/N :'))
                 if user_input.upper() == "Y":
                     initialize_config(overwrite=True)
                     self.load_setting()
+                else:
+                    return False, "Global Config Corrupted"
 
         if not Status:
             return False, Message
@@ -491,14 +489,60 @@ class LauncherBase:
 
         return True, ""
 
-    def load_setting(self, **kwargs):
-        # Don't ask why LauncherBase has two load_setting. ONE is version lightweight!
-        ConfigPath = kwargs.get('CfgPath', None)
-        if not ConfigPath is None:
-            self.global_config_path = ConfigPath
+    def load_setting(self):
+        cleaned_lines = []
+        illegal_setting_list = []
+        boolean_setting_dict = {
+            "Debug": self.Debug,
+            "DisableClearOutput": self.DisableClearOutput,
+            "DontPrintColor": self.DontPrintColor,
+            "NoList": self.NoList,
+            "AutomaticOpenOption": self.AutomaticOpenOption,
+            "QuickLaunch": self.QuickLaunch,
+            "PrioUseOfSpecifiedJVM ": self.PrioUseOfSpecifiedJVM,
+            "SearchJVMInCustomPath": self.SearchJVMInCustomPath,
+            "DoNotAskJVMExist": self.DoNotAskJVMExist,
+            "UsingLegacyDownloadOutput": self.UsingLegacyDownloadOutput,
+            "NoInternetConnectionCheck": self.NoInternetConnectionCheck,
+            "BypassLoginStatusCheck": self.BypassLoginStatusCheck,
+            "EnableExperimentalMultitasking": self.EnableExperimentalMultitasking,
+            "LaunchMultiClientWithOutput": self.LaunchMultiClientWithOutput,
+            "AutomaticLaunch": self.AutomaticLaunch
+        }
 
+        str_setting_dict = {
+            "INT%DefaultAccountID": self.DefaultAccountID,
+            "AutoOpenOptionName": self.AutoOpenOptionName,
+            "LauncherTitleColor": self.LauncherTitleColor,
+            "CustomJVMInstallPath": self.CustomJVMInstallPath,
+            "LauncherWorkDir": self.LauncherWorkDir,
+            "PingServerIP": self.PingServerIP,
+            "INT%MaxInstancesPerRow": self.MaxInstancesPerRow,
+            "INT%MaxFullVersionPerLine": self.MaxFullVersionPerLine,
+            "INT%MaxReleaseVersionPerLine": self.MaxReleaseVersionPerLine,
+            "QuickInstancesName": self.QuickInstancesName,
+            "INT%DefaultGameScreenWidth": self.DefaultGameScreenWidth,
+            "INT%DefaultGameScreenHeight": self.DefaultGameScreenHeight,
+            "INT%JVMUsageRamSizeMinLimit": self.JVMUsageRamSizeMinLimit,
+            "INT%JVMUsageRamSizeMax": self.JVMUsageRamSizeMax,
+            "CustomModulesPathList": self.CustomModulesPathList
+        }
+
+        # Check if the global config exists.
+        if not os.path.exists(self.global_config_path):
+            initialize_config()
+
+        try:
+            with open(self.global_config_path, "r", encoding="utf-8") as file:
+                data = file.read()
+        except Exception as e:
+            print_color(f"ERR : {e}", tag='WARNING')
+            print_color("Failed to load global config file. File are corrupted :(", tag='INFO')
+            print_color("Recreating the config file...", tag='INFO')
+            initialize_config(overwrite=True)
+
+        # Read global config
         with open(self.global_config_path, 'r') as file:
-            cleaned_lines = []
             for line in file:
                 line = line.strip()
                 if not line or line.startswith('#'):
@@ -509,143 +553,49 @@ class LauncherBase:
                 if line:
                     cleaned_lines.append(line)
 
-            for line in cleaned_lines:
-                if "Debug" in line:
-                    self.Debug = line.split('=')[1].strip().upper() == "TRUE"
+        for line in cleaned_lines:
+            # Get the boolean setting from the line
+            for key in boolean_setting_dict:
+                if line.startswith(key):
+                    new_value = line.split('=')[1].strip().upper()
+                    if new_value.upper() == 'TRUE':
+                        value = True
+                    elif new_value.upper() == 'FALSE':
+                        value = False
+                    else:
+                        value = None
 
-                if "DefaultAccountID" in line:
-                    self.DefaultAccountID = line.split('=')[1].strip().strip('"').strip("'")
-                    try:
-                        # Convert it to integer(if convert failed set it to 1)
-                        self.DefaultAccountID = int(self.DefaultAccountID)
-                    except ValueError:
-                        self.ErrorMessageList.append("DefaultAccountIDNotAnInteger")
-                        self.DefaultAccountID = 1
+                    if value is None:
+                        illegal_setting_list.append(f"BOOL%{key}={new_value}")
+                    else:
+                        boolean_setting_dict[key] = value
 
-                if "DisableClearOutput" in line:
-                    self.DisableClearOutput = line.split('=')[1].strip().upper() == "TRUE"
+            # After read config, update all variable
+            for key, new_value in boolean_setting_dict.items():
+                setattr(self, key, new_value)
 
-                if "DontPrintColor" in line:
-                    self.DontPrintColor = line.split('=')[1].strip().upper() == "TRUE"
+            # Get the 'str' setting from the line
+            for key in str_setting_dict:
+                if "%" in key:
+                    data_type, key = key.split("%")
+                else:
+                    data_type = "str"
 
-                if "NoList" in line:
-                    self.NoList = line.split('=')[1].strip().upper() == "TRUE"
+                if line.startswith(key):
+                    new_value = line.split('=')[1].strip().strip('"').strip("'")
+                    if data_type.lower() == "str":
+                        boolean_setting_dict[key] = new_value
 
-                if "AutomaticOpenOptions" in line:
-                    self.AutomaticOpenOptions = line.split('=')[1].strip().upper() == "TRUE"
+                    elif data_type.lower() == "int":
+                        try:
+                            # Convert it to integer(if convert failed set it to 1)
+                            new_value_converted = int(new_value)
+                            boolean_setting_dict[key] = new_value_converted
+                        except ValueError:
+                            illegal_setting_list.append(f"INT%{key}={new_value}")
 
-                if "AutoOpenOptions" in line:
-                    if self.AutomaticOpenOptions:
-                        self.AutoOpenOptions = line.split('=')[1].strip().strip('"').strip("'")
-
-                if "LauncherTitleColor" in line:
-                    self.LauncherTitleColor = line.split('=')[1].strip().strip('"').strip("'")
-
-                if "QuickLaunch" in line:
-                    self.QuickLaunch = line.split('=')[1].strip().upper() == "TRUE"
-
-                if "PrioUseSystemInstalledJVM" in line:
-                    self.PrioUseSystemInstalledJVM = line.split('=')[1].strip().upper() == "TRUE"
-
-                if "CustomJVMInstallPath" in line:
-                    self.CustomJVMInstallPath = line.split('=')[1].strip().strip('"').strip("'")
-
-                if "SearchJVMInCustomPath" in line:
-                    self.SearchJVMInCustomPath = line.split('=')[1].strip().upper() == "TRUE"
-
-                if "OverwriteJVMIfExist" in line:
-                    self.OverwriteJVMIfExist = line.split('=')[1].strip().upper() == "TRUE"
-
-                if "DoNotAskJVMExist" in line:
-                    self.DoNotAskJVMExist = line.split('=')[1].strip().upper() == "TRUE"
-
-                if "UsingLegacyDownloadOutput" in line:
-                    self.UsingLegacyDownloadOutput = line.split('=')[1].strip().upper() == "TRUE"
-
-                if "LauncherWorkDir" in line:
-                    self.LauncherWorkDir = line.split('=')[1].strip().strip('"').strip("'")
-
-                if "PingServerIP" in line:
-                    self.PingServerIP = line.split('=')[1].strip().strip('"').strip("'")
-
-                if "NoInternetConnectionCheck" in line:
-                    self.NoInternetConnectionCheck = line.split('=')[1].strip().upper() == "TRUE"
-
-                if "BypassLoginStatusCheck" in line:
-                    self.BypassLoginStatusCheck = line.split('=')[1].strip().upper() == "TRUE"
-
-                if "MaxInstancesPerRow" in line:
-                    MaxInstancesPerRow = line.split('=')[1].strip().strip('"').strip("'")
-                    try:
-                        self.MaxInstancesPerRow = int(MaxInstancesPerRow)
-                    except ValueError:
-                        self.ErrorMessageList.append("MaxInstancesPerRowNotAnInteger")
-                        self.MaxInstancesPerRow = 20
-
-                if "MaxFullVersionPerLine" in line:
-                    MaxFullVersionPerLine = line.split('=')[1].strip().strip('"').strip("'")
-                    try:
-                        self.MaxFullVersionPerLine = int(MaxFullVersionPerLine)
-                    except ValueError:
-                        self.ErrorMessageList.append("MaxFullVersionPerLineNotAnInteger")
-                        self.MaxFullVersionPerLine = 5
-
-                if "MaxReleaseVersionPerLine" in line:
-                    MaxReleaseVersionPerLine = line.split('=')[1].strip().strip('"').strip("'")
-                    try:
-                        self.MaxReleaseVersionPerLine = int(MaxReleaseVersionPerLine)
-                    except ValueError:
-                        self.ErrorMessageList.append("MaxReleaseVersionPerLineNotAnInteger")
-                        self.MaxReleaseVersionPerLine = 9
-
-                if "EnableExperimentalMultitasking" in line:
-                    self.EnableExperimentalMultitasking = line.split('=')[1].strip().upper() == "TRUE"
-
-                if "LaunchMultiClientWithOutput" in line:
-                    self.LaunchMultiClientWithOutput = line.split('=')[1].strip().upper() == "TRUE"
-
-                if "AutomaticLaunch" in line:
-                    self.AutomaticLaunch = line.split('=')[1].strip().upper() == "TRUE"
-
-                if "QuickInstancesName" in line:
-                    self.QuickInstancesName = line.split('=')[1].strip().strip('"').strip("'")
-                    if self.QuickInstancesName is None or self.QuickInstancesName == "None":
-                        self.QuickLaunch = False
-                        self.AutomaticLaunch = False
-
-                if "DefaultGameScreenWidth" in line:
-                    DefaultGameScreenWidth = line.split('=')[1].strip().strip('"').strip("'")
-                    try:
-                        self.DefaultGameScreenWidth = int(DefaultGameScreenWidth)
-                    except ValueError:
-                        self.DefaultGameScreenWidth = 1280
-
-                if "DefaultGameScreenHeight" in line:
-                    DefaultGameScreenHeight = line.split('=')[1].strip().strip('"').strip("'")
-                    try:
-                        self.DefaultGameScreenHeight = int(DefaultGameScreenHeight)
-                    except ValueError:
-                        self.DefaultGameScreenHeight = 720
-
-                if "JVMUsageRamSizeMinLimit" in line:
-                    JVMUsageRamSizeMinLimit = line.split('=')[1].strip().strip('"').strip("'")
-                    try:
-                        self.JVMUsageRamSizeMinLimit = int(JVMUsageRamSizeMinLimit)
-                    except ValueError:
-                        self.JVMUsageRamSizeMinLimit = 2048
-
-                if "JVMUsageRamSizeMax" in line:
-                    JVMUsageRamSizeMax = line.split('=')[1].strip().strip('"').strip("'")
-                    try:
-                        self.JVMUsageRamSizeMax = int(JVMUsageRamSizeMax)
-                    except ValueError:
-                        self.JVMUsageRamSizeMax = 4096
-
-                if "CustomModulesPathList" in line:
-                    if version_type.lower() == "dev" and Base.Debug:
-                        if Base.AllowModify and Base.AllowLoadCustomModules:
-                            ModulesPathList = line.split('=')[1].strip()
-                            self.CustomModulesPathList = ast.literal_eval(ModulesPathList)
+            for key, new_value in str_setting_dict.items():
+                setattr(self, key, new_value)
 
         if self.Debug:
             if self.DontPrintColor:
@@ -653,38 +603,24 @@ class LauncherBase:
             if self.DisableClearOutput:
                 print_color("Clear Output has been disabled.", tag='Global')
             if self.NoList:
-                print_color("Print list Has been disabled.", tag='Global')
+                print_color("Print list has been disabled.", tag='Global')
             if self.LauncherWorkDir is not None:
                 if not self.LauncherWorkDir == "None" or Base.LauncherWorkDir == "null":
-                    print_color("Launcher workDir has been set by exist config.", tag='Global')
+                    print_color(f"Launcher workDir has been set to {self.LauncherWorkDir}.", tag='Global')
             if self.NoInternetConnectionCheck:
                 print_color("Check internet connection has been disabled.", tag='Global')
                 self.NoInternetConnectionCheck = True
 
         if not self.NoPrintConfigInfo:
-            if not isinstance(self.MaxInstancesPerRow, int):
-                print_color("MaxInstancesPerRow are not a valid number. Setting back to 20...", tag='Global')
-                self.MaxInstancesPerRow = 20
-
-    def get_platform(self, mode):
-        # Get "normal" platform name
-        Platform = platform.system()
-        Arch = platform.architecture()
-        FullArch = platform.uname().machine
-
-        # In 0.9.1, LauncherBase no longer stash except normal platform name and architecture
-
-        # Check platform support
-        if mode.upper() == "PLATFORM":
-            return Platform
-        elif mode.upper() == "ARCH":
-            return Arch[0]
-        elif mode.upper() == "FULLARCH":
-            return FullArch
-        else:
-            print_color(f"Base: Unknown args {mode}")
-            self.EndLoadFlag = True
-            return None
+            for item in illegal_setting_list:
+                item_type, name_and_value = item.split("%")
+                name, value = name_and_value.split("=")
+                if item_type.lower() == "bool":
+                    print(f"WARNING: Setting name '{name}' value is not legal. Value must be boolean.")
+                elif item_type.lower() == "str":
+                    print(f"WARNING: Setting name '{name}' value is not legal. Value must be string.")
+                elif item_type.lower() == "int":
+                    print(f"WARNING: Setting name '{name}' value is not legal. Value must be int.")
 
     def check_internet_connect(self):
         if self.PingServerIP is not None:
@@ -783,6 +719,7 @@ def load_custom_modules():
                 print(f"Mod Name {mod_group_id} load failed. Not callable.")
         else:
             continue
+
 
 def get_all_classes():
     class_list = {name: obj for name, obj in globals().items() if inspect.isclass(obj)}
