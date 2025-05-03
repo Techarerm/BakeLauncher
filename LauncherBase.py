@@ -11,59 +11,23 @@ import textwrap
 import time
 import platform
 import threading
+
+import libs.lib
 from modules.print_colorx.print_color import print as print_color
+from libs.Utils.config import config_loader
 
 # Beta "Version"("Dev"+"-"+"month(1~12[A~L])/date(Mon~Sun[A~G])"+"Years")
 # dev_version = "month(1~12[A~L])date(Mon~Sun[A~G])dd/mm/yy"
 # Example = "LB041224" Years: 2024 Month: 12 Date: 04
-dev_version = "BD130225"  # If version type is release set it blank
-version_type = "Dev"
-major_version = "0.9.1"
+dev_version = ""  # If version type is release set it blank
+version_type = "Pre-Release"
+major_version = "0.9.x FE"
 
 BetaWarningMessage = ("You are running beta version of BakeLauncher.\n"
                       "This is an 'Experimental' version with potential instability.\n"
                       "Please run it only if you know what you are doing.\n")
 
-ChangeLog = ("Changelog:\n"
-             "\n"
-             "<Christmas Update>\n"
-             "\n"
-             "Added:\n"
-             "Instance Manager: The launcher now natively supports custom instances. Check out Option 4: Manage "
-             "Instance. \n"
-             "DukeExplorer: Searching for Java runtimes is now faster and more stable. You should no longer encounter "
-             "issues while searching for Java runtimes.\n"
-             "Create Instance: You can now assign a name while installing an instance.\n"
-             "Mod Installer: Added support for the Fabric loader! (Other mod loader support is still under testing.)\n"
-             "Legacy Minecraft: The Create Instance feature now supports downloading legacy Minecraft versions!"
-             "(Uses Internet Archive as the source, providing versions unavailable in most launchers.)\n"
-             "LaunchClient: Introduced a new method for creating multi-client setups.\n"
-             "Config: More settings are now available for customization!\n"
-             "\n"
-             "Changed:\n"
-             "The instance structure has been updated to Beta-0.9. The old instance structure is now considered legacy."
-             "To continue using old instances, go to:"
-             " 5: Extra > 5: Convert Old Instance Structure to convert them to the new format.\n"
-             "Old instances can still be launched in this version, but support may end in the next update."
-             " (Version 0.6 instances might not be supported.)\n"
-             "Upgrading the launcher from Version <0.8 to 0.9 allows you to convert your AccountData for compatibility."
-             " Prevents crashes when upgrading directly from Version <0.8 to 0.8.\n"
-             "When you account's token expired. After refresh token process, launcher will clear output again to clean"
-             "refresh token output."
-             "\n"
-             "When your account token expires, the launcher will clear the output after"
-             " the refresh token process to tidy up the logs."
-             "\n"
-             "ArgsManager: The argument modification process has been optimized, reducing the likelihood of crashes.\n"
-             "The launcher now includes two crash log dumpers to prevent sudden crashes."
-             " Crash logs are saved in the log folder.\n"
-             "Several managers now have their own error dumpers:"
-             " (AccountManager, ArgsManager, Create Instance, Instance Manager).\n"
-             "\n"
-             "Removed:"
-             "\n"
-             "JVM Tool : Has been replaced by DukeExplorer."
-             "\n")
+ChangeLog = ("")
 
 global_config = """[BakeLauncher Configuration]
 
@@ -73,16 +37,16 @@ DontPrintColor = false
 DisableClearOutput = false
 DefaultAccountID = 1
 # Custom launcher working Dir(Do not use non-English language paths unless you want to see Minecraft crash on launch)
-LauncherWorkDir = None
+LauncherWorkDir = ""
 # When the launcher checks for an Internet connection, it will use this setting instead of the recommended IP address.
-PingServerIP = None
+PingServerIP = ""
 # Bypass internet connection check
 NoInternetConnectionCheck = false
 
 <MainMenu>
 # Automatic open you want option when launcher load MainMenu
-# AutomaticOpenOptions = false
-# Option = None
+AutomaticOpenOptions = false
+Option = ""
 NoList = false
 QuickLaunch = False
 # Support red, orange, blue, green, yellow, white, gray, lightred, lightblue(recommended), lightyellow, lightgreen
@@ -92,14 +56,10 @@ LauncherTitleColor = lightblue
 <LaunchManager>
 # Create a new terminal when launching Minecraft. The new terminal will not be killed when the main stop working.
 EnableExperimentalMultitasking = true
-# If you Multitasking not working. Set LaunchMultiClientWithOutPut to False . It will create a new client without log
-# output
-LaunchMultiClientWithOutput = True
 DefaultGameScreenWidth = 1280
 DefaultGameScreenHeight = 720
 JVMUsageRamSizeMinLimit = 2048
 JVMUsageRamSizeMax = 4096
-
 
 # Menu setting
 # Set maximum number of instances name can be printed in one line
@@ -109,35 +69,24 @@ MaxInstancesPerRow = 10
 AutomaticLaunch = False
 
 # Launch an instance when main menu loaded(Requires AutomaticLaunch or QuickLaunch is set to True)
-QuickInstancesName = None
-
-# Use old libraries.cfg
-# UseCustomLibrariesCFG = false
-# CustomLibrariesCFGPath = None
+QuickInstancesName = ""
 
 <AccountManager>
-# Bypass login check when launcher loading main menu.
+# Bypass login status check when launcher loading main menu.
 BypassLoginStatusCheck = false
 
-# Save the token given by the user(It will add into launcher in the future :)
-SaveCustomToken = false
-RefreshToken = None
-Token = None
-Username = None
-UUID = None
-
 <DukeExplorer>
-PrioUseSystemInstalledJVM = True
-CustomJVMInstallPath = None
+PrioUseOfSpecifiedJVM = False
+CustomJVMInstallPath = ""
 SearchJVMInCustomPath = False
 
 <Create_Instance>
 # Automatic download you want Minecraft version
 AutomaticDownVersion = true
-MaxFullVersionPerLine = 5  # If the version list is not readable on your computer(When you use recommended setting),
+MaxVersionPerLine = 5  # If the version list is not readable on your computer(When you use recommended setting),
 # Set it to 3 (Or even 2, but I wouldn't recommend setting it to a value<3 number. Just use legacy version mode
 # because is enough for most of people. But the list will be very long (more than >250 lines)
-MaxReleaseVersionPerLine = 10
+MaxInstancesPerRow = 10
 
 # If the same version is already installed in the runtime folder, reinstall it instead of asking user.
 OverwriteJVMIfExist = false
@@ -178,20 +127,6 @@ def initialize_config(**kwargs):
     if not os.path.exists(Base.global_config_path):
         with open(Base.global_config_path, "w") as config:
             config.write(global_config)
-
-
-def ClearOutput():
-    if not Base.DisableClearOutput:
-        if Base.Platform == "Windows":
-            os.system("cls")
-        elif Base.Platform == "Darwin":
-            os.system("clear")
-        elif Base.Platform == "Linux":
-            os.system("clear")
-        else:
-            print("Unsupported platform! Bypassing ClearOutput...")
-    else:
-        return
 
 
 def internal_functions_error_log_dump(error_data, main_function_name, crash_function_name, detailed_traceback):
@@ -268,7 +203,7 @@ class LauncherBase:
     .....
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         # Set version
         if version_type == "Dev":
             self.launcher_version = f"Beta {major_version}({version_type}-{dev_version})"
@@ -287,8 +222,8 @@ class LauncherBase:
                 self.launcher_internal_version = f'beta-{major_version}-release'
                 self.launcher_version_display = self.launcher_version
         # Other stuff (for create instance, platform check...)
-        self.launcher_data_format = "Beta-0.9"
-        self.launcher_lib_version = f"0.9.1-lib-dev2"  # Pre-0.9.1
+        self.launcher_data_format = "Beta-0.9-PE"
+        self.launcher_lib_version = libs.lib.LIB_VERSION
         self.PlatformSupportList = ["Windows", "Darwin", "Linux"]
         self.Platform = platform.system()
         self.Arch = platform.architecture()[0]
@@ -303,6 +238,7 @@ class LauncherBase:
         self.LauncherFullResetFlag = False
         self.UnknownPlatform = False
         self.DontLoadMainMemu = False
+        self.DaemonPool = []
         # ============================I'm a line==============================
         # Config file stuff
         # Global stuff
@@ -315,22 +251,6 @@ class LauncherBase:
         self.NoInternetConnectionCheck = False
         self.PingServerIP = None
         self.BypassLoginStatusCheck = False
-        # main_menu stuff
-        self.NoList = False  # Make main_menu not print the list
-        self.AutomaticOpenOption = False  # Start the selected option when load main_menu (from global config)
-        self.AutoOpenOptionName = None  # Select option
-        self.LauncherTitleColor = 'lightblue'
-        # LaunchManager stuff
-        self.AutomaticLaunch = False
-        self.QuickLaunch = None
-        self.QuickInstancesName = None
-        self.MaxInstancesPerRow = 20
-        self.EnableExperimentalMultitasking = False
-        self.LaunchMultiClientWithOutput = True
-        self.DefaultGameScreenHeight = 720
-        self.DefaultGameScreenWidth = 1280
-        self.JVMUsageRamSizeMinLimit = 2048
-        self.JVMUsageRamSizeMax = 4096
         # Duke
         self.PrioUseOfSpecifiedJVM = True  # When launching game, priority use specified JVM path (CustomJVMInstallPath)
         self.CustomJVMInstallPath = None  # Custom runtimes
@@ -342,11 +262,10 @@ class LauncherBase:
         self.DoNotAskJVMExist = False  # If the version requires an installed version of runtimes,
         # skip asking the user to reinstall it
         self.UsingLegacyDownloadOutput = False  # Legacy download output is good.
-        self.MaxFullVersionPerLine = 5  # Check config to get more information!
-        self.MaxReleaseVersionPerLine = 10  # Check config to get more information!
+        self.MaxVersionPerLine = 5  # Check config to get more information!
         self.DarwinInstallWithRosetta = False
         # ============================I'm a line==============================
-        # Other stuff
+        # Launcher environment
         self.launcher_root_dir = os.getcwd()  # Set launcher root dir
         self.launcher_instances_dir = os.path.join(self.launcher_root_dir, "instances")  # instances
         self.launcher_tmp_dir = os.path.join(self.launcher_root_dir, "tmp")  # tmp(still under testing)
@@ -356,37 +275,41 @@ class LauncherBase:
         self.jvm_setting_path = os.path.join(self.launcher_root_dir, "data/java_home_list.json")
         self.assets_dir = os.path.join(self.launcher_root_dir, "assets")
         self.PingServerHostList = ["8.8.8.8", "210.2.4.8", "1.1.1.1"]  # Test internet Connection
-        self.launcher_loaded_time = None
-        time = datetime.datetime.today()
-        if time.month == 12 and time.day == 25:
+        self.launcher_boot_args = sys.argv  # Debug
+        self.launcher_loaded_time = datetime.datetime.today()
+        if self.launcher_loaded_time.month == 12 and self.launcher_loaded_time.day == 25:
             self.ChristmasPoint = True
         else:
             self.ChristmasPoint = False
         # ============================I'm a line==============================
         # Dev stuff
-        if version_type.lower() == "dev":
+        self.AllowModify = False
+        self.AllowUnsafeImport = False
+        self.AllowLoadCustomModules = False
+        self.CustomModulesPathList = []
+        self.BypassLoginRequire = False
+        self.PrintThreadInfo = False
+        self.DevelopmentMode = False
+        if self.DevelopmentMode:
             self.AllowModify = True
-            self.AllowUnsafeImport = True
-            self.AllowLoadCustomModules = True
-            self.CustomModulesPathList = []
-            self.BypassLoginRequire = False
-            self.PrintThreadInfo = False
         else:
             self.AllowModify = False
 
     @property
     def Initialize(self):
         # Initialize Launcher "Base"
+
         # Load config
-        if not os.path.exists("data/config.bakelh.cfg"):
+        if not os.path.exists(self.global_config_path):
             initialize_config()
         else:
             self.load_setting()
 
-        # Check workdir(If launcher running in a non-ASCII path)(Seems like it patched when BakeLauncher added
-        # instance_info support?) (Now this bug appears again...)
+        # Change workDir if it exists
+
+
         try:
-            if self.LauncherWorkDir is not None and self.LauncherWorkDir != "None":
+            if self.LauncherWorkDir is not None:
                 if len(self.LauncherWorkDir) > 0:
                     try:
                         os.chdir(self.LauncherWorkDir)
@@ -395,8 +318,7 @@ class LauncherBase:
                     except Exception as e:
                         print_color(f"Failed to change workDir :( Cause by error {e}", tag='ERROR', color='red')
                 else:
-                    print_color("Invalid LauncherWorkDir!", tag='Warning')
-                    print_color("Stopped change workDir!", tag='INFO')
+                    print_color("Could not change workDir. The setting path is invalid.", tag='Warning')
             else:
                 os.chdir(self.launcher_root_dir)
 
@@ -469,11 +391,11 @@ class LauncherBase:
             os.makedirs(self.launcher_tmp_dir, exist_ok=True)
         """
         # Check config file status
-        if os.path.exists("data/config.bakelh.cfg"):
-            with open("data/config.bakelh.cfg", "r", encoding="utf-8") as file:
+        if os.path.exists(self.global_config_path):
+            with open(self.global_config_path, "r", encoding="utf-8") as file:
                 cfg_data = file.read()  # Read the content of the file
                 cfg_length = len(cfg_data)
-            if cfg_length < 10:
+            if cfg_length < 1:
                 print_color("Warning: Your config file are corrupted :0 Do you want to reconfigure it?")
                 user_input = str(input('Y/N :'))
                 if user_input.upper() == "Y":
@@ -490,137 +412,40 @@ class LauncherBase:
         return True, ""
 
     def load_setting(self):
-        cleaned_lines = []
-        illegal_setting_list = []
-        boolean_setting_dict = {
-            "Debug": self.Debug,
-            "DisableClearOutput": self.DisableClearOutput,
-            "DontPrintColor": self.DontPrintColor,
-            "NoList": self.NoList,
-            "AutomaticOpenOption": self.AutomaticOpenOption,
-            "QuickLaunch": self.QuickLaunch,
-            "PrioUseOfSpecifiedJVM ": self.PrioUseOfSpecifiedJVM,
-            "SearchJVMInCustomPath": self.SearchJVMInCustomPath,
-            "DoNotAskJVMExist": self.DoNotAskJVMExist,
-            "UsingLegacyDownloadOutput": self.UsingLegacyDownloadOutput,
-            "NoInternetConnectionCheck": self.NoInternetConnectionCheck,
-            "BypassLoginStatusCheck": self.BypassLoginStatusCheck,
-            "EnableExperimentalMultitasking": self.EnableExperimentalMultitasking,
-            "LaunchMultiClientWithOutput": self.LaunchMultiClientWithOutput,
-            "AutomaticLaunch": self.AutomaticLaunch
+        setting_dict = {
+            "BOOL%Debug": "Debug",
+            "BOOL%DisableClearOutput": "DisableClearOutput",
+            "BOOL%DontPrintColor": "DontPrintColor",
+            "BOOL%NoList": "NoList",
+            "BOOL%AutomaticOpenOption": "AutomaticOpenOption",
+            "BOOL%QuickLaunch": "QuickLaunch",
+            "BOOL%PrioUseOfSpecifiedJVM ": "PrioUseOfSpecifiedJVM",
+            "BOOL%SearchJVMInCustomPath": "SearchJVMInCustomPath",
+            "BOOL%DoNotAskJVMExist": "DoNotAskJVMExist",
+            "BOOL%OverwriteJVMIfExist": "OverwriteJVMIfExist",
+            "BOOL%UsingLegacyDownloadOutput": "UsingLegacyDownloadOutput",
+            "BOOL%NoInternetConnectionCheck": "NoInternetConnectionCheck",
+            "BOOL%BypassLoginStatusCheck": "BypassLoginStatusCheck",
+            "BOOL%LaunchClientWithOutput": "LaunchClientWithOutput",
+            "BOOL%LegacyLaunchMethod": "LegacyLaunchMethod",
+            "BOOL%AutomaticLaunch": "AutomaticLaunch",
+            "INT%DefaultAccountID": "DefaultAccountID",
+            "STR%AutoOpenOptionName": "AutoOpenOptionName",
+            "STR%LauncherTitleColor": "LauncherTitleColor",
+            "STR%CustomJVMInstallPath": "CustomJVMInstallPath",
+            "STR%LauncherWorkDir": "LauncherWorkDir",
+            "STR%PingServerIP": "PingServerIP",
+            "INT%MaxInstancesPerRow": "MaxInstancesPerRow",
+            "INT%MaxVersionPerLine": "MaxVersionPerLine",
+            "STR%QuickInstancesName": "QuickInstancesName",
+            "INT%DefaultGameScreenWidth": "DefaultGameScreenWidth",
+            "INT%DefaultGameScreenHeight": "DefaultGameScreenHeight",
+            "INT%JVMUsageRamSizeMinLimit": "JVMUsageRamSizeMinLimit",
+            "INT%JVMUsageRamSizeMax": "JVMUsageRamSizeMax",
+            "STR%CustomModulesPathList": "CustomModulesPathList"
         }
 
-        str_setting_dict = {
-            "INT%DefaultAccountID": self.DefaultAccountID,
-            "AutoOpenOptionName": self.AutoOpenOptionName,
-            "LauncherTitleColor": self.LauncherTitleColor,
-            "CustomJVMInstallPath": self.CustomJVMInstallPath,
-            "LauncherWorkDir": self.LauncherWorkDir,
-            "PingServerIP": self.PingServerIP,
-            "INT%MaxInstancesPerRow": self.MaxInstancesPerRow,
-            "INT%MaxFullVersionPerLine": self.MaxFullVersionPerLine,
-            "INT%MaxReleaseVersionPerLine": self.MaxReleaseVersionPerLine,
-            "QuickInstancesName": self.QuickInstancesName,
-            "INT%DefaultGameScreenWidth": self.DefaultGameScreenWidth,
-            "INT%DefaultGameScreenHeight": self.DefaultGameScreenHeight,
-            "INT%JVMUsageRamSizeMinLimit": self.JVMUsageRamSizeMinLimit,
-            "INT%JVMUsageRamSizeMax": self.JVMUsageRamSizeMax,
-            "CustomModulesPathList": self.CustomModulesPathList
-        }
-
-        # Check if the global config exists.
-        if not os.path.exists(self.global_config_path):
-            initialize_config()
-
-        try:
-            with open(self.global_config_path, "r", encoding="utf-8") as file:
-                data = file.read()
-        except Exception as e:
-            print_color(f"ERR : {e}", tag='WARNING')
-            print_color("Failed to load global config file. File are corrupted :(", tag='INFO')
-            print_color("Recreating the config file...", tag='INFO')
-            initialize_config(overwrite=True)
-
-        # Read global config
-        with open(self.global_config_path, 'r') as file:
-            for line in file:
-                line = line.strip()
-                if not line or line.startswith('#'):
-                    # Filter all comments
-                    continue
-
-                line = line.split('#', 1)[0].strip()
-                if line:
-                    cleaned_lines.append(line)
-
-        for line in cleaned_lines:
-            # Get the boolean setting from the line
-            for key in boolean_setting_dict:
-                if line.startswith(key):
-                    new_value = line.split('=')[1].strip().upper()
-                    if new_value.upper() == 'TRUE':
-                        value = True
-                    elif new_value.upper() == 'FALSE':
-                        value = False
-                    else:
-                        value = None
-
-                    if value is None:
-                        illegal_setting_list.append(f"BOOL%{key}={new_value}")
-                    else:
-                        boolean_setting_dict[key] = value
-
-            # After read config, update all variable
-            for key, new_value in boolean_setting_dict.items():
-                setattr(self, key, new_value)
-
-            # Get the 'str' setting from the line
-            for key in str_setting_dict:
-                if "%" in key:
-                    data_type, key = key.split("%")
-                else:
-                    data_type = "str"
-
-                if line.startswith(key):
-                    new_value = line.split('=')[1].strip().strip('"').strip("'")
-                    if data_type.lower() == "str":
-                        boolean_setting_dict[key] = new_value
-
-                    elif data_type.lower() == "int":
-                        try:
-                            # Convert it to integer(if convert failed set it to 1)
-                            new_value_converted = int(new_value)
-                            boolean_setting_dict[key] = new_value_converted
-                        except ValueError:
-                            illegal_setting_list.append(f"INT%{key}={new_value}")
-
-            for key, new_value in str_setting_dict.items():
-                setattr(self, key, new_value)
-
-        if self.Debug:
-            if self.DontPrintColor:
-                print_color("Colorful text has been disabled.", tag='Global')
-            if self.DisableClearOutput:
-                print_color("Clear Output has been disabled.", tag='Global')
-            if self.NoList:
-                print_color("Print list has been disabled.", tag='Global')
-            if self.LauncherWorkDir is not None:
-                if not self.LauncherWorkDir == "None" or Base.LauncherWorkDir == "null":
-                    print_color(f"Launcher workDir has been set to {self.LauncherWorkDir}.", tag='Global')
-            if self.NoInternetConnectionCheck:
-                print_color("Check internet connection has been disabled.", tag='Global')
-                self.NoInternetConnectionCheck = True
-
-        if not self.NoPrintConfigInfo:
-            for item in illegal_setting_list:
-                item_type, name_and_value = item.split("%")
-                name, value = name_and_value.split("=")
-                if item_type.lower() == "bool":
-                    print(f"WARNING: Setting name '{name}' value is not legal. Value must be boolean.")
-                elif item_type.lower() == "str":
-                    print(f"WARNING: Setting name '{name}' value is not legal. Value must be string.")
-                elif item_type.lower() == "int":
-                    print(f"WARNING: Setting name '{name}' value is not legal. Value must be int.")
+        config_loader(self, setting_dict, self.global_config_path)
 
     def check_internet_connect(self):
         if self.PingServerIP is not None:
@@ -678,7 +503,18 @@ Base = LauncherBase()
 
 
 def load_custom_modules():
-    for mod_path in Base.CustomModulesPathList:
+    mods_folder = os.path.join(Base.launcher_root_dir, "mods")
+    if not os.path.exists(mods_folder):
+        return
+
+    folder_list = os.listdir(mods_folder)
+
+    mod_paths_list = []
+    for name in folder_list:
+        path = os.path.join(mods_folder, name)
+        mod_paths_list.append(path)
+
+    for mod_path in mod_paths_list:
         mod_info = os.path.join(mod_path, "mod.info.json")
         if not os.path.exists(mod_info):
             continue
@@ -757,7 +593,7 @@ def bake_bake():
         if "details" in user_input.lower():
             print(f"Launcher Version : {Base.launcher_version}")
             print(f"Launcher Version Type : {Base.launcher_version_type}")
-            print(f"Using Lib Version : {Base.launcher_lib_version}")
+            print(f"Using Lib Version : {libs.lib.LIB_VERSION}")
             print(f"WorkDir : {Base.launcher_root_dir}")
             print(f"Debug : {Base.Debug}")
             print("")

@@ -1,135 +1,133 @@
-"""
-The main of the BakeLauncher
-main.py
-
-Launcher load process:
-Init>self.launcher_loader>Init Base>self.main>Start main_memu in new thread>terminated
-"""
-import multiprocessing
+import argparse
+import importlib.util
+import json
+import os
+import sys
+import logging
 import threading
 import time
-import traceback
-import textwrap
-import datetime
-import os
-from LauncherBase import Base, ClearOutput, BetaWarningMessage, print_custom as print, load_custom_modules
-from libs.main_menu import main_menu
+from launcher.cli.main_menu import main_menu
+from LauncherBase import Base
 
 
 class BakeLauncher:
     def __init__(self):
-        self.StartStatus = False
-        self.Message = None
-        self.launcher_loader()
+        self.start_time = time.time()
+        self.boot_args = sys.argv
+        self.arguments_parser()
+        self.development_mode = False
+        self.debug = False
+        self.interface = None
+        self.main()
 
-    def load_base(self):
-        # Load LauncherBase
-        try:
-            self.StartStatus, self.Message = Base.Initialize
-        except Exception as e:
-            ClearOutput()
-            tb = traceback.format_exc()  # Full traceback as a string
-            function_name = traceback.extract_tb(e.__traceback__)[-1].name
-            print(f"BakeLauncher has crashed :( Caused by failed to load Base.", color='lightred')
-            print(f"Crash at function name Base.{function_name}()")
-            print(f"Error {e}")
-            print(f"Detailed traceback:\n{tb}")
-            self.generate_crash_log(tb, function_name, e, BaseInitialized=False)
+    def arguments_parser(self):
+        parser = argparse.ArgumentParser(
+            description="BakeLauncher Arguments Parser Info",
+        )
 
-    def launcher_loader(self):
-        # Start the launcher process if loading base pass
-        while True:
-            if not self.StartStatus:
-                self.load_base()
+        parser.add_argument("-debug", help="Enable debug mode", action="store_true")
+        parser.add_argument("-development-mode", help="Enable development mode", action="store_true")
 
-            if self.StartStatus:
-                try:
-                    self.main()
-                except Exception as e:
-                    # Extract the function name from the traceback
-                    ClearOutput()
-                    tb = traceback.format_exc()  # Full traceback as a string
-                    function_name = traceback.extract_tb(e.__traceback__)[-1].name
-                    print(f"BakeLauncher has crashed :( Caused by an error in function '{function_name}': {e}",
-                          color='lightred')
-                    print(f"Crash at function name {function_name}")
-                    print(f"Error {e}")
-                    print(f"Detailed traceback:\n{tb}")
-                    self.generate_crash_log(tb, function_name, e, BaseInitialized=True)
-            else:
-                print("Init Error :(", color='red')
-                print("If BakeLauncher crashes while loading Base. You can try deleting the invalid profile, this may "
-                      "help resolve the issue.")
-                print(f"ERR CODE: {self.Message}")
+        args = parser.parse_args()
 
-            print("BakeLauncher thread terminated!")
-            if Base.LauncherFullResetFlag:
-                input("Press any key to reset all thing...")
-                self.StartStatus = False
-                Base.LauncherFullResetFlag = False
-            else:
-                EXIT_CODE = str(input("Press any key to continue..."))
-                return True
+        if args.debug:
+            logging.basicConfig(level=logging.DEBUG)
+            Base.Debug = True
+            self.debug = True
+
+        if args.development_mode:
+            Base.DevelopmentMode = True
+            self.development_mode = True
+
+        return args
+
+    @staticmethod
+    def modules_loader():
+        mods_folder = os.path.join(Base.launcher_root_dir, "mods")
+        if not os.path.exists(mods_folder):
+            return
+
+        folder_list = os.listdir(mods_folder)
+
+        mod_paths_list = []
+        for name in folder_list:
+            path = os.path.join(mods_folder, name)
+            mod_paths_list.append(path)
+
+        for mod_path in mod_paths_list:
+            mod_info = os.path.join(mod_path, "mod.info.json")
+            if not os.path.exists(mod_info):
+                continue
+
+            try:
+                with open(mod_info, "r") as f:
+                    mod_info = json.load(f)
+            except Exception as e:
+                print("[Warning] Cannot load mod info from {} ERR: {}".format(mod_info, e))
+                continue
+
+            mod_main_name = mod_info.get("modMain", None)
+            mod_main_file = mod_info.get("modMainFile", None)
+            mod_main_file_path = os.path.join(mod_path, mod_main_file)
+            mod_group_id = mod_info.get("groupID", None)
+            mod_type = mod_info.get("modType", None)
+
+            if not os.path.exists(mod_main_file_path):
+                continue
+
+            if mod_main_name is None:
+                continue
+
+            # Define a unique module name based on the file path
+            module_name = f"mod_{hash(mod_main_file_path)}"
+
+            # Load mod
+            try:
+                spec = importlib.util.spec_from_file_location(module_name, mod_main_file_path)
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[module_name] = module  # Register module in sys.modules
+                spec.loader.exec_module(module)
+            except Exception as e:
+                print("[Warning] Cannot load module {} ERR: {}".format(mod_group_id, e))
+                continue
+
+            # Get the function dynamically
+            if mod_type == "loadable_modules":
+                if hasattr(module, mod_main_name):
+                    mod_function = getattr(module, mod_main_name)
+                    if callable(mod_function):
+                        print(f"[DEBUG] Modules name {mod_group_id} has been loaded.")
+                        mod_function()
+                    else:
+                        print(f"[DEBUG] Modules name {mod_group_id} load failed. Not callable.")
+                else:
+                    continue
 
     def main(self):
-        # DEBUG for platform check
-        print(f"BakeLauncher: Launcher is running on platform : {Base.Platform}", color='lightblue')
-        if Base.Debug:
-            print(f"Thread Info > PID : {os.getpid()} | Thread : {threading.get_ident()}", color='lightblue')
+        base_status, e = Base.Initialize
 
-        if Base.Debug and Base.launcher_version_type.lower() == "dev":
-            print("You are running on development mode !", tag="INFO")
+        if self.debug:
+            spend_time = time.time() - self.start_time
+            print(f"[Debug] Loading the launcher took time:{spend_time: 4f}")
 
-        ClearOutput()
+        if not base_status:
+            print("Init Error :(")
+            print(f"ERR CODE: {e}")
+            return
 
-        # Print BetaWarningMessage
-        print(BetaWarningMessage, color='yellow')
-        ClearOutput()
+        self.arguments_parser()
+        if self.development_mode:
+            print("[DEBUG] Development mode is enabled. Loading modules...")
+            self.modules_loader()
 
-        # Dev only
-        if Base.AllowModify:
-            load_custom_modules()
+        if self.debug:
+            spend_time = time.time() - self.start_time
+            print(f"[Debug] Loading the launcher took time:{spend_time: 4f}")
 
-        # Load main menu
         main_menu.menuMain()
 
 
-    @staticmethod
-    def generate_crash_log(tb, crash_function, e, BaseInitialized):
-        crash_log = textwrap.dedent(f"""\
-        [BakeLauncher Crash Log]
-        
-        Launcher Version: {Base.launcher_version}
-        Version Type: {Base.launcher_version_type}
-        Internal Name: {Base.launcher_internal_version}
-        BaseInitialized = {BaseInitialized}
-        
-        Date: {datetime.datetime.now()}
-        Crash at function name: {crash_function}
-        Exception:
-        {e}
-        
-        Detailed traceback:
-        {tb}        
-        """)
-
-        if not os.path.exists("logs"):
-            os.mkdir("logs")
-
-        crash_log = "\n".join(line.lstrip() for line in crash_log.splitlines())
-        # Format the timestamp to avoid invalid characters
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        log_name = f"crash_{timestamp}.log"
-        crash_log_save_path = os.path.join(Base.launcher_root_dir, "logs", log_name)
-
-        with open(crash_log_save_path, "w") as f:
-            f.write(crash_log)
-
-        print(f"Crash log has been saved to {crash_log_save_path}")
-
-
 if __name__ == "__main__":
-    # Added multitasking(?) support(for LaunchClient and pyinstaller...)
-    multiprocessing.freeze_support()
     BakeLauncher()
-
+    print("Launcher terminated.")
+    sys.exit(0)

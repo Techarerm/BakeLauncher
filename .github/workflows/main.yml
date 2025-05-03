@@ -1,4 +1,4 @@
-name: Build Main Version
+=name: Build Main Version
 
 on:
   push:

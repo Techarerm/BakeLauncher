@@ -2,11 +2,13 @@ import os
 import shutil
 import time
 import traceback
+from LauncherBase import print_color as print, internal_functions_error_log_dump, Base
+from launcher.cli.__duke_explorer import Duke
+from libs.definition.data import *
 from libs.instance.instance import instance
-from LauncherBase import Base, print_color as print, internal_functions_error_log_dump
 from libs.version.version import find_main_class
-from libs.__duke_explorer import Duke
 from libs.version.version import get_version_data
+
 
 class InstanceManager:
     def __init__(self):
@@ -28,8 +30,8 @@ class InstanceManager:
         self.CONVERT_FROM_LEGACY = False
 
         # Instance Structure
-        self.game_folder = ".minecraft"
-        self.assets_folder = ".minecraft/assets"
+        self.game_folder = INSTANCE_GAME_FOLDER_NAME
+        self.assets_folder = f"{INSTANCE_GAME_FOLDER_NAME}/assets"
 
         # Modify Info
         self.ISVanilla = False
@@ -45,12 +47,11 @@ class InstanceManager:
         self.instance_path = None
 
     @staticmethod
-    def instance_list(**kwargs):
+    def instance_list(only_print_legacy=False, only_return_list=False, max_instance_per_row=20,
+                      without_drop_no_instance_available_error=False, only_return_legacy_list=False,
+                      without_drop_no_instance_error=False):
         global instances_list_original
-        only_print_legacy = kwargs.get('only_print_legacy', False)
-        only_return_list = kwargs.get('only_return_list', False)
-        without_drop_no_instance_error = kwargs.get('without_drop_no_instance_available_error', False)
-        only_return_legacy_list = kwargs.get('only_return_legacy_list', False)
+
         if not os.path.exists(Base.launcher_instances_dir):
             if not without_drop_no_instance_error:
                 print("No instances are available :|", color='red')
@@ -106,7 +107,7 @@ class InstanceManager:
 
         # Display the instances in rows
         row_count = 0
-        max_per_row = getattr(Base, "MaxInstancesPerRow", 20)  # Default to 5 if not defined
+        max_per_row = max_instance_per_row
 
         if max_per_row <= 0:  # Handle invalid configurations
             max_per_row = 5
@@ -263,7 +264,11 @@ class InstanceManager:
             instance_path = os.path.join(Base.launcher_instances_dir, self.name)
             legacy_libraries_path = os.path.join(instance_path, "libraries")
             legacy_client_path = os.path.join(instance_path, "client.jar")
-            game_folder = os.path.join(instance_path, ".minecraft")
+            old_game_folder = os.path.join(instance_path, ".minecraft")
+            # For macOS
+            if os.path.exists(legacy_client_path) and Base.Platform == "Darwin":
+                os.rename(old_game_folder, INSTANCE_GAME_FOLDER_NAME)
+            game_folder = os.path.join(instance_path, INSTANCE_GAME_FOLDER_NAME)
             new_client_path = os.path.join(game_folder, "libraries", "net", "minecraft", self.name)
             new_libraries_path = os.path.join(game_folder, "libraries")
             if os.path.exists(legacy_libraries_path):
@@ -322,7 +327,11 @@ class InstanceManager:
                     instance_path = os.path.join(Base.launcher_instances_dir, instance_name)
                     legacy_libraries_path = os.path.join(instance_path, "libraries")
                     legacy_client_path = os.path.join(instance_path, "client.jar")
-                    game_folder = os.path.join(instance_path, ".minecraft")
+                    old_game_folder = os.path.join(instance_path, ".minecraft")
+                    # For macOS
+                    if os.path.exists(legacy_client_path) and Base.Platform == "Darwin":
+                        os.rename(old_game_folder, INSTANCE_GAME_FOLDER_NAME)
+                    game_folder = os.path.join(instance_path, INSTANCE_GAME_FOLDER_NAME)
                     new_client_path = os.path.join(game_folder, "libraries", "net", "minecraft", instance_name)
                     new_libraries_path = os.path.join(game_folder, "libraries")
                     if os.path.exists(legacy_libraries_path):

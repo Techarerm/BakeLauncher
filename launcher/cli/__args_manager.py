@@ -4,9 +4,10 @@ import traceback
 from libs.instance.instance import instance
 from libs.version.version import get_version_data
 from libs.arguments.arguments import arguments
-from libs.launch_manager import launch_manager
-from libs.__instance_manager import instance_manager
-from LauncherBase import print_custom as print, ClearOutput, internal_functions_error_log_dump
+from launcher.cli.launch_manager import launch_manager
+from launcher.cli.__instance_manager import instance_manager
+from LauncherBase import print_custom as print, internal_functions_error_log_dump
+from launcher.cli.display_util.util import clear
 
 
 class ArgsManager:
@@ -61,7 +62,7 @@ class ArgsManager:
 
         # Editing menu
         while True:
-            ClearOutput()
+            clear()
             exist_data = instance.read_custom_config(instance_custom_config, mode)
             if exist_data:
                 print(f"Existing Custom config data for {mode}", color='lightgreen')
@@ -264,7 +265,7 @@ class ArgsManager:
             else:
                 print("No valid arguments to process :(", color='red')
 
-            ClearOutput()
+            clear()
 
     def custom_game_args_menu(self):
         instance_path, instance_custom_config, client_version = self.select_modify_instance(

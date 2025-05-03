@@ -4,7 +4,6 @@ import re
 import json
 import time
 import traceback
-
 from LauncherBase import Base, print_custom as print, internal_functions_error_log_dump
 from libs.version.version import get_version_data, get_version_data_from_exist_data
 
@@ -57,6 +56,7 @@ class DukeCute:
 
         # Get output
         output = result.stderr
+        print(output)
 
         # Get major version (e.g., "21.0.3") and full version in the output
         match = re.search(r'java version "(\d+)(?:\.(\d+))?', output)

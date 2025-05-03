@@ -2,7 +2,8 @@ import os
 import json
 import requests
 from tqdm import tqdm
-from LauncherBase import Base, print_custom as print, ClearOutput
+from LauncherBase import Base, print_custom as print
+from launcher.cli.display_util.util import clear
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from libs.Utils.crypto import verify_checksum
 from libs.version.version import get_version_data
@@ -206,7 +207,7 @@ class AssetsGrabber:
             print("Do you want to re-download the assets file?", color='green')
             user_input = str(input("Y/N : ")).lower()
             if user_input.strip("") == "y":
-                ClearOutput()
+                clear()
                 print("Re-downloading assets file...", color='purple')
                 self.assets_file_grabber(minecraft_version, instance_dir)
                 print("Re-download assets file finished!", color='blue')

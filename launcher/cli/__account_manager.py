@@ -45,12 +45,14 @@ import time
 import webbrowser
 from json import JSONDecodeError
 import traceback
-import requests
-import json
 import os
-from LauncherBase import Base, ClearOutput, initialize_config, print_custom as print, internal_functions_error_log_dump
+from LauncherBase import Base, initialize_config, print_custom as print, internal_functions_error_log_dump
+from launcher.cli.display_util.util import clear
+from libs.account.auth_process import get_access_token_msa
 from libs.account.msa import *
 from libs.account.mojang_api import *
+from libs.account.auth_management import *
+from launcher.cli import main_menu
 
 
 class AuthManager:
@@ -58,6 +60,7 @@ class AuthManager:
         self.RefreshTokenFlag = False
         self.grant_type = None
         self.request_data = None
+        self.account_data_path = Base.account_data_path
 
     def get_account_data(self, minecraft_token):
         try:
@@ -105,18 +108,18 @@ class AuthManager:
 
     def update_account_data(self, account_id, access_token, username, refresh_token):
         # Fetch account data
-        status, selected_account_data = self.get_account_data_use_account_id(account_id)
+        status, selected_account_data, e = get_account_data_use_account_id(self.account_data_path, account_id)
         if not status:
-            return False, f"UpdateAccountData>GetAccountDataUseAccountID>{selected_account_data}"
+            return False, f"Update account data failed: {e} | The specified account ID's data does not exist."
 
         # Load JSON data
-        try:
-            with open("data/AccountData.json", 'r') as f:
-                account_data = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            return False, f"LoadingAccountData>Error:{e}"
+        status, AccountData, e = read_account_data(self.account_data_path)
+
+        if not status:
+            return False, f"Update account data failed: {e} | Get main AccountData data failed."
 
         # Update "select" account data
+
         account_found = False
         for account in account_data:
             if account['id'] == account_id:  # Fixed: Using account_id
@@ -198,150 +201,87 @@ class AuthManager:
             print("Invalid URL. Please try again.", color='lightred')
             return False
 
-        # Start get token process...
         Status, microsoft_token, microsoft_refresh_token, Err = get_microsoft_account_token(code, "AuthToken")
         if not Status:
             print(f"Failed to get microsoft account token :( Cause by error {Err}", color='red')
             time.sleep(3)
             return f"GetMSAccountTokenFailed>ERR:{Err}"
 
-        Status, xbl_token, Err = get_xbl_token(microsoft_token)
-        if not Status:
-            print(f"Failed to get XBL token :( Cause by error {Err}", color='red')
-            time.sleep(3)
-            return xbl_token
+        status, accessToken, e = get_access_token_msa(microsoft_token)
+        if not status:
+            print(f"Failed to refresh access token. | {e}", color='red')
+            return False
 
-        Status, xsts_userhash, xsts_token, Err = get_xsts_token(xbl_token)
-        if not Status:
-            print(f"Failed to get XBL token :( Cause by error {Err}", color='red')
-            time.sleep(3)
-            return xsts_userhash + xsts_token
-
-        Status, access_token, Err = get_access_token(xsts_userhash, xsts_token)
-        if not Status:
-            print(f"Failed to get access token :( Cause by error {Err}", color='red')
-            time.sleep(3)
-            return access_token
-
-        Status, username, uuid, e = get_account_username_and_uuid(access_token)
-        if not Status:
+        status, username, uuid, e = get_account_username_and_uuid(accessToken)
+        if not status:
             print(f"Failed to get Minecraft profile information. Cause by error {e}", color='red')
             time.sleep(3)
-            return username
+            return False
         else:
             print("Minecraft Username:", username, color='lightblue')
             print("Minecraft UUID:", uuid, color='lightblue')
 
-        try:
             # Save the token to AccountData.json
+            login_process_status = False
             print("Saving AccountData...", color='lightgreen')
 
-            json_data = []
-
-            # Check if the file exists and load existing data
-            if os.path.exists("data/AccountData.json"):
-                with open("data/AccountData.json", 'r') as f:
-                    try:
-                        json_data = json.load(f)
-                        # Ensure json_data is a list
-                        if not isinstance(json_data, list):
-                            print("JSON data is not valid! Go to Extra>2: Reset AccountData.json to reset "
-                                  "AccountData.json!", color='lightyellow')
-                            time.sleep(4)
-                            json_data = []
-                    except json.JSONDecodeError:
-                        print("Failed to load existing JSON data, resetting to empty list.", color='red')
-                        print("Go to Extra>2: Reset AccountData.json to reset "
-                              "AccountData.json!", color='lightyellow')
-                        json_data = []
-
-            # Check if the UUID already exists in the AccountData
-            existing_entry = next((entry for entry in json_data if entry["UUID"] == uuid), None)
-
-            # Huh...maybe I don't need to modify and use update_account_data...?
-            if existing_entry:
-                # Update existing entry without changing ID
-                existing_entry["RefreshToken"] = microsoft_refresh_token
-                existing_entry["AccessToken"] = access_token
-                existing_entry["Username"] = username
-                print(f"Updated existing account data for UUID: {uuid}", color='lightyellow')
-                new_id = existing_entry["id"]  # Use the existing ID
-            else:
-                # Get a new ID for new accounts
-                new_id = self.get_account_id(json_data)
-                data = {
-                    "id": new_id,
-                    "Username": username,
-                    "UUID": uuid,
-                    "RefreshToken": microsoft_refresh_token,
-                    "AccessToken": access_token
-                }
-
-                # Append new data to old json data(or new?)
-                json_data.append(data)
-                print(f"Added new account data for UUID: {uuid}", color='lightgreen')
-
-            # Write the updated or new data back to the AccountData
-            with open("data/AccountData.json", "w") as jsonFile:
-                json.dump(json_data, jsonFile, indent=4)
-
-            print("AccountData saved successfully!", color='lightblue')
-            print("Want to change launch using account? Y/N:", color='lightgreen')
-            user_input = input(":")
-            if user_input.upper() == "Y":
-                print("Change using account...", color='lightgreen')
-                Status = self.set_default_account_id(new_id)
-                if not Status:
-                    print("Failed to change DefaultAccountID. Is your config file corrupted?", color='red')
-                    time.sleep(3)
+            acc_exists_status, acc_id, e = check_target_account_exists_using_uuid(self.account_data_path, uuid)
+            if not acc_exists_status:
+                status, e, acc_id = write_new_account_to_account_data(self.account_data_path, username, uuid
+                                                                      , microsoft_refresh_token, accessToken, "msa")
+                if status:
+                    print(f"Added new account to AccountData | UUID: {uuid}", color='lightgreen')
+                    login_process_status = True
                 else:
-                    Base.RefreshTokenFailedFlag = False
+                    print(f"Failed to add new account to AccountData | ERR: {e}", color='red')
+            else:
+                print("AccountData already exists. | Updating new data...", color='lightgreen')
+                status, e = update_specified_account_data(self.account_data_path, id, username, microsoft_refresh_token,
+                                                          accessToken)
+                if status:
+                    print(f"Updated account data | UUID: {uuid}", color='lightgreen')
+                    login_process_status = True
+                else:
+                    print(f"Failed to update new data. | ERR: {e}", color='red')
 
-        except Exception as e:
-            print(f"Failed to save account data. Error: {e}", color='lightred')
-            print("Trying to delete file name AccountData.json (in the data folder)!", color='lightyellow')
+            if login_process_status:
+                print("AccountData saved successfully!", color='lightblue')
+                print("Want to change launch using account? Y/N:", color='lightgreen')
+                user_input = input(":")
+                if user_input.upper() == "Y":
+                    print("Change using account...", color='lightgreen')
+                    Status = self.set_default_account_id(acc_id)
+                    if not Status:
+                        print("Failed to change DefaultAccountID. Is your config file corrupted?", color='red')
+                        time.sleep(3)
+                print("Login process finished.", color='blue')
+            else:
+                print("Login process cancelled.", color='red')
+                time.sleep(3)
 
-        print("Login process finished :)", color='blue')
 
     def check_account_data_are_valid(self, id):
         try:
             id = int(id)  # Ensure ID is an integer
         except ValueError:
-            return False, "ID must be an integer when getting select account data."
-        Status, account_data = self.get_account_data_use_account_id(id)
+            print(f"Wrong type account ID. | Type : {type(id)}", color='red')
+            return False
+        Status, account_data, e = get_account_data_use_account_id(self.account_data_path, id)
 
         if not Status:
             # If it failed when getting account data(Status = False), return failed message
-            return False, account_data
+            return False
         try:
-            accessToken = account_data["AccessToken"]
-            RefreshToken = account_data.get("RefreshToken")
-            if RefreshToken is None or RefreshToken == "null":
+            accessToken = account_data.get("AccessToken", None)
+            RefreshToken = account_data.get("RefreshToken", None)
+            if RefreshToken is None:
                 print(f"Stopping refresh token! Cause by invalid token :(", color='lightred')
-                return False, "InvalidRefreshToken"
+                return False
         except KeyError:
-            return False, "CheckMinecraftToken>GetAccountDataFailed", ""
+            return False
 
-        try:
-            with open("data/AccountData.json", 'r') as f:
-                json_data = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            return False, f"Error loading AccountData.json: {e}"
-
-        if not Base.InternetConnected:
-            return False, "Internet connection is not established!"
-
-        try:
-            # Check if the current Minecraft token is valid
-            r = requests.get("https://api.minecraftservices.com/minecraft/profile", headers={
-                "Authorization": f"Bearer {accessToken}"
-            }, timeout=18)
-            r.raise_for_status()
-            username = r.json()["name"]
-            uuid = r.json()["id"]
-            return True, "AccountDataAreValid"
-
-        except requests.RequestException:
+        account_status = check_access_token_are_valid(accessToken)
+        if not account_status:
             print("Your Minecraft token has expired. Refreshing...", color='lightyellow')
 
             # Refresh Microsoft token using the refresh token
@@ -349,50 +289,34 @@ class AuthManager:
                                                                                               "RefreshToken")
             if not Status:
                 print(f"Failed to refresh Microsoft token. Cause by error {Err}", color='red')
-                print("Maybe your refresh token are expired! please re-login your account.",
-                      color='yellow')
+                print("Maybe your refresh token are expired! please re-login your account.", color='yellow')
                 Base.RefreshTokenFailedFlag = True
                 time.sleep(5)
                 return False, f"FailedToRefreshToken>Err:{Err}"
 
-            # Get a new Minecraft token using the refreshed Microsoft token
-            self.RefreshTokenFlag = True
-            Status, xbl_token, Err = get_xbl_token(new_microsoft_token)
-            if not Status:
-                print(f"Failed to get XBL token :( Cause by error {Err}", color='red')
-                time.sleep(3)
-                return False, f"GettingXBLToken>{Err}"
+            status, accessToken, e = get_access_token_msa(new_refresh_token, refresh_code=True)
+            if not status:
+                print(f"Failed to refresh access token. | {e}", color='red')
+                return False, f"FailedToRefreshToken>Err:{Err}"
 
-            Status, xsts_userhash, xsts_token, Err = get_xsts_token(xbl_token)
-            if not Status:
-                print(f"Failed to get XBL token :( Cause by error {Err}", color='red')
-                time.sleep(3)
-                return False, f"GettingXSTSToken>{Err}"
-
-            Status, access_token, Err = get_access_token(xsts_userhash, xsts_token)
-            if not Status:
-                print(f"Failed to get Minecraft token :( Cause by error {Err}", color='red')
-                time.sleep(3)
-                return False, f"GettingAccessToken>{Err}"
-
-            Status, username, uuid, e = get_account_username_and_uuid(access_token)
-            if not Status:
-                print(f"Failed to get Minecraft profile information :( Cause by error {e}", color='red')
-                time.sleep(3)
-                return False, f"GettingAccountData>{username}"
+            status, username, uuid, e = get_account_username_and_uuid(accessToken)
+            if not status:
+                print(f"Failed to get Minecraft profile information. Cause by error {e}", color='red')
+                return False, f"FailedToRefreshToken>Err:{Err}"
 
             # Update the account data with the new "select" account data
-            Status, message = self.update_account_data(id, access_token, username, new_refresh_token)
-            if not Status:
-                print(f"Failed to update new ac account data :( Cause by error {message}", color='red')
+            status, e = update_specified_account_data(self.account_data_path, id, username, new_refresh_token,
+                                                      accessToken)
+            if not status:
+                print(f"Failed to update new ac account data :( | {e}", color='red')
                 time.sleep(3)
-                return False, f"UpdateAccountData>{message}"
+                return False, e
 
             # Set flag after refresh token finished
-            Base.MainMenuResetFlag = True
-            self.RefreshTokenFlag = False
+            main_menu.main_menu.ResetMainMenu = True
             print("Refresh token process finished!", color='lightblue')
             return True, "AccountDataRefreshSuccessfully"
+        return True
 
     def login_status(self):
         """
@@ -408,10 +332,10 @@ class AuthManager:
             print("Using exist launcher account...", tag='INFO')
             self.set_default_account_id(1)
             time.sleep(2)
-            Base.MainMenuResetFlag = True
+            main_menu.main_menu.ResetMainMenu = True
             return
 
-        if os.path.exists('data/AccountData.json'):
+        if os.path.exists(self.account_data_path):
             try:
                 Status, account_data = self.get_account_data_use_account_id(account_id)
             except Exception as e:
@@ -435,11 +359,11 @@ class AuthManager:
                         print("Failed to change DefaultAccountID. Is your config file corrupted?", color='red')
                         time.sleep(3)
                     # Reset Main Menu
-                    Base.MainMenuResetFlag = True
+                    main_menu.main_menu.ResetMainMenu = True
                     return
                 else:
                     # Reset Main Menu
-                    Base.MainMenuResetFlag = True
+                    main_menu.main_menu.ResetMainMenu = True
                     return
             if account_data is None:
                 print(f"Can't find id '{account_id}' in the account data ! Change to use local account...",
@@ -475,7 +399,7 @@ class AuthManager:
                             Status = False
                         else:
                             if Base.InternetConnected:
-                                Status, message = self.check_account_data_are_valid(account_id)
+                                Status = self.check_account_data_are_valid(account_id)
                             else:
                                 # Network not connected
                                 Status = False
@@ -483,7 +407,7 @@ class AuthManager:
                         # and return. Then main_memu will be reset. When calling login_status, stop refresh process
                         # and print "Login Status: Expired session :0" Because Base.RefreshTokenFailedFlag is True)
                         if Base.RefreshTokenFailedFlag:
-                            Base.MainMenuResetFlag = True
+                            main_menu.main_menu.ResetMainMenu = True
                             return
                     else:
                         Status = False
@@ -492,7 +416,7 @@ class AuthManager:
                 # When MainMenuResetFlag = True(After refreshing the token it will be set to True) stop print login
                 # message(until main_menu set MainMenuResetFlag = False)
                 # Used only if the refresh token succeeds or Base.RefreshTokenFailedFlag = True
-                if Base.MainMenuResetFlag:
+                if main_menu.main_menu.ResetMainMenu:
                     return
 
                 if Status:
@@ -844,7 +768,7 @@ class AuthManager:
             user_input = str(input(':'))
             if user_input == "1":
                 # Login new account
-                ClearOutput()
+                clear()
                 if Base.InternetConnected:
                     self.login_process()
                 else:
@@ -853,11 +777,11 @@ class AuthManager:
                     return
             elif user_input == "2":
                 # Select launcher default account(Save to config.bakelh.cfg)
-                ClearOutput()
+                clear()
                 self.SelectDefaultAccount()
             elif user_input == "3":
                 # Delete Account
-                ClearOutput()
+                clear()
                 self.DeleteAccount()
             elif user_input == "4":
                 self.initialize_account_data()
