@@ -8,7 +8,7 @@ import requests
 yggdrasil_auth_url = "https://authserver.mojang.com/authenticate"
 
 
-def get_access_token(username, password, **kwargs):
+def get_access_token_yggdrasil(username, password, **kwargs):
     """
     Auth process of the yggdrasil system
     :param username: Minecraft username (maybe email?)

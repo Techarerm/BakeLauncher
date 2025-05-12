@@ -1,7 +1,11 @@
 import base64
 import json
-
 import requests
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logging.getLogger('urllib3').setLevel(logging.INFO)
 
 
 def get_account_uuid(username):
@@ -76,6 +80,24 @@ def check_account_uuid_are_valid(uuid):
         return True
 
     return False
+
+
+def check_access_token_are_valid(access_token):
+    """
+    Check Minecraft account access token (if not found return False)
+    :param access_token: Minecraft account access token
+    :return: Status
+    """
+    try:
+        # Check if the current Minecraft token is valid
+        r = requests.get("https://api.minecraftservices.com/minecraft/profile", headers={
+            "Authorization": f"Bearer {access_token}"}, timeout=18)
+        r.raise_for_status()
+        username = r.json()["name"]
+        uuid = r.json()["id"]
+        return True
+    except requests.RequestException as e:
+        return False
 
 
 def get_account_textures_data(uuid):
@@ -162,8 +184,7 @@ def get_account_username_and_uuid(accessToken):
     try:
         # Minecraft username and UUID
         r = requests.get("https://api.minecraftservices.com/minecraft/profile", headers={
-            "Authorization": f"Bearer {accessToken}"
-        })
+            "Authorization": f"Bearer {accessToken}"}, timeout=18)
         r.raise_for_status()
         username = r.json()["name"]
         uuid = r.json()["id"]
@@ -231,5 +252,3 @@ def upload_account_skin(accessToken, type, file_path):
 
     except Exception as e:
         return False, None, e
-
-

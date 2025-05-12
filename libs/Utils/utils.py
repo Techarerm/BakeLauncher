@@ -4,7 +4,7 @@ import requests
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
-from LauncherBase import Base, print_custom as print
+from LauncherBase import Base
 from libs.Utils.crypto import verify_checksum, verify_checksum_v2
 
 VersionManifestURl = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
@@ -43,12 +43,12 @@ def download_file(url, dest_path, **kwargs):
                     return False
 
         if not no_output:
-            print(f"Download successful: {dest_path}", color='lightgreen')
+            print(f"Download successful: {dest_path}")
 
         return True
     except requests.exceptions.RequestException as e:
         if not no_output:
-            print(f"Failed to download {url}: {e}", color='red')
+            print(f"[ERR] Failed to download {url}: {e}")
         return False
 
 
@@ -58,7 +58,7 @@ def extract_zip(zip_path, extract_to):
             zip_ref.extractall(extract_to)
         print(f"Extracted {zip_path} to {extract_to}")
     except zipfile.BadZipFile as e:
-        print(f"Error extracting {zip_path}: {e}", color='red')
+        print(f"[ERR] Error extracting {zip_path}: {e}")
 
 
 def multi_thread_download(nested_urls_and_paths, name, max_workers=5, retries=1):
@@ -138,7 +138,7 @@ def multi_thread_download(nested_urls_and_paths, name, max_workers=5, retries=1)
             futures_download(future_to_url, total_files)
 
     if failed_files:
-        print("Files that failed after retries:", failed_files, color='red')
+        print("[WARNING] Files that failed after retries:", failed_files)
     return downloaded_files, failed_files
 
 
@@ -270,3 +270,13 @@ def check_url_status(url):
             return False
     except Exception as e:
         return False
+
+
+def pause():
+    command = None
+    if os.name == "posix":
+        command = 'read -p "Press enter to continue..."'
+    elif os.name == "nt":
+        command = "pause"
+
+    if command is not None: os.system(command)

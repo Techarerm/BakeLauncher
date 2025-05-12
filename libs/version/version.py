@@ -6,7 +6,7 @@ A function to get version_manifest data or get the specified version data
 import json
 import os
 import requests
-from LauncherBase import print_custom as print, Base
+from LauncherBase import Base
 
 mojang_version_manifest_url = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
 
@@ -88,9 +88,8 @@ def get_minecraft_version_url(version_id, **kwargs):
             break
 
     if version_url is None:
-        print(f"Unable to find same as requires version id: {version_id} in the version_manifest.", color='red',
-              tag="[DEBUG]")
-        print("Failed to get version data. Cause by unknown Minecraft version.", color='red', tag="[DEBUG]")
+        print(f"[DEBUG] Unable to find same as requires version id: {version_id} in the version_manifest.")
+        print("[DEBUG] Failed to get version data. Cause by unknown Minecraft version.")
         return None
 
     return version_url
@@ -101,17 +100,30 @@ def get_minecraft_version_list(**args):
 
     # parameter stuff
     version_manifest_url = args.get("custom_version_manifest_url", mojang_version_manifest_url)
+    only_return_release = args.get("only_return_release", False)
+    only_return_snapshot = args.get("only_return_snapshot", False)
 
     response = requests.get(version_manifest_url)
     data = response.json()
     version_list = data['versions']
 
-    version_id_list = []
+    release_version_id_list = []
+    full_version_id_list = []
+    snapshot_version_id_list = []
     for v in version_list:
         v_id = v['id']
-        version_id_list.append(v_id)
+        full_version_id_list.append(v_id)
+        if v["type"] == "snapshot":
+            snapshot_version_id_list.append(v_id)
+        elif v["type"] == "release":
+            release_version_id_list.append(v_id)
 
-    return version_id_list
+    if only_return_release:
+        return release_version_id_list
+    elif only_return_snapshot:
+        return snapshot_version_id_list
+
+    return full_version_id_list
 
 
 def get_stable_or_newest_minecraft_version(version_type, **kwargs):
