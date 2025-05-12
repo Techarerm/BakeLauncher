@@ -116,15 +116,10 @@ def launch_client(JVMExecutable, libraries_paths_strings, NativesPath, MainClass
         print("Creating mew client thread with log output...", color='green')
         client_launcher.launch_client_with_terminal_legacy(launch_command)
     elif not legacy_method:
-        if Base.Platform == "Windows":
-            launch_command = f"{JVMExecutable} {minecraft_command_one_thread}"
+        launch_command = f"{JVMExecutable} {minecraft_command_one_thread}"
         Status, client = client_launcher.createNewClientInstance(title, launch_command, daemon=True)
         if Status:
             client_launcher.startClientInstance(client)
     else:
-        if Base.Platform == "Windows":
-            launch_command = f"{JVMExecutable} {minecraft_command_one_thread}"
-        if Base.Platform == "Windows":
-            client_launcher.use_legacy_method(launch_command)
-        else:
-            client_launcher.use_legacy_method(launch_command)
+        launch_command = f"{JVMExecutable} {minecraft_command_one_thread}"
+        client_launcher.use_legacy_method(launch_command)
