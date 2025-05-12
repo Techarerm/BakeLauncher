@@ -110,7 +110,7 @@ def launch_client(JVMExecutable, libraries_paths_strings, NativesPath, MainClass
 
     print("Baking Minecraft! :)", color='blue')  # Bring it back :)
     if not client_launcher.initialized:
-        client_launcher.init(register_pool=Base.DaemonPool)
+        client_launcher.init()
 
     if launch_client_with_terminal:
         print("Creating mew client thread with log output...", color='green')

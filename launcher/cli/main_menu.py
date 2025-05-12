@@ -121,8 +121,6 @@ class mainMenu:
     def exit_the_menu(self):
         print("Exiting launcher...", color='lightyellow')
         self.StopReloadMainMenu = True
-        for child_thread in Base.DaemonPool:
-            child_thread.cleanup()
         return True
 
     def menuMain(self):

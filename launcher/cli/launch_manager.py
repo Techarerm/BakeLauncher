@@ -8,6 +8,7 @@ from launcher.cli.__account_manager import account_manager
 from launcher.cli.launch.launch_client import launch_client
 from launcher.cli.__instance_manager import instance_manager
 from libs.Utils.config import config_loader
+from libs.account.account_management import get_current_account_id, get_account_data_use_account_id
 from libs.version.version import *
 from libs.libraries.libraries import generate_classpath
 from libs.instance.instance import instance
@@ -19,8 +20,8 @@ class LauncherManager:
     def __init__(self):
         self.real_version = None
         self.minecraft_version = None
-        self.instance_path = None
         self.instance_name = None
+        self.instance_path = None
 
         self.AutomaticLaunch = False
         self.QuickLaunch = None
@@ -47,7 +48,6 @@ class LauncherManager:
 
     def load_config(self):
         config_loader(self, self.settings_dict, Base.global_config_path)
-
 
     def generate_jvm_args(self, client_version, **kwargs):
         """
@@ -81,12 +81,13 @@ class LauncherManager:
         elif Base.Platform == "Darwin":
             # Check whether the startup version of macOS requires the parameter "-XstartOnFirstThread" parameter In
             # LWJGL 3.x, macOS requires this args to make lwjgl running on the JVM starts with thread 0) (from wiki.vg)
-            for arg in jvm_args_data:
-                if isinstance(arg, dict) and "rules" in arg:
-                    for rule in arg["rules"]:
-                        if rule.get("action") == "allow" and rule.get("os", {}).get("name") == "osx":
-                            if "-XstartOnFirstThread" in arg["value"]:
-                                OtherArgs += f" -XstartOnFirstThread"
+            if jvm_args_data is not None:
+                for arg in jvm_args_data:
+                    if isinstance(arg, dict) and "rules" in arg:
+                        for rule in arg["rules"]:
+                            if rule.get("action") == "allow" and rule.get("os", {}).get("name") == "osx":
+                                if "-XstartOnFirstThread" in arg["value"]:
+                                    OtherArgs += f" -XstartOnFirstThread"
 
         if append_args:
             OtherArgs += f" {append_args}"
@@ -354,13 +355,15 @@ class LauncherManager:
 
         # Get access token and username, uuid to set game args
         print("Reading account data...", color='green')
-        AccountIDStatus, account_id = account_manager.get_default_account_id()
-        if not AccountIDStatus:
-            print("Can't find account ID!", color='red')
+        print(account_manager.account_data_path)
+        status, curr_acc_id, e = get_current_account_id(account_manager.account_data_path)
+        if not status:
+            print(f"Can't find account ID. | {e}", color='red')
             return "AccountIDNotFound"
-        AccDataStatus, account_data = account_manager.get_account_data_use_account_id(account_id)
+
+        AccDataStatus, account_data, e = get_account_data_use_account_id(account_manager.account_data_path, curr_acc_id)
         if not AccDataStatus:
-            print("Could not get account data!", color='red')
+            print(f"Could not get account data. | {e}", color='red')
             return "GetAccountDataFailed"
 
         try:

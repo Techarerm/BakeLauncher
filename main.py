@@ -17,7 +17,7 @@ class BakeLauncher:
         self.arguments_parser()
         self.development_mode = False
         self.debug = False
-        self.interface = None
+        self.main_interface = main_menu.menuMain
         self.main()
 
     def arguments_parser(self):
@@ -41,8 +41,7 @@ class BakeLauncher:
 
         return args
 
-    @staticmethod
-    def modules_loader():
+    def modules_loader(self):
         mods_folder = os.path.join(Base.launcher_root_dir, "mods")
         if not os.path.exists(mods_folder):
             return
@@ -71,6 +70,8 @@ class BakeLauncher:
             mod_main_file_path = os.path.join(mod_path, mod_main_file)
             mod_group_id = mod_info.get("groupID", None)
             mod_type = mod_info.get("modType", None)
+            blockMain = mod_info.get("blockMain", False)
+            require_main_class = mod_info.get("requireMainClass", False)
 
             if not os.path.exists(mod_main_file_path):
                 continue
@@ -81,7 +82,7 @@ class BakeLauncher:
             # Define a unique module name based on the file path
             module_name = f"mod_{hash(mod_main_file_path)}"
 
-            # Load mod
+            # Loading mod
             try:
                 spec = importlib.util.spec_from_file_location(module_name, mod_main_file_path)
                 module = importlib.util.module_from_spec(spec)
@@ -91,17 +92,26 @@ class BakeLauncher:
                 print("[Warning] Cannot load module {} ERR: {}".format(mod_group_id, e))
                 continue
 
+            if not hasattr(module, mod_main_name):
+                print(f"[DEBUG] Modules name {mod_group_id} load failed. modMain missing.")
+                continue
+
+            mod_function = getattr(module, mod_main_name)
+            if not callable(mod_function):
+                print(f"[DEBUG] Modules name {mod_group_id} load failed. Not callable.")
+                continue
+
             # Get the function dynamically
             if mod_type == "loadable_modules":
-                if hasattr(module, mod_main_name):
-                    mod_function = getattr(module, mod_main_name)
-                    if callable(mod_function):
-                        print(f"[DEBUG] Modules name {mod_group_id} has been loaded.")
-                        mod_function()
-                    else:
-                        print(f"[DEBUG] Modules name {mod_group_id} load failed. Not callable.")
+                mod_func = lambda: mod_function(self) if require_main_class else mod_function
+
+                if not blockMain:
+                    threading.Thread(target=mod_func).start()
+                    print(f"[DEBUG] Modules name {mod_group_id} has been loaded.")
                 else:
-                    continue
+                    module_thread = threading.Thread(target=mod_func)
+                    module_thread.start()
+                    module_thread.join()
 
     def main(self):
         base_status, e = Base.Initialize
@@ -124,7 +134,7 @@ class BakeLauncher:
             spend_time = time.time() - self.start_time
             print(f"[Debug] Loading the launcher took time:{spend_time: 4f}")
 
-        main_menu.menuMain()
+        self.main_interface()
 
 
 if __name__ == "__main__":

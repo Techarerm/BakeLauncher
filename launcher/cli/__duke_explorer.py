@@ -28,10 +28,7 @@ class DukeCute:
         self.FoundJavaRuntimeInLauncherInternal = False
         self.JavaExecutableName = None
         self.FoundDuke = False
-        if Base.Platform == "Windows":
-            self.JavaExecutableName = "java.exe"
-        else:
-            self.JavaExecutableName = "java"
+        self.JavaExecutableName = "java.exe" if Base.Platform == "Windows" else "java"
 
     def file_search(self, java_runtime_dir, file_name):
         FindFileList = []
@@ -44,7 +41,7 @@ class DukeCute:
     def test_java_executable(self, runtimes_dir, mode):
         # test java runtimes are executable
 
-        # Using absolute path
+        # Using the absolute path
         JavaExecutable = os.path.join(runtimes_dir, self.JavaExecutableName)
 
         # executable it
@@ -61,7 +58,7 @@ class DukeCute:
         # Get major version (e.g., "21.0.3") and full version in the output
         match = re.search(r'java version "(\d+)(?:\.(\d+))?', output)
         java_name = "Java"
-        # Is for install by launcher runtimes(Because is openjdk not oracle java....)
+        # Is for installation by launcher runtimes (Because is openjdk not oracle java....)
         if not match:
             java_name = "OpenJDK"
             match = re.search(r'openjdk version "(\d+)(?:\.(\d+))?', output)

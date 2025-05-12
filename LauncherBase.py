@@ -230,27 +230,16 @@ class LauncherBase:
         self.FullArch = platform.uname().machine
         # ============================I'm a line==============================
         # Flag and list(Set by launcher)
-        self.EndLoadFlag = False  # If the loading process failed (such as platform check failure), set to true.
-        self.MainMenuResetFlag = False  # Set to true by check_account_data_are_valid or other functions
         self.InternetConnected = False
-        self.StartUsingErrorLog = False
-        self.RefreshTokenFailedFlag = False
-        self.LauncherFullResetFlag = False
-        self.UnknownPlatform = False
-        self.DontLoadMainMemu = False
-        self.DaemonPool = []
         # ============================I'm a line==============================
         # Config file stuff
         # Global stuff
         self.Debug = False
         self.DontPrintColor = False  # Stop print colorful text
         self.DisableClearOutput = False  # Debug
-        self.DefaultAccountID = None
         self.LauncherWorkDir = None  # Setting from the global config file
-        self.NoPrintConfigInfo = False
         self.NoInternetConnectionCheck = False
         self.PingServerIP = None
-        self.BypassLoginStatusCheck = False
         # Duke
         self.PrioUseOfSpecifiedJVM = True  # When launching game, priority use specified JVM path (CustomJVMInstallPath)
         self.CustomJVMInstallPath = None  # Custom runtimes
@@ -306,8 +295,6 @@ class LauncherBase:
             self.load_setting()
 
         # Change workDir if it exists
-
-
         try:
             if self.LauncherWorkDir is not None:
                 if len(self.LauncherWorkDir) > 0:
@@ -382,14 +369,6 @@ class LauncherBase:
         # time.sleep(2)
 
         # Clean up tmp folder
-        """
-        if len(Base.launcher_tmp_dir) != 0:
-            try:
-                shutil.rmtree(self.launcher_tmp_dir)
-            except Exception as e:
-                print(f"Failed to clean tmp folder. Cause by error {e}")
-            os.makedirs(self.launcher_tmp_dir, exist_ok=True)
-        """
         # Check config file status
         if os.path.exists(self.global_config_path):
             with open(self.global_config_path, "r", encoding="utf-8") as file:
@@ -404,10 +383,8 @@ class LauncherBase:
                 else:
                     return False, "Global Config Corrupted"
 
-        if not Status:
-            return False, Message
-        else:
-            self.launcher_loaded_time = datetime.datetime.now()
+        self.launcher_loaded_time = datetime.datetime.now()
+
 
         return True, ""
 
@@ -416,22 +393,14 @@ class LauncherBase:
             "BOOL%Debug": "Debug",
             "BOOL%DisableClearOutput": "DisableClearOutput",
             "BOOL%DontPrintColor": "DontPrintColor",
-            "BOOL%NoList": "NoList",
-            "BOOL%AutomaticOpenOption": "AutomaticOpenOption",
-            "BOOL%QuickLaunch": "QuickLaunch",
             "BOOL%PrioUseOfSpecifiedJVM ": "PrioUseOfSpecifiedJVM",
             "BOOL%SearchJVMInCustomPath": "SearchJVMInCustomPath",
             "BOOL%DoNotAskJVMExist": "DoNotAskJVMExist",
             "BOOL%OverwriteJVMIfExist": "OverwriteJVMIfExist",
             "BOOL%UsingLegacyDownloadOutput": "UsingLegacyDownloadOutput",
             "BOOL%NoInternetConnectionCheck": "NoInternetConnectionCheck",
-            "BOOL%BypassLoginStatusCheck": "BypassLoginStatusCheck",
             "BOOL%LaunchClientWithOutput": "LaunchClientWithOutput",
             "BOOL%LegacyLaunchMethod": "LegacyLaunchMethod",
-            "BOOL%AutomaticLaunch": "AutomaticLaunch",
-            "INT%DefaultAccountID": "DefaultAccountID",
-            "STR%AutoOpenOptionName": "AutoOpenOptionName",
-            "STR%LauncherTitleColor": "LauncherTitleColor",
             "STR%CustomJVMInstallPath": "CustomJVMInstallPath",
             "STR%LauncherWorkDir": "LauncherWorkDir",
             "STR%PingServerIP": "PingServerIP",
@@ -606,7 +575,6 @@ def bake_bake():
             print(f"Debug : {Base.Debug}")
             print(f"DontPrintColor : {Base.DontPrintColor}")
             print(f"DisableClearOutput : {Base.DisableClearOutput}")
-            print(f"DefaultAccountID : {Base.DefaultAccountID}")
             print(f"LauncherWorkDir : {Base.LauncherWorkDir}")
             print(f"PingServerIP : {Base.PingServerIP}")
             print(f"NoInternetConnectionCheck : {Base.NoInternetConnectionCheck}")
